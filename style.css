@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
 /* ============================================
    ROSE SLI — Shared Stylesheet
    ============================================ */
@@ -11,7 +13,7 @@
   --white:  #ffffff;
   --light:  #f5f7fa;
   --gray:   #6b7280;
-  --font:   'Helvetica Neue', Arial, sans-serif;
+  --font:   'Inter', 'Helvetica Neue', Arial, sans-serif;
 }
 
 html { scroll-behavior: smooth; }
@@ -422,8 +424,22 @@ footer .copy { font-size: .75rem; color: #475569; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .nav-links { display: none; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: var(--navy); padding: 1rem 2rem 2rem; gap: 1.2rem; }
-  .nav-links.open { display: flex; }
+  .nav-links {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 64px; left: 0; right: 0;
+    background: var(--navy);
+    gap: 1.2rem;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 2rem;
+    transition: max-height 0.35s ease, padding 0.3s ease;
+  }
+  .nav-links.open {
+    max-height: 420px;
+    padding: 1rem 2rem 2rem;
+  }
   .nav-toggle { display: block; }
   .form-grid { grid-template-columns: 1fr; }
   .stat-row { gap: 1.5rem; }
@@ -431,4 +447,57 @@ footer .copy { font-size: .75rem; color: #475569; }
   .section { padding: 3.5rem 1.5rem; }
   .section-blue, .section-dark { padding: 3.5rem 1.5rem; }
   nav { padding: 0 1.5rem; }
+}
+
+/* ── ANIMATIONS ── */
+
+/* Hero / page-hero entrance (plays on load) */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-inner > * {
+  animation: fadeUp 0.65s ease backwards;
+}
+.hero-inner > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-inner > *:nth-child(2) { animation-delay: 0.2s; }
+.hero-inner > *:nth-child(3) { animation-delay: 0.4s; }
+.hero-inner > *:nth-child(4) { animation-delay: 0.5s; }
+
+.page-hero > * {
+  animation: fadeUp 0.65s ease backwards;
+}
+.page-hero > *:nth-child(1) { animation-delay: 0.05s; }
+.page-hero > *:nth-child(2) { animation-delay: 0.18s; }
+.page-hero > *:nth-child(3) { animation-delay: 0.32s; }
+
+/* Scroll-triggered fade-up */
+.will-animate {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.will-animate.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hamburger → X */
+.nav-toggle span { transition: transform 0.3s ease, opacity 0.2s ease; }
+.nav-toggle.is-open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.nav-toggle.is-open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-toggle.is-open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+/* Button lift on hover */
+.btn, .btn-submit {
+  transition: background 0.2s, transform 0.15s, box-shadow 0.15s;
+}
+.btn:hover, .btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(26, 86, 219, 0.3);
+}
+.btn:active, .btn-submit:active {
+  transform: translateY(0);
+  box-shadow: none;
 }

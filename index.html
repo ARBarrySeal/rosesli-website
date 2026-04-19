@@ -51,6 +51,9 @@
   }
   </script>
 
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -173,15 +176,7 @@
   <p class="copy">&copy; 2026 Rose Sign Language Interpreting. All rights reserved.</p>
 </footer>
 
-<script>
-function toggleNav(btn) {
-  var links = document.querySelector('.nav-links');
-  var expanded = btn.getAttribute('aria-expanded') === 'true';
-  btn.setAttribute('aria-expanded', String(!expanded));
-  btn.setAttribute('aria-label', expanded ? 'Open menu' : 'Close menu');
-  links.classList.toggle('open');
-}
-</script>
+<script src="script.js" defer></script>
 
 </body>
 </html>
