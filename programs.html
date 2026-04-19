@@ -3,37 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Programs | Rose SLI</title>
-  <meta name="description" content="ASL interpreting programs for corporate, medical, legal, educational, and community settings.">
+
+  <title>ASL Interpreting Programs San Diego | Rose SLI</title>
+  <meta name="description" content="Rose SLI offers certified ASL interpreting programs for corporate, medical, legal, educational, and community settings in San Diego and Southern California.">
+
+  <link rel="canonical" href="https://www.rosesli.com/programs.html">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.rosesli.com/programs.html">
+  <meta property="og:title" content="ASL Interpreting Programs San Diego | Rose SLI">
+  <meta property="og:description" content="Certified ASL interpreting for corporate, medical, legal, educational, and community settings in San Diego. Request an interpreter today.">
+  <meta property="og:site_name" content="Rose Sign Language Interpreting">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ASL Interpreting Programs | Rose SLI San Diego">
+  <meta name="twitter:description" content="Certified ASL interpreting for corporate, medical, legal, educational, and community settings in San Diego.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.rosesli.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Programs", "item": "https://www.rosesli.com/programs.html" }
+    ]
+  }
+  </script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<nav aria-label="Primary navigation">
   <a class="nav-logo" href="index.html">Rose <span>SLI</span></a>
-  <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
     <span></span><span></span><span></span>
   </button>
-  <ul class="nav-links">
+  <ul class="nav-links" role="list">
     <li><a href="about.html">About Us</a></li>
-    <li><a href="programs.html" class="active">Programs</a></li>
+    <li><a href="programs.html" class="active" aria-current="page">Programs</a></li>
     <li><a href="work.html">Work</a></li>
     <li><a href="team.html">Team</a></li>
     <li><a href="request.html" class="nav-cta">Request an Interpreter</a></li>
   </ul>
 </nav>
 
+<main id="main-content">
+
 <!-- PAGE HERO -->
 <div class="page-hero">
   <div class="section-label">Services &amp; Programs</div>
   <h1>What We Offer</h1>
-  <p>Specialized interpretation programs designed for the unique demands of each industry and setting.</p>
+  <p>Specialized interpretation programs designed for the unique demands of each industry and setting in San Diego.</p>
 </div>
 
 <!-- CORPORATE -->
-<section class="section">
+<section class="section" aria-labelledby="corp-heading">
   <div class="section-label">Program 01</div>
-  <h2>Corporate &amp; Business</h2>
+  <h2 id="corp-heading">Corporate &amp; Business</h2>
   <p style="max-width:680px; line-height:1.8; color:#374151; font-size:1rem; margin-bottom:2rem;">
     From board meetings to all-hands events, Rose SLI provides experienced interpreters who understand corporate culture and vocabulary. We help your organization communicate inclusion at every level.
   </p>
@@ -46,10 +75,10 @@
 </section>
 
 <!-- MEDICAL -->
-<section class="section-blue">
+<section class="section-blue" aria-labelledby="med-heading">
   <div class="section-inner">
     <div class="section-label">Program 02</div>
-    <h2>Medical &amp; Healthcare</h2>
+    <h2 id="med-heading">Medical &amp; Healthcare</h2>
     <p style="max-width:680px; line-height:1.8; font-size:1rem; margin-bottom:2rem;">
       Healthcare communication is life-critical. Our medical interpreters are trained in clinical terminology, HIPAA compliance, and the emotional sensitivity required in patient-facing environments.
     </p>
@@ -63,9 +92,9 @@
 </section>
 
 <!-- LEGAL -->
-<section class="section">
+<section class="section" aria-labelledby="legal-heading">
   <div class="section-label">Program 03</div>
-  <h2>Legal &amp; Government</h2>
+  <h2 id="legal-heading">Legal &amp; Government</h2>
   <p style="max-width:680px; line-height:1.8; color:#374151; font-size:1rem; margin-bottom:2rem;">
     Legal proceedings demand absolute accuracy. Rose SLI interpreters are experienced in courtroom protocol, legal terminology, and the ethical obligations of legal interpreting.
   </p>
@@ -78,10 +107,10 @@
 </section>
 
 <!-- EDUCATION -->
-<section class="section-dark">
+<section class="section-dark" aria-labelledby="edu-heading">
   <div class="section-inner">
     <div class="section-label">Program 04</div>
-    <h2>Education</h2>
+    <h2 id="edu-heading">Education</h2>
     <p style="max-width:680px; line-height:1.8; font-size:1rem; margin-bottom:2rem;">
       From elementary classrooms to university lecture halls, Rose SLI supports Deaf and hard-of-hearing students and educators with consistent, qualified interpretation services.
     </p>
@@ -95,9 +124,9 @@
 </section>
 
 <!-- COMMUNITY -->
-<section class="section">
+<section class="section" aria-labelledby="community-heading">
   <div class="section-label">Program 05</div>
-  <h2>Community &amp; Events</h2>
+  <h2 id="community-heading">Community &amp; Events</h2>
   <p style="max-width:680px; line-height:1.8; color:#374151; font-size:1rem; margin-bottom:2rem;">
     Accessibility doesn't stop at the office door. We serve community organizations, nonprofits, faith communities, and entertainment venues to ensure everyone can participate fully.
   </p>
@@ -110,25 +139,42 @@
 </section>
 
 <!-- CTA -->
-<section style="background:var(--blue); padding:5rem 2.5rem; text-align:center;">
+<section style="background:var(--blue); padding:5rem 2.5rem; text-align:center;" aria-label="Call to action">
   <div class="section-label" style="color:#bfdbfe;">Get Started</div>
   <h2 style="color:#fff; font-size:clamp(1.8rem,3.5vw,2.8rem); font-weight:900; text-transform:uppercase; letter-spacing:.04em; margin-bottom:1.5rem;">Find the Right Program for You</h2>
   <a href="request.html" class="btn btn-outline">Request an Interpreter</a>
 </section>
 
+</main>
+
 <footer>
   <div class="footer-logo">Rose <span>SLI</span></div>
-  <p>Sign Language Interpreting Services · San Diego, CA</p>
-  <div class="footer-links">
-    <a href="about.html">About Us</a>
-    <a href="programs.html">Programs</a>
-    <a href="work.html">Work</a>
-    <a href="team.html">Team</a>
-    <a href="request.html">Request an Interpreter</a>
-  </div>
+  <address style="font-style:normal;">
+    <p>Sign Language Interpreting Services</p>
+    <p>San Diego, CA · <a href="tel:+16195550100" style="color:#94a3b8;">(619) 555-0100</a> · <a href="mailto:info@rosesli.com" style="color:#94a3b8;">info@rosesli.com</a></p>
+  </address>
+  <nav aria-label="Footer navigation">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="programs.html">Programs</a>
+      <a href="work.html">Work</a>
+      <a href="team.html">Team</a>
+      <a href="request.html">Request an Interpreter</a>
+    </div>
+  </nav>
   <hr>
   <p class="copy">&copy; 2026 Rose Sign Language Interpreting. All rights reserved.</p>
 </footer>
+
+<script>
+function toggleNav(btn) {
+  var links = document.querySelector('.nav-links');
+  var expanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!expanded));
+  btn.setAttribute('aria-label', expanded ? 'Open menu' : 'Close menu');
+  links.classList.toggle('open');
+}
+</script>
 
 </body>
 </html>

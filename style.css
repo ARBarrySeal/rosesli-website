@@ -16,6 +16,22 @@
 
 html { scroll-behavior: smooth; }
 
+/* ── SKIP LINK ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  background: var(--blue);
+  color: #fff;
+  padding: .5rem 1rem;
+  font-weight: 700;
+  font-size: .9rem;
+  border-radius: 0 0 4px 4px;
+  text-decoration: none;
+  z-index: 999;
+}
+.skip-link:focus { top: 0; }
+
 body {
   font-family: var(--font);
   color: var(--navy);

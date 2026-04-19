@@ -3,18 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rose Sign Language Interpreting | Home</title>
-  <meta name="description" content="Rose Sign Language Interpreting (Rose SLI) delivers professional ASL interpretation services for corporate, medical, legal, and educational settings.">
+
+  <title>Rose Sign Language Interpreting | Certified ASL Interpreter San Diego, CA</title>
+  <meta name="description" content="Rose Sign Language Interpreting delivers certified ASL interpretation in San Diego for corporate, medical, legal, and educational settings. Request an interpreter today.">
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://www.rosesli.com/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.rosesli.com/">
+  <meta property="og:title" content="Rose Sign Language Interpreting | Certified ASL Interpreter San Diego">
+  <meta property="og:description" content="Professional, certified ASL interpreters for corporate, medical, legal, and educational settings in San Diego and Southern California.">
+  <meta property="og:site_name" content="Rose Sign Language Interpreting">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Rose Sign Language Interpreting | San Diego ASL Services">
+  <meta name="twitter:description" content="Certified ASL interpreters for corporate, medical, legal, and educational settings. Serving San Diego and Southern California.">
+
+  <!-- JSON-LD: LocalBusiness -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Rose Sign Language Interpreting",
+    "alternateName": "Rose SLI",
+    "url": "https://www.rosesli.com",
+    "telephone": "(619) 555-0100",
+    "email": "info@rosesli.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "San Diego",
+      "addressRegion": "CA",
+      "addressCountry": "US"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 32.7157,
+      "longitude": -117.1611
+    },
+    "description": "Rose Sign Language Interpreting provides certified ASL interpretation services in San Diego for corporate, medical, legal, and educational settings.",
+    "areaServed": ["San Diego", "Southern California"],
+    "serviceType": "Sign Language Interpreting",
+    "priceRange": "$$",
+    "openingHours": "Mo-Fr 08:00-17:00"
+  }
+  </script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<nav aria-label="Primary navigation">
   <a class="nav-logo" href="index.html">Rose <span>SLI</span></a>
-  <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
     <span></span><span></span><span></span>
   </button>
-  <ul class="nav-links">
+  <ul class="nav-links" role="list">
     <li><a href="about.html">About Us</a></li>
     <li><a href="programs.html">Programs</a></li>
     <li><a href="work.html">Work</a></li>
@@ -23,10 +71,12 @@
   </ul>
 </nav>
 
+<main id="main-content">
+
 <!-- HERO -->
-<section class="hero">
+<section class="hero" aria-label="Hero">
   <div class="hero-inner">
-    <p>Sign Language Interpreting Services</p>
+    <p>San Diego Sign Language Interpreting Services</p>
     <h1>Facilitating<br>Communication<br>Delivering<br>Excellence</h1>
     <a href="request.html" class="btn">Request an Interpreter</a>
     <a href="about.html" class="btn btn-outline">Learn More</a>
@@ -34,21 +84,21 @@
 </section>
 
 <!-- SERVICES PREVIEW -->
-<section class="section-blue">
+<section class="section-blue" aria-labelledby="services-heading">
   <div class="section-inner">
     <div class="section-label">What We Do</div>
-    <h2>Our Services</h2>
+    <h2 id="services-heading">Our Services</h2>
     <div class="card-grid">
       <div class="card-dark">
-        <h3>Corporate & Business</h3>
+        <h3>Corporate &amp; Business</h3>
         <p>Meetings, conferences, HR events, and executive sessions — clear communication at every level.</p>
       </div>
       <div class="card-dark">
-        <h3>Medical & Healthcare</h3>
+        <h3>Medical &amp; Healthcare</h3>
         <p>HIPAA-compliant interpreting for clinical appointments, procedures, and patient care.</p>
       </div>
       <div class="card-dark">
-        <h3>Legal & Government</h3>
+        <h3>Legal &amp; Government</h3>
         <p>Courtrooms, depositions, public hearings, and ADA compliance support.</p>
       </div>
       <div class="card-dark">
@@ -63,9 +113,9 @@
 </section>
 
 <!-- WHO WE ARE -->
-<section class="section">
+<section class="section" aria-labelledby="about-heading">
   <div class="section-label">Who We Are</div>
-  <h2>About Rose SLI</h2>
+  <h2 id="about-heading">About Rose SLI</h2>
   <p style="max-width:680px; line-height:1.8; color:#374151; font-size:1rem;">
     Rose Sign Language Interpreting is a San Diego–based firm committed to bridging communication gaps between the Deaf and hearing communities. Our certified interpreters bring professionalism, discretion, and cultural competency to every assignment.
   </p>
@@ -80,10 +130,10 @@
 </section>
 
 <!-- CLIENTS -->
-<section class="section-dark">
+<section class="section-dark" aria-labelledby="clients-heading">
   <div class="section-inner">
     <div class="section-label">Trusted By</div>
-    <h2>Our Clients</h2>
+    <h2 id="clients-heading">Our Clients</h2>
     <div class="clients-strip">
       <div class="client-logo">Amazon</div>
       <div class="client-logo">San Diego Unified</div>
@@ -96,25 +146,42 @@
 </section>
 
 <!-- CTA -->
-<section style="background:var(--blue); padding:5rem 2.5rem; text-align:center;">
+<section style="background:var(--blue); padding:5rem 2.5rem; text-align:center;" aria-label="Call to action">
   <div class="section-label" style="color:#bfdbfe;">Ready to Connect?</div>
   <h2 style="color:#fff; font-size:clamp(1.8rem,3.5vw,2.8rem); font-weight:900; text-transform:uppercase; letter-spacing:.04em; margin-bottom:1.5rem;">Request an Interpreter Today</h2>
   <a href="request.html" class="btn btn-outline">Get Started</a>
 </section>
 
+</main>
+
 <footer>
   <div class="footer-logo">Rose <span>SLI</span></div>
-  <p>Sign Language Interpreting Services · San Diego, CA</p>
-  <div class="footer-links">
-    <a href="about.html">About Us</a>
-    <a href="programs.html">Programs</a>
-    <a href="work.html">Work</a>
-    <a href="team.html">Team</a>
-    <a href="request.html">Request an Interpreter</a>
-  </div>
+  <address style="font-style:normal;">
+    <p>Sign Language Interpreting Services</p>
+    <p>San Diego, CA · <a href="tel:+16195550100" style="color:#94a3b8;">(619) 555-0100</a> · <a href="mailto:info@rosesli.com" style="color:#94a3b8;">info@rosesli.com</a></p>
+  </address>
+  <nav aria-label="Footer navigation">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="programs.html">Programs</a>
+      <a href="work.html">Work</a>
+      <a href="team.html">Team</a>
+      <a href="request.html">Request an Interpreter</a>
+    </div>
+  </nav>
   <hr>
   <p class="copy">&copy; 2026 Rose Sign Language Interpreting. All rights reserved.</p>
 </footer>
+
+<script>
+function toggleNav(btn) {
+  var links = document.querySelector('.nav-links');
+  var expanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!expanded));
+  btn.setAttribute('aria-label', expanded ? 'Open menu' : 'Close menu');
+  links.classList.toggle('open');
+}
+</script>
 
 </body>
 </html>
