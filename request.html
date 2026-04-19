@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request an Interpreter | Rose SLI</title>
+  <meta name="description" content="Request a certified ASL interpreter from Rose Sign Language Interpreting. Fill out the form and we'll respond within 24 hours.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Rose <span>SLI</span></a>
+  <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links">
+    <li><a href="about.html">About Us</a></li>
+    <li><a href="programs.html">Programs</a></li>
+    <li><a href="work.html">Work</a></li>
+    <li><a href="team.html">Team</a></li>
+    <li><a href="request.html" class="nav-cta active">Request an Interpreter</a></li>
+  </ul>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="section-label">Get Started</div>
+  <h1>Request an Interpreter</h1>
+  <p>Fill out the form below and we'll confirm availability and details within one business day.</p>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+  <div class="section-label">Process</div>
+  <h2>How It Works</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>01 — Submit Your Request</h3>
+      <p>Fill out the form with your event details, date, location, and any special requirements.</p>
+    </div>
+    <div class="card">
+      <h3>02 — We Confirm Availability</h3>
+      <p>Our team reviews your request and confirms interpreter availability within one business day.</p>
+    </div>
+    <div class="card">
+      <h3>03 — Get Connected</h3>
+      <p>We match you with the best-fit interpreter for your setting and provide all logistics details.</p>
+    </div>
+    <div class="card">
+      <h3>04 — Seamless Service</h3>
+      <p>Your interpreter arrives prepared, professional, and ready to deliver excellent service.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REQUEST FORM -->
+<section class="section-dark">
+  <div class="section-inner">
+    <div class="section-label">Intake Form</div>
+    <h2>Request Details</h2>
+    <p style="color:#94a3b8; font-size:.95rem; margin-bottom:.5rem;">All fields marked * are required. We respond within 1 business day.</p>
+
+    <form class="form-grid" action="#" method="post" onsubmit="handleSubmit(event)">
+
+      <div>
+        <label for="fname">First Name *</label>
+        <input type="text" id="fname" name="first_name" required placeholder="Jane">
+      </div>
+      <div>
+        <label for="lname">Last Name *</label>
+        <input type="text" id="lname" name="last_name" required placeholder="Smith">
+      </div>
+
+      <div>
+        <label for="org">Organization / Company</label>
+        <input type="text" id="org" name="organization" placeholder="Acme Corp">
+      </div>
+      <div>
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" name="email" required placeholder="jane@example.com">
+      </div>
+
+      <div>
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="(619) 555-0100">
+      </div>
+      <div>
+        <label for="service-type">Service Type *</label>
+        <select id="service-type" name="service_type" required>
+          <option value="" disabled selected>Select a program</option>
+          <option value="corporate">Corporate &amp; Business</option>
+          <option value="medical">Medical &amp; Healthcare</option>
+          <option value="legal">Legal &amp; Government</option>
+          <option value="education">Education</option>
+          <option value="community">Community &amp; Events</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="event-date">Event Date *</label>
+        <input type="date" id="event-date" name="event_date" required>
+      </div>
+      <div>
+        <label for="event-time">Start Time *</label>
+        <input type="time" id="event-time" name="event_time" required>
+      </div>
+
+      <div>
+        <label for="duration">Estimated Duration</label>
+        <select id="duration" name="duration">
+          <option value="" disabled selected>Select duration</option>
+          <option value="1hr">Under 1 hour</option>
+          <option value="2hr">1–2 hours</option>
+          <option value="4hr">2–4 hours</option>
+          <option value="halfday">Half day (4–6 hours)</option>
+          <option value="fullday">Full day (6+ hours)</option>
+          <option value="multiday">Multi-day engagement</option>
+        </select>
+      </div>
+      <div>
+        <label for="location-type">Setting *</label>
+        <select id="location-type" name="location_type" required>
+          <option value="" disabled selected>In-person or remote?</option>
+          <option value="onsite">On-site / In-person</option>
+          <option value="remote">Remote / Video</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label for="location">Location / Address</label>
+        <input type="text" id="location" name="location" placeholder="1234 Main St, San Diego, CA 92101">
+      </div>
+
+      <div class="full">
+        <label for="attendees">Number of Deaf / Hard-of-Hearing Attendees *</label>
+        <select id="attendees" name="attendees" required>
+          <option value="" disabled selected>Select</option>
+          <option value="1">1</option>
+          <option value="2-5">2–5</option>
+          <option value="6-15">6–15</option>
+          <option value="16+">16 or more</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label for="notes">Additional Details or Special Requirements</label>
+        <textarea id="notes" name="notes" placeholder="Please share any relevant context: technical vocabulary, platform details, accessibility requirements, or other notes that will help us prepare."></textarea>
+      </div>
+
+      <div class="full">
+        <button type="submit" class="btn-submit">Submit Request</button>
+      </div>
+
+    </form>
+
+    <div id="success-msg" style="display:none; margin-top:2rem; padding:1.5rem; background:rgba(34,197,94,.15); border-left:4px solid #22c55e; border-radius:4px;">
+      <p style="color:#4ade80; font-weight:700; font-size:1rem; margin-bottom:.4rem;">Request Received!</p>
+      <p style="color:#94a3b8; font-size:.92rem;">Thank you — we'll review your request and follow up within one business day.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT INFO -->
+<section class="section">
+  <div class="section-label">Contact</div>
+  <h2>Other Ways to Reach Us</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Email</h3>
+      <p>info@rosesli.com<br><br>For urgent requests, email is the fastest way to reach our scheduling team.</p>
+    </div>
+    <div class="card">
+      <h3>Phone / VP</h3>
+      <p>(619) 555-0100<br><br>Available Monday–Friday, 8am–5pm PST. Videophone (VP) available upon request.</p>
+    </div>
+    <div class="card">
+      <h3>Response Time</h3>
+      <p>Standard requests: within 1 business day.<br><br>Urgent or same-day requests: call or email directly for fastest response.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Rose <span>SLI</span></div>
+  <p>Sign Language Interpreting Services · San Diego, CA</p>
+  <div class="footer-links">
+    <a href="about.html">About Us</a>
+    <a href="programs.html">Programs</a>
+    <a href="work.html">Work</a>
+    <a href="team.html">Team</a>
+    <a href="request.html">Request an Interpreter</a>
+  </div>
+  <hr>
+  <p class="copy">&copy; 2026 Rose Sign Language Interpreting. All rights reserved.</p>
+</footer>
+
+<script>
+function handleSubmit(e) {
+  e.preventDefault();
+  document.querySelector('form').style.display = 'none';
+  document.getElementById('success-msg').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
