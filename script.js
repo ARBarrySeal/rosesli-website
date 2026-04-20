@@ -111,3 +111,19 @@ if (form) {
     }
   });
 }
+
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const answer = btn.nextElementSibling;
+    const isOpen = btn.classList.contains('is-open');
+    btn.closest('.faq-list').querySelectorAll('.faq-q.is-open').forEach(open => {
+      open.classList.remove('is-open');
+      open.nextElementSibling.classList.remove('is-open');
+    });
+    if (!isOpen) {
+      btn.classList.add('is-open');
+      answer.classList.add('is-open');
+    }
+  });
+});
