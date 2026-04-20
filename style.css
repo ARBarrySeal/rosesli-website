@@ -173,7 +173,7 @@ nav {
 }
 .section-blue .section-inner { max-width: 1100px; margin: 0 auto; }
 .section-blue .section-label { color: #93c5fd; }
-.section-blue h2 { color: var(--white); }
+.section-blue h2 { color: var(--white); font-size: clamp(1.8rem, 3.5vw, 3rem); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 1.5rem; line-height: 1.1; }
 
 .section-dark {
   background: var(--navy);
@@ -182,7 +182,7 @@ nav {
 }
 .section-dark .section-inner { max-width: 1100px; margin: 0 auto; }
 .section-dark .section-label { color: #93c5fd; }
-.section-dark h2 { color: var(--white); }
+.section-dark h2 { color: var(--white); font-size: clamp(1.8rem, 3.5vw, 3rem); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 1.5rem; line-height: 1.1; }
 .section-dark p { color: #94a3b8; }
 
 .section h2 {
