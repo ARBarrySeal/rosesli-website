@@ -53,12 +53,6 @@ def work():
     return send_from_directory(BASE_DIR, "work.html")
 
 
-@app.route("/team.html")
-@app.route("/team")
-def team():
-    return send_from_directory(BASE_DIR, "team.html")
-
-
 @app.route("/request.html")
 @app.route("/request")
 def request_page():

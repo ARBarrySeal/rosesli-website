@@ -444,9 +444,18 @@ footer .copy { font-size: .75rem; color: #475569; }
   .form-grid { grid-template-columns: 1fr; }
   .stat-row { gap: 1.5rem; }
   .hero { padding: 4rem 1.5rem 3rem; }
+  .hero-inner { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .hero-inner .btn { width: 100%; text-align: center; margin: 0; }
+  .btn-outline { margin-left: 0; }
   .section { padding: 3.5rem 1.5rem; }
   .section-blue, .section-dark { padding: 3.5rem 1.5rem; }
   nav { padding: 0 1.5rem; }
+  .work-grid { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+  .page-hero { padding: 3.5rem 1.5rem 3rem; }
+  .vri-banner { flex-direction: column; align-items: flex-start; }
+  footer { padding: 3rem 1.5rem; }
+  footer .footer-links { gap: 1rem; }
 }
 
 /* ── ANIMATIONS ── */
