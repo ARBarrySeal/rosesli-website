@@ -433,12 +433,15 @@ footer .copy { font-size: .75rem; color: #94a3b8; }
     gap: 1.2rem;
     max-height: 0;
     overflow: hidden;
+    visibility: hidden;
     padding: 0 2rem;
-    transition: max-height 0.35s ease, padding 0.3s ease;
+    transition: max-height 0.35s ease, padding 0.3s ease, visibility 0s 0.35s;
   }
   .nav-links.open {
     max-height: 420px;
     padding: 1rem 2rem 2rem;
+    visibility: visible;
+    transition: max-height 0.35s ease, padding 0.3s ease, visibility 0s;
   }
   .nav-toggle { display: block; }
   .nav-links a { padding: .85rem 0; display: block; min-height: 44px; }
