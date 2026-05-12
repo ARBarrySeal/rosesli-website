@@ -17,40 +17,16 @@ def about():
     return send_from_directory(BASE_DIR, "about.html")
 
 
-@app.route("/programs.html")
-@app.route("/programs")
-def programs():
-    return send_from_directory(BASE_DIR, "programs.html")
+@app.route("/specialties.html")
+@app.route("/specialties")
+def specialties():
+    return send_from_directory(BASE_DIR, "specialties.html")
 
 
-@app.route("/corporate.html")
-@app.route("/corporate")
-def corporate():
-    return send_from_directory(BASE_DIR, "corporate.html")
-
-
-@app.route("/medical.html")
-@app.route("/medical")
-def medical():
-    return send_from_directory(BASE_DIR, "medical.html")
-
-
-@app.route("/legal.html")
-@app.route("/legal")
-def legal():
-    return send_from_directory(BASE_DIR, "legal.html")
-
-
-@app.route("/education.html")
-@app.route("/education")
-def education():
-    return send_from_directory(BASE_DIR, "education.html")
-
-
-@app.route("/work.html")
-@app.route("/work")
-def work():
-    return send_from_directory(BASE_DIR, "work.html")
+@app.route("/vri.html")
+@app.route("/vri")
+def vri():
+    return send_from_directory(BASE_DIR, "vri.html")
 
 
 @app.route("/request.html")
@@ -63,12 +39,6 @@ def request_page():
 @app.route("/accessibility-statement")
 def accessibility():
     return send_from_directory(BASE_DIR, "accessibility-statement.html")
-
-
-@app.route("/blog.html")
-@app.route("/blog")
-def blog():
-    return send_from_directory(BASE_DIR, "blog.html")
 
 
 @app.route("/robots.txt")
@@ -86,14 +56,9 @@ def favicon():
     return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
 
 
-@app.route("/style.css")
+@app.route("/site.css")
 def css():
-    return send_from_directory(BASE_DIR, "style.css", mimetype="text/css")
-
-
-@app.route("/script.js")
-def js():
-    return send_from_directory(BASE_DIR, "script.js", mimetype="application/javascript")
+    return send_from_directory(BASE_DIR, "site.css", mimetype="text/css")
 
 
 if __name__ == "__main__":

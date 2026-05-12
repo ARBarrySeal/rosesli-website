@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VRI · Rose Sign Language Interpreting</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  /* Hero VRI */
+  .vri-hero{max-width:1320px;margin:0 auto;padding:80px 28px;display:grid;grid-template-columns:1.2fr 1fr;gap:64px;align-items:center;}
+  .vri-hero .panel{background:var(--ink);color:var(--paper);border-radius:8px;padding:48px;position:relative;overflow:hidden;aspect-ratio:1;display:flex;align-items:flex-end;}
+  .vri-hero .panel::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(26,86,219,.4),transparent 55%),radial-gradient(circle at 75% 80%,rgba(120,160,210,.2),transparent 60%),linear-gradient(180deg,#0a1420,#152436);}
+  .vri-hero .panel-content{position:relative;z-index:1;}
+  .vri-hero .panel-content .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:999px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;font-weight:600;margin-bottom:24px;}
+  .vri-hero .panel-content .badge .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:pulse 2s ease-in-out infinite;}
+  .vri-hero .panel h2{font-family:'Instrument Serif',serif;font-size:56px;font-style:italic;line-height:1;font-weight:400;color:#fff;}
+
+  /* How it works */
+  .how{background:var(--paper2);padding:96px 28px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .how-inner{max-width:1320px;margin:0 auto;}
+  .how h2{font-family:'Times New Roman',Times,serif;font-size:64px;line-height:1.04;letter-spacing:-.015em;font-weight:400;margin-bottom:56px;max-width:900px;}
+  .how h2 em{font-family:'Times New Roman',Times,serif;font-style:italic;color:var(--blue);}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;}
+  .step{padding-top:24px;border-top:1px solid var(--ink);}
+  .step-num{font-family:'Instrument Serif',serif;font-size:18px;color:var(--blue);font-style:italic;margin-bottom:18px;}
+  .step h3{font-size:22px;font-weight:600;margin-bottom:12px;letter-spacing:-.005em;}
+  .step p{font-size:15px;line-height:1.6;color:var(--ink2);}
+
+  /* Decision split */
+  .decide{max-width:1320px;margin:0 auto;padding:96px 28px;}
+  .decide h2{font-family:'Times New Roman',Times,serif;font-size:56px;font-weight:400;letter-spacing:-.015em;line-height:1.04;margin-bottom:56px;max-width:900px;}
+  .decide h2 em{font-style:italic;color:var(--blue);}
+  .decide-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+  .col{padding:40px;border-radius:6px;border:1px solid var(--rule);background:var(--paper);}
+  .col h3{font-family:'Times New Roman',Times,serif;font-size:32px;font-weight:400;margin-bottom:8px;}
+  .col h3 em{font-style:italic;color:var(--blue);}
+  .col .ttl-meta{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-bottom:24px;}
+  .col ul{list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .col li{font-size:15px;line-height:1.55;color:var(--ink2);padding-left:24px;position:relative;}
+  .col li::before{content:'✓';position:absolute;left:0;top:0;color:var(--blue);font-weight:700;}
+  .col.dark{background:var(--ink);color:#c8d2dd;border-color:var(--ink);}
+  .col.dark h3{color:#fff;}
+  .col.dark h3 em{color:#93c5fd;}
+  .col.dark .ttl-meta{color:#93c5fd;}
+  .col.dark li{color:#c8d2dd;}
+  .col.dark li::before{color:#93c5fd;}
+
+  /* Platforms */
+  .plats{background:var(--ink);color:var(--paper);padding:96px 28px;}
+  .plats-inner{max-width:1320px;margin:0 auto;}
+  .plats .eyebrow{color:#93c5fd;}
+  .plats .eyebrow::before{background:#93c5fd;}
+  .plats h2{font-family:'Times New Roman',Times,serif;font-size:56px;font-weight:400;letter-spacing:-.015em;line-height:1.04;margin-bottom:48px;max-width:900px;}
+  .plats h2 em{font-style:italic;color:#93c5fd;font-family:'Times New Roman',Times,serif;}
+  .plat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .plat{padding:28px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.03);}
+  .plat-name{font-family:'Instrument Serif',serif;font-size:32px;font-style:italic;line-height:1;margin-bottom:12px;color:#fff;}
+  .plat-meta{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd;font-weight:600;margin-bottom:14px;}
+  .plat p{font-size:14px;line-height:1.55;color:#b4bfcc;}
+
+  /* FAQ */
+  .faq{max-width:980px;margin:0 auto;padding:96px 28px;}
+  .faq h2{font-family:'Times New Roman',Times,serif;font-size:56px;font-weight:400;letter-spacing:-.015em;line-height:1.04;margin-bottom:48px;}
+  .faq h2 em{font-style:italic;color:var(--blue);}
+  details{border-top:1px solid var(--rule);padding:22px 0;}
+  details:last-of-type{border-bottom:1px solid var(--rule);}
+  summary{font-family:'Times New Roman',Times,serif;font-size:24px;font-weight:400;cursor:pointer;letter-spacing:-.005em;line-height:1.3;list-style:none;display:flex;justify-content:space-between;gap:24px;align-items:flex-start;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:'+';font-family:'Instrument Serif',serif;font-style:italic;color:var(--blue);font-size:32px;line-height:.7;flex-shrink:0;transition:transform .2s;}
+  details[open] summary::after{content:'–';}
+  details p{font-size:16px;line-height:1.65;color:var(--ink2);margin-top:14px;max-width:760px;}
+
+  @media(max-width:960px){
+    .vri-hero{grid-template-columns:1fr;}
+    .steps{grid-template-columns:1fr 1fr;}
+    .decide-grid,.plat-list{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="left"><span><span class="dot"></span>Accepting new bookings this week</span></div>
+  <div class="right">
+    <span>San Diego, CA · Nationwide VRI</span>
+    <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
+    <span>info@rosesli.com</span>
+  </div>
+</div>
+
+<nav class="main">
+  <a href="index.html" class="logo">
+    <div class="logo-mark">r</div>
+    <div class="logo-text">Rose <em>SLI</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="about.html">About</a></li>
+    <li><a href="specialties.html">Specialties</a></li>
+    <li><a href="vri.html" class="active">VRI</a></li>
+    <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
+  </ul>
+</nav>
+
+<div class="crumbs"><a href="index.html">Home</a><span class="sep">›</span>Video Remote Interpreting</div>
+<header class="page-head">
+  <div class="eyebrow">Video remote interpreting</div>
+  <h1>An interpreter in your office, on your time, <span class="serif">anywhere.</span></h1>
+  <p class="lede">When travel time doesn't fit the meeting — when the appointment is in 20 minutes, when your team is across three time zones, when the patient just walked in — VRI puts a certified interpreter on Zoom, Teams, or a tablet at your location. Same quality. No commute.</p>
+</header>
+
+<section class="vri-hero">
+  <div>
+    <h2 style="font-family:'Times New Roman',Times,serif;font-size:48px;line-height:1.05;letter-spacing:-.015em;font-weight:400;margin-bottom:20px;">VRI is not a call center. It is the same interpreter you would have booked on site — <em style="font-style:italic;color:var(--blue);">just on a screen.</em></h2>
+    <p style="font-size:17px;line-height:1.65;color:var(--ink2);max-width:520px;">We do not route through a third-party stack. Your interpreter is one of ours, scheduled by hand, prepped on the materials you sent, and dialed into the platform you already use.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-content">
+      <div class="badge"><span class="dot"></span>Live now</div>
+      <h2>Same-day<br>availability,<br>most days.</h2>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="how-inner">
+    <div class="eyebrow">How it works</div>
+    <h2>From request to <em>interpreter on screen,</em> in four steps.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Submit a request.</h3>
+        <p>Tell us the platform, the time, the setting, and any prep materials. The form takes about 90 seconds.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>We confirm.</h3>
+        <p>We confirm an interpreter within one business day. For same-day requests, call us directly.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Calendar invite arrives.</h3>
+        <p>You forward the existing Zoom or Teams link to us, or we send a fresh meeting room — whichever fits your security policy.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3>Interpreter joins, prepped.</h3>
+        <p>Your interpreter joins five minutes early, with the deck and the agenda already read.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="decide">
+  <div class="eyebrow">When to choose VRI</div>
+  <h2>VRI vs. on-site, <em>the honest version.</em></h2>
+  <div class="decide-grid">
+    <div class="col">
+      <h3>Choose <em>VRI</em></h3>
+      <div class="ttl-meta">Better for</div>
+      <ul>
+        <li>Short meetings under 30 minutes</li>
+        <li>Last-minute or same-day requests</li>
+        <li>Telehealth and follow-up appointments</li>
+        <li>Multi-site meetings across geographies</li>
+        <li>Routine HR or admin conversations</li>
+        <li>Lectures and webinars with a known audience</li>
+      </ul>
+    </div>
+    <div class="col dark">
+      <h3>Choose <em>on-site</em></h3>
+      <div class="ttl-meta">Better for</div>
+      <ul>
+        <li>Surgery, labor &amp; delivery, ER triage</li>
+        <li>Court appearances and depositions</li>
+        <li>Trauma, mental health, child-protective settings</li>
+        <li>Stage and theatre work</li>
+        <li>Tactile or DeafBlind interpreting</li>
+        <li>Meetings longer than two hours</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="plats">
+  <div class="plats-inner">
+    <div class="eyebrow">Platforms</div>
+    <h2>We work on whatever <em>you already use.</em></h2>
+    <div class="plat-list">
+      <div class="plat">
+        <div class="plat-name">Zoom</div>
+        <div class="plat-meta">Most common</div>
+        <p>Spotlight, sign-language interpretation channel, breakouts. We can run the interpreter spotlight ourselves if you'd prefer.</p>
+      </div>
+      <div class="plat">
+        <div class="plat-name">Microsoft Teams</div>
+        <div class="plat-meta">Enterprise standard</div>
+        <p>Pin-to-screen, large gallery, live transcription. We also test through Teams Rooms for boardroom setups.</p>
+      </div>
+      <div class="plat">
+        <div class="plat-name">Google Meet</div>
+        <div class="plat-meta">Education &amp; SMB</div>
+        <p>Pinning and main-stage layouts. Native captioning. Works well for K-12 IEP meetings.</p>
+      </div>
+      <div class="plat">
+        <div class="plat-name">Webex</div>
+        <div class="plat-meta">Healthcare &amp; gov</div>
+        <p>HIPAA-eligible deployments supported. Sign-language video panel, virtual desktop infrastructure tested.</p>
+      </div>
+      <div class="plat">
+        <div class="plat-name">Doxy.me &amp; clinical</div>
+        <div class="plat-meta">Telehealth</div>
+        <p>Doxy, Epic Telehealth, athenaTelehealth, and most patient-portal video tools. We can connect through your EHR.</p>
+      </div>
+      <div class="plat">
+        <div class="plat-name">In-room tablet</div>
+        <div class="plat-meta">On-demand</div>
+        <p>Place a tablet on a stand in your exam room or front desk. We pick up live, no app to download.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="eyebrow">Common questions</div>
+  <h2>FAQ.</h2>
+  <details>
+    <summary>How fast can I get a VRI interpreter?</summary>
+    <p>Same-day, most days. The earlier in the day you ask, the more likely we have a match. For an upcoming week, 24 hours is plenty.</p>
+  </details>
+  <details>
+    <summary>Is VRI HIPAA-compliant?</summary>
+    <p>Yes — we run on HIPAA-eligible deployments of Zoom and Webex, and we sign Business Associate Agreements with healthcare clients. We can also work inside your existing telehealth stack.</p>
+  </details>
+  <details>
+    <summary>What if the connection drops mid-appointment?</summary>
+    <p>The interpreter will dial back in within 60 seconds. We also keep a phone-based backup CART line ready for clients who need it. For high-stakes settings (surgery, court), we recommend on-site.</p>
+  </details>
+  <details>
+    <summary>Do I need to download anything?</summary>
+    <p>No. VRI runs in your browser. If you would prefer a dedicated app or hardware tablet stand, we can ship one to you.</p>
+  </details>
+  <details>
+    <summary>How is this different from a national VRI service?</summary>
+    <p>National VRI is a call-center model: you dial in, you get whoever is on the queue. We are a small certified roster. The interpreter you see has been booked for this meeting specifically, with prep materials in hand.</p>
+  </details>
+  <details>
+    <summary>What does it cost?</summary>
+    <p>VRI is billed in 30-minute increments with a 1-hour minimum. We can quote a flat monthly retainer for organizations with recurring needs. Email <a href="mailto:info@rosesli.com" style="color:var(--blue);">info@rosesli.com</a> for the rate sheet.</p>
+  </details>
+</section>
+
+<section class="page-cta">
+  <div class="page-cta-inner">
+    <h3>Need an interpreter <span class="serif">on screen, today?</span></h3>
+    <a href="request.html?format=vri" class="btn btn-dark">Request VRI <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo-text">Rose <em>SLI</em></div>
+      <p>Certified ASL interpreting across San Diego County and nationwide via video. Founded by Amanda Rose.</p>
+      <div class="foot-contact"><a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA</div>
+    </div>
+    <div class="foot-creds">
+      <img src="rid-logo.png" alt="RID" class="rid-mark">
+      <img src="nic-logo.png" alt="NIC" class="nic-mark">
+      <span class="foot-creds-lbl">RID and NIC<br>certified interpreters</span>
+    </div>
+  </div>
+  <div class="foot-bottom"><span>© 2026 Rose Sign Language Interpreting</span></div>
+</footer>
+
+</body>
+</html>

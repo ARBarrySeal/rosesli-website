@@ -11,39 +11,23 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.rosesli.com/programs.html</loc>
+    <loc>https://www.rosesli.com/specialties.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.rosesli.com/corporate.html</loc>
+    <loc>https://www.rosesli.com/vri.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-  <url>
-    <loc>https://www.rosesli.com/medical.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.rosesli.com/legal.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.rosesli.com/education.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.rosesli.com/work.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
   <url>
     <loc>https://www.rosesli.com/request.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rosesli.com/accessibility-statement.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>

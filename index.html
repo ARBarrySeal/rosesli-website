@@ -1,223 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Rose Sign Language Interpreting | Certified ASL Interpreter San Diego, CA</title>
-  <meta name="description" content="Rose Sign Language Interpreting delivers certified ASL interpretation in San Diego for corporate, medical, legal, and educational settings. Request an interpreter today.">
-
-  <!-- Canonical -->
-  <link rel="canonical" href="https://www.rosesli.com/">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.rosesli.com/">
-  <meta property="og:title" content="Rose Sign Language Interpreting | Certified ASL Interpreter San Diego">
-  <meta property="og:description" content="Professional, certified ASL interpreters for corporate, medical, legal, and educational settings in San Diego and Southern California.">
-  <meta property="og:site_name" content="Rose Sign Language Interpreting">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Rose Sign Language Interpreting | San Diego ASL Services">
-  <meta name="twitter:description" content="Certified ASL interpreters for corporate, medical, legal, and educational settings. Serving San Diego and Southern California.">
-
-  <!-- JSON-LD: LocalBusiness -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "Rose Sign Language Interpreting",
-    "alternateName": "Rose SLI",
-    "url": "https://www.rosesli.com",
-    "telephone": "(619) 289-7368",
-    "email": "info@rosesli.com",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "San Diego",
-      "addressRegion": "CA",
-      "addressCountry": "US"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 32.7157,
-      "longitude": -117.1611
-    },
-    "description": "Rose Sign Language Interpreting provides certified ASL interpretation services in San Diego for corporate, medical, legal, and educational settings.",
-    "areaServed": ["San Diego", "Southern California"],
-    "serviceType": "Sign Language Interpreting",
-    "priceRange": "$$",
-    "openingHours": "Mo-Fr 08:00-17:00"
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rose SLI — Direction A · Refined</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --ink:#0a1420;
+    --ink2:#152436;
+    --navy:#0d1b2a;
+    --blue:#1a56db;
+    --blue-soft:#dbe7ff;
+    --paper:#f6f4ef;
+    --paper2:#ecebe4;
+    --rule:#d8d5cc;
+    --mute:#5b6a7d;
+    --accent:#e85d3a;
   }
-  </script>
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";}
+  img{max-width:100%;display:block;}
+  a{color:inherit;}
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="style.css">
+  /* TOP BAR */
+  .topbar{background:var(--ink);color:#e8ecf2;font-size:15px;letter-spacing:.04em;padding:10px 28px;display:flex;justify-content:space-between;gap:20px;font-variant-numeric:tabular-nums;}
+  .topbar .left{display:flex;gap:18px;color:#9ba9bb;}
+  .topbar .right{display:flex;gap:18px;}
+  .topbar .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4ade80;margin-right:6px;vertical-align:middle;animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{50%{opacity:.5;}}
+
+  /* NAV */
+  nav.main{background:var(--paper);border-bottom:1px solid var(--rule);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);}
+  .logo-mark{width:32px;height:32px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--paper);font-family:'Instrument Serif',serif;font-size:22px;font-style:italic;line-height:1;padding-bottom:3px;}
+  .logo-text{font-weight:700;font-size:15px;letter-spacing:.02em;}
+  .logo-text em{font-style:italic;font-family:'Instrument Serif',serif;font-weight:400;font-size:18px;color:var(--mute);}
+  .nav-links{display:flex;gap:26px;list-style:none;align-items:center;}
+  .nav-links a{text-decoration:none;color:var(--ink);font-size:15px;font-weight:500;letter-spacing:.01em;}
+  .nav-links a:hover{color:var(--blue);}
+  .nav-cta{background:var(--ink);color:var(--paper)!important;padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:background .2s,transform .15s;}
+  .nav-cta:hover{background:var(--blue);}
+  .nav-cta-lg{padding:14px 24px;font-size:15px;background:var(--blue);box-shadow:0 8px 24px -10px rgba(26,86,219,.55);}
+  .nav-cta-lg:hover{background:var(--ink);transform:translateY(-1px);box-shadow:0 12px 28px -10px rgba(10,20,32,.45);}
+  .nav-cta-lg .arrow{width:14px;height:14px;}
+
+  /* HERO */
+  .hero{padding:64px 28px 80px;max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:end;}
+  .eyebrow{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+  .eyebrow::before{content:'';width:28px;height:1px;background:var(--mute);}
+  .eyebrow-lg{font-size:15px;letter-spacing:.18em;color:var(--ink);font-weight:700;margin-bottom:32px;}
+  .eyebrow-lg::before{width:36px;height:2px;background:var(--blue);}
+  .hero h1{font-family:'Times New Roman',Times,serif;font-size:clamp(48px,7vw,100px);line-height:1.0;letter-spacing:-.015em;font-weight:400;margin-bottom:24px;}
+  .hero h1 .serif{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:400;letter-spacing:-.005em;color:var(--blue);}
+  .hero .lede{font-size:17px;line-height:1.55;color:var(--ink2);max-width:520px;margin-bottom:36px;}
+  .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:600;font-size:15px;text-decoration:none;transition:all .2s;border:1.5px solid transparent;}
+  .btn-dark{background:var(--ink);color:var(--paper);}
+  .btn-dark:hover{background:var(--blue);}
+  .btn-out{background:transparent;color:var(--ink);border-color:var(--ink);}
+  .btn-out:hover{background:var(--ink);color:var(--paper);}
+  .arrow{width:16px;height:16px;}
+
+  .hero-visual{aspect-ratio:4/5;background:var(--ink);border-radius:6px;position:relative;overflow:hidden;display:flex;align-items:flex-end;}
+  .hero-visual::before{content:'';position:absolute;inset:0;z-index:0;background:
+    radial-gradient(circle at 30% 30%,rgba(26,86,219,.35),transparent 50%),
+    radial-gradient(circle at 70% 80%,rgba(120,160,210,.18),transparent 55%),
+    linear-gradient(180deg,#0a1420 0%,#152436 100%);}
+  .hero-img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.95) contrast(1.05);-webkit-mask-image:radial-gradient(ellipse 75% 80% at 50% 50%,#000 40%,rgba(0,0,0,.7) 70%,transparent 95%);mask-image:radial-gradient(ellipse 75% 80% at 50% 50%,#000 40%,rgba(0,0,0,.7) 70%,transparent 95%);}
+  .hero-visual .ph-label{position:relative;z-index:1;margin:20px;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px dashed rgba(255,255,255,.25);padding:8px 12px;font-family:'Inter',sans-serif;}
+  .hero-meta{position:absolute;top:20px;right:20px;z-index:1;color:rgba(255,255,255,.8);font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-variant-numeric:tabular-nums;text-align:right;line-height:1.8;}
+  .hero-meta b{color:#fff;font-weight:600;}
+
+  /* RUN LINE (above stats row) */
+  .run{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);overflow:hidden;background:var(--paper);}
+  .run-inner{display:flex;gap:56px;padding:18px 28px;white-space:nowrap;animation:scroll 40s linear infinite;font-family:'Instrument Serif',serif;font-size:22px;font-style:italic;color:var(--mute);}
+  .run-inner span::after{content:'·';margin-left:56px;color:var(--rule);}
+  @keyframes scroll{to{transform:translateX(-50%);}}
+
+  /* STATS */
+  .stats{max-width:1320px;margin:0 auto;padding:80px 28px 60px;display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:48px;align-items:start;}
+  .stats .intro h2{font-family:'Instrument Serif',serif;font-size:44px;line-height:1.05;font-style:italic;font-weight:400;color:var(--ink);max-width:420px;}
+  .stats .intro h2 em{color:var(--blue);font-style:italic;}
+  .stat{border-top:1px solid var(--ink);padding-top:18px;display:flex;flex-direction:column;gap:14px;min-height:160px;}
+  .stat-lbl{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600;line-height:1.3;min-height:36px;}
+  .stat-num{font-family:'Instrument Serif',serif;font-size:64px;font-weight:400;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink);margin-top:auto;}
+
+  /* SERVICES */
+  .services{background:var(--ink);color:var(--paper);padding:96px 28px;}
+  .services-inner{max-width:1320px;margin:0 auto;}
+  .services .eyebrow{color:#94a3b8;}
+  .services .eyebrow::before{background:#94a3b8;}
+  .services h2{font-family:'Times New Roman',Times,serif;font-size:clamp(40px,5.5vw,72px);line-height:1.04;letter-spacing:-.015em;font-weight:400;margin-bottom:56px;max-width:900px;}
+  .services h2 .serif{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:400;color:#93c5fd;}
+  .service-list{display:flex;flex-direction:column;}
+  .srv{display:grid;grid-template-columns:60px 1fr 2fr auto;gap:32px;align-items:start;padding:28px 0;border-top:1px solid rgba(255,255,255,.14);transition:padding .25s;cursor:pointer;text-decoration:none;color:inherit;}
+  .srv:last-child{border-bottom:1px solid rgba(255,255,255,.14);}
+  .srv:hover{padding-left:16px;}
+  .srv-num{font-family:'Instrument Serif',serif;font-size:20px;color:#7e8fa3;font-variant-numeric:tabular-nums;padding-top:4px;}
+  .srv-ttl{font-size:22px;font-weight:600;letter-spacing:-.005em;}
+  .srv-ttl em{font-family:inherit;font-style:normal;font-weight:600;color:inherit;}
+  .srv-desc{color:#b4bfcc;font-size:15px;line-height:1.6;max-width:480px;}
+  .srv-go{font-size:15px;color:#93c5fd;text-transform:uppercase;letter-spacing:.14em;font-weight:600;padding-top:4px;display:flex;align-items:center;gap:8px;}
+
+  /* Standalone VRI section (reviews removed) */
+  .vri-section{max-width:1320px;margin:0 auto;padding:96px 28px;}
+  .vri-section .vri-panel{padding:64px 56px;}
+  .vri-section .vri-panel h3{font-size:56px;}
+  .split{max-width:1320px;margin:0 auto;padding:96px 28px;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+  .reviews .eyebrow{margin-bottom:18px;}
+  .reviews h2{font-family:'Times New Roman',Times,serif;font-size:44px;font-weight:400;line-height:1.08;letter-spacing:-.01em;margin-bottom:36px;max-width:460px;}
+  .reviews h2 em{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:400;color:var(--blue);}
+  .rating{display:flex;align-items:baseline;gap:14px;margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--rule);}
+  .rating-num{font-family:'Instrument Serif',serif;font-size:72px;line-height:1;letter-spacing:-.02em;}
+  .rating-stars{color:#d97706;letter-spacing:.15em;font-size:18px;margin-bottom:4px;}
+  .rating-meta{font-size:15px;color:var(--mute);text-transform:uppercase;letter-spacing:.1em;font-weight:600;}
+  .review{padding:20px 0;border-bottom:1px solid var(--rule);}
+  .review:last-child{border-bottom:none;}
+  .review-text{font-size:15px;line-height:1.65;color:var(--ink2);margin-bottom:12px;}
+  .review-text::before,.review-text::after{font-family:'Instrument Serif',serif;font-style:italic;color:var(--blue);font-size:22px;}
+  .review-text::before{content:'"';}
+  .review-text::after{content:'"';}
+  .review-who{font-size:15px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute);font-weight:600;}
+  .review-who b{color:var(--ink);font-weight:700;margin-right:8px;}
+
+  .vri-panel{background:var(--ink);color:var(--paper);border-radius:6px;padding:48px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+  .vri-panel::before{content:'';position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(26,86,219,.3),transparent 70%);}
+  .vri-panel .eyebrow{color:#93c5fd;position:relative;}
+  .vri-panel .eyebrow::before{background:#93c5fd;}
+  .vri-panel h3{font-family:'Instrument Serif',serif;font-size:48px;line-height:1;font-style:italic;font-weight:400;margin:24px 0 16px;position:relative;}
+  .vri-panel p{font-size:15px;line-height:1.65;color:#b4bfcc;max-width:380px;position:relative;margin-bottom:32px;}
+  .vri-check{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:36px;position:relative;}
+  .vri-check li{font-size:15px;color:#e8ecf2;padding-left:22px;position:relative;}
+  .vri-check li::before{content:'';position:absolute;left:0;top:8px;width:10px;height:2px;background:#93c5fd;}
+  .vri-panel .btn{background:var(--paper);color:var(--ink);align-self:flex-start;position:relative;}
+  .vri-panel .btn:hover{background:#93c5fd;color:var(--ink);}
+
+  /* CLIENTS STRIP */
+  .clients{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper2);overflow:hidden;}
+  .clients-lbl-wrap{max-width:1320px;margin:0 auto;padding:24px 28px 12px;display:flex;justify-content:center;}
+  .clients-lbl-wrap .lbl{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:600;}
+  .clients-marquee{padding:18px 0 28px;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);}
+  .clients-track{display:flex;align-items:center;gap:48px;white-space:nowrap;animation:clients-scroll 50s linear infinite;width:max-content;}
+  .clients-track .logo-name{font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;letter-spacing:-.005em;color:var(--ink);font-style:italic;}
+  .clients-track .sep{color:var(--blue);font-size:15px;opacity:.6;}
+  @keyframes clients-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  .clients:hover .clients-track{animation-play-state:paused;}
+
+  /* CTA + REQUEST FORM */
+  .cta{background:var(--paper2);padding:120px 28px;position:relative;overflow:hidden;}
+  .cta-grid{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;position:relative;}
+  .cta h2{font-family:'Times New Roman',Times,serif;font-size:clamp(44px,6vw,88px);line-height:1;letter-spacing:-.015em;font-weight:400;margin:14px 0 24px;}
+  .cta h2 .serif{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:400;color:var(--blue);}
+  .cta p{font-size:18px;color:var(--ink2);margin-bottom:36px;line-height:1.6;max-width:480px;}
+  .cta-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--rule);padding-top:32px;margin-top:8px;}
+  .cta-list li{display:flex;gap:18px;font-size:16px;line-height:1.5;color:var(--ink2);}
+  .cta-list-num{font-family:'Instrument Serif',serif;font-style:italic;font-size:22px;color:var(--blue);min-width:32px;line-height:1;padding-top:2px;}
+
+  .req-form{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:36px;box-shadow:0 24px 48px -28px rgba(10,20,32,.18);}
+  .form-fields{display:flex;flex-direction:column;gap:18px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field-row-3{grid-template-columns:1.2fr 1fr 1fr;}
+
+  /* Multi-date controls */
+  .date-block{display:flex;flex-direction:column;gap:14px;}
+  .multi-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px;color:var(--ink2);font-weight:500;user-select:none;padding:4px 0;}
+  .multi-toggle input{position:absolute;opacity:0;pointer-events:none;}
+  .multi-toggle .box{width:18px;height:18px;border:1.5px solid var(--rule);border-radius:3px;background:var(--paper);display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s;flex-shrink:0;}
+  .multi-toggle .box::after{content:'';width:8px;height:8px;background:var(--paper);clip-path:polygon(14% 44%,0 65%,50% 100%,100% 16%,80% 0%,43% 62%);opacity:0;transition:opacity .15s;}
+  .multi-toggle input:checked + .box{background:var(--ink);border-color:var(--ink);}
+  .multi-toggle input:checked + .box::after{opacity:1;}
+  .multi-toggle input:focus-visible + .box{box-shadow:0 0 0 3px rgba(26,86,219,.18);}
+  .extra-dates{display:flex;flex-direction:column;gap:14px;}
+  .extra-dates .date-row{position:relative;}
+  .remove-slot{position:absolute;top:-8px;right:-8px;background:var(--paper);border:1px solid var(--rule);border-radius:50%;width:26px;height:26px;font-size:15px;line-height:1;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s,color .15s;z-index:1;}
+  .remove-slot:hover{background:var(--ink);color:var(--paper);}
+  .btn-add{align-self:flex-start;background:transparent;border:1.5px dashed var(--rule);color:var(--ink2);padding:12px 18px;border-radius:4px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:border-color .15s,color .15s,background .15s;}
+  .btn-add:hover{border-color:var(--ink);color:var(--ink);background:var(--paper);border-style:solid;}
+  .btn-add .plus{font-size:18px;line-height:1;font-weight:400;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field-lbl{font-size:15px;letter-spacing:.04em;color:var(--ink2);font-weight:600;}
+  .field-lbl .opt{font-weight:400;color:var(--mute);text-transform:none;letter-spacing:0;font-style:italic;font-family:'Instrument Serif',serif;}
+  .req-form input,.req-form select,.req-form textarea{font-family:'Inter',sans-serif;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;transition:border-color .15s,box-shadow .15s;width:100%;}
+  .req-form input:focus,.req-form select:focus,.req-form textarea:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,86,219,.15);}
+  .req-form textarea{resize:vertical;font-family:inherit;}
+  .radio-group{display:flex;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:4px;background:var(--paper);}
+  .radio-group label{flex:1;cursor:pointer;}
+  .radio-group input{position:absolute;opacity:0;pointer-events:none;}
+  .radio-group span{display:flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:15px;font-weight:500;color:var(--ink2);transition:background .15s,color .15s;}
+  .radio-group input:checked + span{background:var(--ink);color:var(--paper);}
+  .form-submit{width:100%;justify-content:center;padding:16px 22px;font-size:15px;margin-top:8px;}
+  .form-fine{font-size:15px;color:var(--mute);text-align:center;margin:0;line-height:1.5;}
+  .form-success{text-align:center;padding:40px 16px;}
+  .check-mark{width:56px;height:56px;border-radius:50%;background:var(--blue);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 20px;}
+  .form-success h3{font-family:'Instrument Serif',serif;font-style:italic;font-size:32px;font-weight:400;margin-bottom:12px;color:var(--ink);}
+  .form-success p{font-size:15px;color:var(--ink2);margin:0 auto;max-width:380px;}
+  .form-success a{color:var(--blue);font-weight:600;text-decoration:none;}
+
+  /* FOOTER */
+  footer{background:var(--ink);color:#9ba9bb;padding:48px 28px 24px;}
+  .foot-grid{max-width:1320px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:48px;flex-wrap:wrap;padding-bottom:24px;border-bottom:1px solid rgba(255,255,255,.1);}
+  .foot-brand{display:flex;flex-direction:column;gap:8px;max-width:520px;}
+  .foot-brand .logo-text{color:#fff;font-size:18px;}
+  .foot-brand .logo-text em{color:#93c5fd;}
+  .foot-brand p{font-size:15px;line-height:1.6;margin:0;}
+  .foot-contact{font-size:15px;color:#6b7a8c;margin-top:4px;}
+  .foot-contact a{color:#9ba9bb;text-decoration:none;}
+  .foot-contact a:hover{color:#fff;}
+  .foot-creds{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .rid-mark{width:48px;height:48px;border-radius:50%;background:#fff;padding:4px;flex-shrink:0;}
+  .nic-mark{width:48px;height:48px;border-radius:50%;background:#fff;padding:6px;object-fit:contain;flex-shrink:0;}
+  .foot-creds-lbl{font-size:15px;letter-spacing:.06em;color:#9ba9bb;line-height:1.4;text-transform:uppercase;font-weight:600;}
+  .foot-bottom{max-width:1320px;margin:16px auto 0;display:flex;justify-content:space-between;font-size:15px;color:#6b7a8c;}
+
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr;gap:40px;}
+    .stats{grid-template-columns:1fr 1fr;}
+    .split{grid-template-columns:1fr;}
+    .cta-grid{grid-template-columns:1fr;gap:48px;}
+    .field-row,.field-row-3{grid-template-columns:1fr;}
+    .srv{grid-template-columns:40px 1fr;gap:16px;}
+    .srv-desc,.srv-go{grid-column:1/-1;margin-left:56px;}
+  }
+</style>
 </head>
 <body>
 
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<div class="topbar">
+  <div class="left">
+    <span><span class="dot"></span>Accepting new bookings this week</span>
+  </div>
+  <div class="right">
+    <span>San Diego, CA · Nationwide VRI</span>
+    <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
+    <span>info@rosesli.com</span>
+  </div>
+</div>
 
-<nav aria-label="Primary navigation">
-  <a class="nav-logo" href="index.html">Rose <span>SLI</span></a>
-  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
-    <span></span><span></span><span></span>
-  </button>
-  <ul class="nav-links" role="list">
-    <li><a href="about.html">About Us</a></li>
-    <li><a href="programs.html">Programs</a></li>
-    <li><a href="work.html">Work</a></li>
-    <li><a href="request.html" class="nav-cta">Request an Interpreter</a></li>
+<nav class="main">
+  <a href="#" class="logo">
+    <div class="logo-mark">r</div>
+    <div class="logo-text">Rose <em>SLI</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="about.html">About</a></li>
+    <li><a href="specialties.html">Specialties</a></li>
+    <li><a href="vri.html">VRI</a></li>
+    <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
 </nav>
 
-<main id="main-content">
-
-<!-- HERO -->
-<section class="hero" aria-label="Hero">
-  <div class="hero-inner">
-    <div class="vri-callout"><span class="vri-dot"></span>Nationwide VRI Available</div>
-    <p>San Diego Sign Language Interpreting Services</p>
-    <h1>Certified ASL Interpreters<br>San Diego &amp; Nationwide</h1>
-    <a href="request.html" class="btn">Request an Interpreter</a>
-    <a href="about.html" class="btn btn-outline">About Rose SLI</a>
+<section class="hero">
+  <div>
+    <div class="eyebrow eyebrow-lg">San Diego · Est. 2026 — Certified Interpreters</div>
+    <h1>Certified ASL<br>interpreters, <span class="serif">when the<br>meaning really matters.</span></h1>
+    <p class="lede">Rose Sign Language Interpreting pairs Deaf clients and their partnering organizations with nationally-certified interpreters — on site across San Diego County, or via video anywhere in the U.S.</p>
+    <div class="hero-ctas">
+      <a href="request.html" class="btn btn-dark">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <img src="hand-shaka.png" alt="Hand signing in American Sign Language" class="hero-img">
+    <div class="hero-meta">San Diego, CA<br><b>On-site &amp; VRI<br>nationwide</b></div>
   </div>
 </section>
 
-<!-- SERVICES PREVIEW -->
-<section class="section-blue" aria-labelledby="services-heading">
-  <div class="section-inner">
-    <div class="section-label">What We Do</div>
-    <h2 id="services-heading">Our Services</h2>
-    <div class="card-grid">
-      <div class="card-dark">
-        <h3><a href="corporate.html" style="color:inherit;text-decoration:none;">Corporate &amp; Business</a></h3>
-        <p>From board meetings to company-wide all-hands events, our interpreters bring corporate vocabulary fluency and discretion to every engagement. We support staff meetings, HR sessions, onboarding, training, and executive conferences — on-site or via VRI.</p>
+<div class="run">
+  <div class="run-inner">
+    <span>Medical</span><span>Corporate</span><span>Education</span><span>Theaters</span><span>Concerts</span><span>Private Events</span><span>Community</span><span>Mental Health</span>
+    <span>Medical</span><span>Corporate</span><span>Education</span><span>Theaters</span><span>Concerts</span><span>Private Events</span><span>Community</span><span>Mental Health</span>
+  </div>
+</div>
+
+<section class="stats" id="about">
+  <div class="intro">
+    <div class="eyebrow">Who we are</div>
+    <h2>A specialized team — <em>chosen carefully</em>, matched intentionally.</h2>
+  </div>
+  <div class="stat"><div class="stat-lbl">Years in practice</div><div class="stat-num">10+</div></div>
+  <div class="stat"><div class="stat-lbl">Assignments a year</div><div class="stat-num">500+</div></div>
+  <div class="stat"><div class="stat-lbl">Organizations</div><div class="stat-num">50+</div></div>
+  <div class="stat"><div class="stat-lbl">Certified interpreters</div><div class="stat-num">100%</div></div>
+</section>
+
+<section class="services" id="services">
+  <div class="services-inner">
+    <div class="eyebrow">What we do</div>
+    <h2>Interpreting that meets the <span class="serif">specific weight</span> of each setting.</h2>
+    <div class="service-list">
+      <a href="#" class="srv">
+        <div class="srv-num">01</div>
+        <div class="srv-ttl">Medical &amp; <em>Healthcare</em></div>
+        <div class="srv-desc">Clinical appointments, hospital settings, mental health, telehealth. Clinically fluent and trauma-aware.</div>
+        <div class="srv-go">Go ↗</div>
+      </a>
+      <a href="#" class="srv">
+        <div class="srv-num">02</div>
+        <div class="srv-ttl">Corporate &amp; <em>Business</em></div>
+        <div class="srv-desc">All-hands, conferences, HR, onboarding, executive sessions. Discretion in sensitive rooms.</div>
+        <div class="srv-go">Go ↗</div>
+      </a>
+      <a href="#" class="srv">
+        <div class="srv-num">03</div>
+        <div class="srv-ttl">Education &amp; <em>K–Higher Ed</em></div>
+        <div class="srv-desc">Classroom, IEP meetings, lectures, virtual learning, trade schools. Consistent, qualified, student-aware.</div>
+        <div class="srv-go">Go ↗</div>
+      </a>
+      <a href="#" class="srv">
+        <div class="srv-num">04</div>
+        <div class="srv-ttl">Community &amp; <em>Performing Arts</em></div>
+        <div class="srv-desc">Theaters, concerts, religious services, public events. Advance prep, tech rehearsal, on-stage comfort.</div>
+        <div class="srv-go">Go ↗</div>
+      </a>
+      <a href="#" class="srv">
+        <div class="srv-num">05</div>
+        <div class="srv-ttl">Private <em>Events</em></div>
+        <div class="srv-desc">Weddings, family gatherings, milestones, and personal occasions. Discreet, prepared, and tuned to the room.</div>
+        <div class="srv-go">Go ↗</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="vri-section" id="vri">
+  <aside class="vri-panel vri-wide">
+    <div>
+      <div class="eyebrow"><span class="dot" style="background:#4ade80;margin-right:6px;"></span>Video remote interpreting</div>
+      <h3>An interpreter in your office, on your time, <em>anywhere.</em></h3>
+      <p>When travel time doesn't fit the meeting, VRI puts a certified interpreter on Zoom, Teams, or a tablet at your location — same quality, no commute.</p>
+      <ul class="vri-check">
+        <li>Certified interpreter, not a call-center route</li>
+        <li>Works on Zoom, Teams, and other platforms</li>
+        <li>Same-day bookings when availability allows</li>
+        <li>Secure video for clinical and confidential settings</li>
+      </ul>
+    </div>
+    <a href="request.html" class="btn">Request VRI <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
+  </aside>
+</section>
+
+<section class="clients">
+  <div class="clients-lbl-wrap">
+    <div class="lbl">Trusted by</div>
+  </div>
+  <div class="clients-marquee" aria-hidden="true">
+    <div class="clients-track">
+      <span class="logo-name">Amazon</span><span class="sep">✦</span>
+      <span class="logo-name">San Diego Comic-Con</span><span class="sep">✦</span>
+      <span class="logo-name">TwitchCon</span><span class="sep">✦</span>
+      <span class="logo-name">County of San Diego</span><span class="sep">✦</span>
+      <span class="logo-name">City of San Diego</span><span class="sep">✦</span>
+      <span class="logo-name">Scripps</span><span class="sep">✦</span>
+      <span class="logo-name">UCSD Health</span><span class="sep">✦</span>
+      <span class="logo-name">U.S. Department of the Navy</span><span class="sep">✦</span>
+      <span class="logo-name">USCIS</span><span class="sep">✦</span>
+      <span class="logo-name">SDCCD</span><span class="sep">✦</span>
+      <span class="logo-name">DHS</span><span class="sep">✦</span>
+      <span class="logo-name">USPS</span><span class="sep">✦</span>
+      <span class="logo-name">Amazon</span><span class="sep">✦</span>
+      <span class="logo-name">San Diego Comic-Con</span><span class="sep">✦</span>
+      <span class="logo-name">TwitchCon</span><span class="sep">✦</span>
+      <span class="logo-name">County of San Diego</span><span class="sep">✦</span>
+      <span class="logo-name">City of San Diego</span><span class="sep">✦</span>
+      <span class="logo-name">Scripps</span><span class="sep">✦</span>
+      <span class="logo-name">UCSD Health</span><span class="sep">✦</span>
+      <span class="logo-name">U.S. Department of the Navy</span><span class="sep">✦</span>
+      <span class="logo-name">USCIS</span><span class="sep">✦</span>
+      <span class="logo-name">SDCCD</span><span class="sep">✦</span>
+      <span class="logo-name">DHS</span><span class="sep">✦</span>
+      <span class="logo-name">USPS</span><span class="sep">✦</span>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="request">
+  <div class="cta-grid">
+    <div class="cta-copy">
+      <div class="eyebrow" style="color:var(--blue);">Request an interpreter</div>
+      <h2>Tell us about your<br>event, <span class="serif">we'll take it<br>from there.</span></h2>
+      <p>We confirm availability within one business day. Same-day requests? Call us directly at <a href="tel:+16192897368" style="color:var(--blue);text-decoration:none;font-weight:600;">619-289-7368</a>.</p>
+      <ul class="cta-list">
+        <li><span class="cta-list-num">01</span> Tell us the basics &mdash; setting, date, location.</li>
+        <li><span class="cta-list-num">02</span> We confirm availability within one business day.</li>
+        <li><span class="cta-list-num">03</span> A certified interpreter, matched to your room.</li>
+      </ul>
+    </div>
+    <form class="req-form" onsubmit="event.preventDefault(); this.querySelector('.form-success').hidden=false; this.querySelector('.form-fields').hidden=true;">
+      <div class="form-fields">
+        <div class="field-row">
+          <label class="field">
+            <span class="field-lbl">Your name</span>
+            <input type="text" name="name" required placeholder="Jane Smith">
+          </label>
+          <label class="field">
+            <span class="field-lbl">Organization</span>
+            <input type="text" name="org" placeholder="Hospital, agency, firm&hellip;">
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-lbl">Email</span>
+            <input type="email" name="email" required placeholder="you@org.com">
+          </label>
+          <label class="field">
+            <span class="field-lbl">Phone</span>
+            <input type="tel" name="phone" placeholder="(619) 555–0100">
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-lbl">Setting</span>
+            <select name="setting" required>
+              <option value="">Select setting&hellip;</option>
+              <option>Conference</option>
+              <option>Education</option>
+              <option>Medical</option>
+              <option>Private event</option>
+              <option>Work related</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-lbl">Number of Deaf clients</span>
+            <select name="client_count" required>
+              <option value="">Select&hellip;</option>
+              <option>1</option>
+              <option>2</option>
+              <option>3–5</option>
+              <option>6–10</option>
+              <option>11+</option>
+              <option>Unsure</option>
+            </select>
+          </label>
+        </div>
+        <div class="date-block" id="date-block">
+          <div class="field-row field-row-3 date-row" data-slot="0">
+            <label class="field">
+              <span class="field-lbl">Date</span>
+              <input type="date" name="date" required>
+            </label>
+            <label class="field">
+              <span class="field-lbl">Start time</span>
+              <input type="time" name="start_time" required>
+            </label>
+            <label class="field">
+              <span class="field-lbl">End time</span>
+              <input type="time" name="end_time" required>
+            </label>
+          </div>
+          <label class="multi-toggle">
+            <input type="checkbox" id="multi-dates" onchange="toggleMultiDates(this)">
+            <span class="box"></span>
+            <span class="toggle-lbl">This booking is for multiple dates</span>
+          </label>
+          <div class="extra-dates" id="extra-dates" hidden></div>
+          <button type="button" class="btn-add" id="add-date-btn" onclick="addDateSlot()" hidden>
+            <span class="plus">+</span> Add another date
+          </button>
+        </div>
+        <label class="field">
+          <span class="field-lbl">Format</span>
+          <div class="radio-group">
+            <label><input type="radio" name="format" value="onsite" checked><span>On-site</span></label>
+            <label><input type="radio" name="format" value="vri"><span>VRI</span></label>
+            <label><input type="radio" name="format" value="either"><span>Either</span></label>
+          </div>
+        </label>
+        <label class="field">
+          <span class="field-lbl">Brief details <span class="opt">(optional)</span></span>
+          <textarea name="details" rows="3" placeholder="Audience size, location, any prep materials we should review…"></textarea>
+        </label>
+        <button type="submit" class="btn btn-dark form-submit">Send request <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></button>
+        <p class="form-fine">By submitting, you agree to be contacted about this request. We never share your information.</p>
       </div>
-      <div class="card-dark">
-        <h3><a href="medical.html" style="color:inherit;text-decoration:none;">Medical &amp; Healthcare</a></h3>
-        <p>Healthcare communication is life-critical. Our HIPAA-trained interpreters are fluent in clinical terminology and deliver accurate, compassionate interpretation for appointments, procedures, mental health sessions, and emergency settings across San Diego County.</p>
+      <div class="form-success" hidden>
+        <div class="check-mark">✓</div>
+        <h3>Request received.</h3>
+        <p>Thanks &mdash; we'll be in touch within one business day. For same-day needs, please call <a href="tel:+16192897368">619-289-7368</a>.</p>
       </div>
-      <div class="card-dark">
-        <h3><a href="legal.html" style="color:inherit;text-decoration:none;">Legal &amp; Government</a></h3>
-        <p>Legal proceedings demand absolute accuracy and strict confidentiality. Rose SLI interpreters are experienced in courtroom protocol, legal terminology, and ethical obligations — from depositions and trials to ADA compliance hearings and public meetings.</p>
-      </div>
-      <div class="card-dark">
-        <h3><a href="education.html" style="color:inherit;text-decoration:none;">Education</a></h3>
-        <p>From elementary classrooms to university lecture halls, we provide consistent, qualified interpreters who support Deaf and hard-of-hearing students and faculty. We cover IEP meetings, classroom instruction, professional development, and virtual learning.</p>
-      </div>
-    </div>
-    <div class="vri-banner">
-      <span class="vri-dot"></span>
-      <div class="vri-banner-text"><strong>Nationwide VRI Available</strong> — Our Video Remote Interpreting service connects you with a certified ASL interpreter anywhere in the U.S., within minutes. No travel required.</div>
-      <a href="request.html" class="btn">Request VRI</a>
-    </div>
-    <div style="margin-top:2.5rem;">
-      <a href="programs.html" class="btn">View All Programs</a>
-    </div>
+    </form>
+    <script>
+      let slotCount = 1;
+      function toggleMultiDates(cb){
+        const wrap = document.getElementById('extra-dates');
+        const btn = document.getElementById('add-date-btn');
+        if(cb.checked){
+          wrap.hidden = false;
+          btn.hidden = false;
+          if(wrap.children.length === 0) addDateSlot();
+        } else {
+          wrap.hidden = true;
+          btn.hidden = true;
+          wrap.innerHTML = '';
+          slotCount = 1;
+        }
+      }
+      function addDateSlot(){
+        const wrap = document.getElementById('extra-dates');
+        const slot = document.createElement('div');
+        slot.className = 'field-row field-row-3 date-row';
+        slot.dataset.slot = slotCount;
+        slot.innerHTML = `
+          <button type="button" class="remove-slot" aria-label="Remove date" onclick="this.parentElement.remove()">×</button>
+          <label class="field">
+            <span class="field-lbl">Date</span>
+            <input type="date" name="date_${slotCount}" required>
+          </label>
+          <label class="field">
+            <span class="field-lbl">Start time</span>
+            <input type="time" name="start_time_${slotCount}" required>
+          </label>
+          <label class="field">
+            <span class="field-lbl">End time</span>
+            <input type="time" name="end_time_${slotCount}" required>
+          </label>`;
+        wrap.appendChild(slot);
+        slotCount++;
+      }
+    </script>
   </div>
 </section>
-
-<!-- WHO WE ARE -->
-<section class="section" aria-labelledby="about-heading">
-  <div class="section-label">Who We Are</div>
-  <h2 id="about-heading">About Rose SLI</h2>
-  <p style="max-width:680px; line-height:1.8; color:#374151; font-size:1rem;">
-    Rose Sign Language Interpreting is a San Diego–based firm committed to bridging communication gaps between the Deaf and hearing communities. Our certified interpreters bring professionalism, discretion, and cultural competency to every assignment.
-  </p>
-  <div class="stat-row">
-    <div class="stat"><div class="num">10+</div><div class="lbl">Years Experience</div></div>
-    <div class="stat"><div class="num">500+</div><div class="lbl">Assignments Completed</div></div>
-    <div class="stat"><div class="num">100%</div><div class="lbl">Certified Interpreters</div></div>
-  </div>
-  <div style="margin-top:2.5rem;">
-    <a href="about.html" class="btn">Meet the Team</a>
-  </div>
-</section>
-
-<!-- CLIENTS -->
-<section class="section-dark" aria-labelledby="clients-heading">
-  <div class="section-inner">
-    <div class="section-label">Trusted By</div>
-    <h2 id="clients-heading">Our Clients</h2>
-    <div class="clients-strip">
-      <div class="client-logo">Amazon</div>
-      <div class="client-logo">San Diego Unified</div>
-      <div class="client-logo">UCSD Health</div>
-      <div class="client-logo">County of San Diego</div>
-      <div class="client-logo">Sharp Healthcare</div>
-      <div class="client-logo">Scripps</div>
-    </div>
-  </div>
-</section>
-
-<!-- REVIEWS -->
-<section class="section" aria-labelledby="reviews-heading">
-  <div class="section-label">Client Reviews</div>
-  <h2 id="reviews-heading">What Our Clients Say</h2>
-  <div class="google-summary">
-    <div class="google-score">5.0</div>
-    <div class="google-meta">
-      <div class="google-stars-lg">★★★★★</div>
-      <div class="google-label">Google Business Profile</div>
-    </div>
-  </div>
-  <!-- Replace the review content below with real reviews from your Google Business Profile -->
-  <div class="card-grid">
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"Rose SLI provided an outstanding interpreter for our company's annual conference. Incredibly professional, well-prepared, and our Deaf team members said it was the best access they'd ever had at a corporate event."</p>
-      <div class="review-author">David M.</div>
-      <div class="review-source">Google Review · Corporate Client</div>
-    </div>
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"We've partnered with Rose SLI for our hospital's patient appointments for over two years. Their interpreters are HIPAA-trained, compassionate, and available on short notice. Truly an essential service partner for our team."</p>
-      <div class="review-author">Sarah K., Patient Services Coordinator</div>
-      <div class="review-source">Google Review · Healthcare</div>
-    </div>
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"Our school district has relied on Rose SLI for IEP meetings and daily classroom support. The interpreters are highly skilled, culturally aware, and wonderful with our students. I recommend them without hesitation."</p>
-      <div class="review-author">Patricia L., Special Education Director</div>
-      <div class="review-source">Google Review · Education</div>
-    </div>
-  </div>
-  <!-- Update the href below with your Google Business Profile reviews URL -->
-  <a href="https://g.page/r/YOUR_GOOGLE_PLACE_ID/review" class="google-cta-link" target="_blank" rel="noopener">View All Reviews on Google →</a>
-</section>
-
-<!-- CTA -->
-<section style="background:var(--blue); padding:5rem 2.5rem; text-align:center;" aria-label="Call to action">
-  <div class="section-label" style="color:#ffffff;">Ready to Connect?</div>
-  <h2 style="color:#fff; font-size:clamp(1.8rem,3.5vw,2.8rem); font-weight:900; text-transform:uppercase; letter-spacing:.04em; margin-bottom:1.5rem;">Request an Interpreter Today</h2>
-  <a href="request.html" class="btn btn-outline">Get Started</a>
-</section>
-
-</main>
 
 <footer>
-  <div class="footer-logo">Rose <span>SLI</span></div>
-  <address style="font-style:normal;">
-    <p>Sign Language Interpreting Services</p>
-    <p>San Diego, CA · <a href="tel:+16192897368" style="color:#94a3b8;">(619) 289-7368</a> · <a href="mailto:info@rosesli.com" style="color:#94a3b8;">info@rosesli.com</a></p>
-  </address>
-  <nav aria-label="Footer navigation">
-    <div class="footer-links">
-      <a href="about.html">About Us</a>
-      <a href="programs.html">Programs</a>
-      <a href="work.html">Work</a>
-      <a href="request.html">Request an Interpreter</a>
-      <a href="accessibility-statement.html">Accessibility Statement</a>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo-text">Rose <em>SLI</em></div>
+      <p>Certified ASL interpreting across San Diego County and nationwide via video.</p>
+      <div class="foot-contact">
+        <a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA
+      </div>
     </div>
-  </nav>
-  <hr>
-  <p class="copy">&copy; 2026 Rose Sign Language Interpreting. All rights reserved.</p>
+    <div class="foot-creds">
+      <img src="rid-logo.png" alt="Registry of Interpreters for the Deaf (RID)" class="rid-mark">
+      <img src="nic-logo.png" alt="NIC – RID National Interpreter Certification" class="nic-mark">
+      <span class="foot-creds-lbl">RID and NIC<br>certified interpreters</span>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Rose Sign Language Interpreting</span>
+  </div>
 </footer>
-
-<script src="script.js" defer></script>
 
 </body>
 </html>
