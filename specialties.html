@@ -3,34 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Specialties · Rose Sign Language Interpreting</title>
+<title>Testimonials · Rose Sign Language Interpreting</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
 <style>
-  /* Specialty cards */
-  .specs{max-width:1320px;margin:0 auto;padding:80px 28px;}
-  .spec{display:grid;grid-template-columns:1fr 1.4fr;gap:64px;padding:56px 0;border-top:1px solid var(--rule);align-items:start;}
-  .spec:last-child{border-bottom:1px solid var(--rule);}
-  .spec-num{font-family:'Instrument Serif',serif;font-size:18px;color:var(--mute);font-style:italic;margin-bottom:18px;}
-  .spec h2{font-family:'Times New Roman',Times,serif;font-size:48px;line-height:1.04;letter-spacing:-.015em;font-weight:400;margin-bottom:18px;}
-  .spec h2 em{font-style:italic;color:var(--blue);font-family:'Times New Roman',Times,serif;}
-  .spec .desc{font-size:17px;line-height:1.6;color:var(--ink2);margin-bottom:24px;max-width:520px;}
-  .spec h4{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:700;margin:24px 0 14px;}
-  .spec ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;}
-  .spec ul li{font-size:15px;line-height:1.5;color:var(--ink2);padding-left:18px;position:relative;}
-  .spec ul li::before{content:'';position:absolute;left:0;top:9px;width:8px;height:2px;background:var(--blue);}
-  .spec-side{background:var(--paper2);border-radius:6px;padding:28px;border:1px solid var(--rule);position:sticky;top:80px;}
-  .spec-side .stat-lg{font-family:'Instrument Serif',serif;font-size:64px;font-style:italic;line-height:1;color:var(--ink);margin-bottom:8px;letter-spacing:-.02em;}
-  .spec-side .stat-lbl{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);font-weight:600;line-height:1.4;margin-bottom:24px;}
-  .spec-side .quote{font-family:'Instrument Serif',serif;font-size:20px;font-style:italic;line-height:1.4;color:var(--ink);padding:20px 0;border-top:1px solid var(--rule);}
-  .spec-side .who{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-top:8px;}
-  .spec-cta{display:inline-flex;align-items:center;gap:8px;margin-top:24px;font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:4px;}
-  .spec-cta:hover{color:var(--blue);border-color:var(--blue);}
+  /* Testimonials grid */
+  .tgrid{max-width:1320px;margin:0 auto;padding:80px 28px;display:grid;grid-template-columns:repeat(2,1fr);gap:32px;}
+  .tcard{background:var(--paper2);border:1px solid var(--rule);border-radius:6px;padding:40px 36px;display:flex;flex-direction:column;gap:18px;}
+  .tcard.feature{grid-column:1 / -1;background:var(--ink);color:#fff;border-color:transparent;}
+  .tcard.feature .tquote{color:#fff;}
+  .tcard.feature .tmark{color:var(--blue);}
+  .tmark{font-family:'Instrument Serif',serif;font-size:72px;line-height:.6;color:var(--blue);font-style:italic;}
+  .tquote{font-family:'Instrument Serif',serif;font-size:24px;line-height:1.4;color:var(--ink);font-style:italic;letter-spacing:-.005em;}
+  .tcard.feature .tquote{font-size:32px;line-height:1.35;}
 
-  @media(max-width:960px){
-    .spec{grid-template-columns:1fr;gap:32px;}
-    .spec-side{position:static;}
-    .spec ul{grid-template-columns:1fr;}
+  @media(max-width:880px){
+    .tgrid{grid-template-columns:1fr;padding:60px 22px;gap:22px;}
+    .tcard{padding:32px 26px;}
+    .tquote{font-size:21px;}
+    .tcard.feature .tquote{font-size:26px;}
   }
 </style>
 </head>
@@ -48,143 +39,58 @@
 <nav class="main">
   <a href="/" class="logo">
     <div class="logo-mark">r</div>
-    <div class="logo-text">Rose <em>SLI</em></div>
+    <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
   </a>
   <ul class="nav-links">
     <li><a href="about.html">About</a></li>
-    <li><a href="specialties.html" class="active">Specialties</a></li>
+    <li><a href="specialties.html" class="active">Testimonials</a></li>
     <li><a href="vri.html">VRI</a></li>
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
 </nav>
 
-<div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Specialties</div>
+<div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Testimonials</div>
 <header class="page-head">
-  <div class="eyebrow">What we do</div>
-  <h1>Interpreting that meets the <span class="serif">specific weight</span> of each setting.</h1>
-  <p class="lede">Five practice areas, one standard. Each interpreter on our roster has settings they specialize in — and we match by hand based on the room you actually have, not just the box you tick on the request form.</p>
+  <div class="eyebrow">In their words</div>
+  <h1>The work, <span class="serif">in their words</span>.</h1>
+  <p class="lede">From the people we interpret for and the rooms we interpret in.</p>
 </header>
 
-<section class="specs">
+<section class="tgrid">
 
-  <article class="spec">
-    <div>
-      <div class="spec-num">01 · Healthcare</div>
-      <h2>Medical &amp; <em>healthcare</em>.</h2>
-      <p class="desc">Clinical visits, hospital admissions, surgery prep and post-op, mental and behavioral health, telehealth. Interpreters fluent in clinical register, with the discretion that medical settings require.</p>
-      <h4>Common settings</h4>
-      <ul>
-        <li>Primary care &amp; specialty appointments</li>
-        <li>Emergency department &amp; admissions</li>
-        <li>Pre-op, surgery, and post-op</li>
-        <li>Behavioral &amp; mental health sessions</li>
-        <li>OB-GYN and labor &amp; delivery</li>
-        <li>Telehealth visits via VRI</li>
-      </ul>
-      <a href="request.html?spec=medical" class="spec-cta">Request a medical interpreter ↗</a>
-    </div>
-    <aside class="spec-side">
-      <div class="stat-lg">200+</div>
-      <div class="stat-lbl">Medical assignments a year</div>
-      <p class="quote">"They sent the same interpreter back for my mother's chemo cycle. That mattered more than I can explain."</p>
-      <div class="who">Family member · Scripps</div>
-    </aside>
+  <article class="tcard feature">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">If you weren't here, I would not have continued to work as a nurse. This year is 6 years as a nurse!</p>
   </article>
 
-  <article class="spec">
-    <div>
-      <div class="spec-num">02 · Business</div>
-      <h2>Corporate &amp; <em>business</em>.</h2>
-      <p class="desc">All-hands and town halls, conferences, executive sessions, HR conversations, onboarding, training. We bring discretion into sensitive rooms and stage presence into large ones.</p>
-      <h4>Common settings</h4>
-      <ul>
-        <li>All-hands &amp; town halls</li>
-        <li>Conference keynotes &amp; breakouts</li>
-        <li>Executive 1:1s and board meetings</li>
-        <li>HR investigations &amp; performance reviews</li>
-        <li>New-hire onboarding sessions</li>
-        <li>Internal training &amp; certifications</li>
-      </ul>
-      <a href="request.html?spec=corporate" class="spec-cta">Request a corporate interpreter ↗</a>
-    </div>
-    <aside class="spec-side">
-      <div class="stat-lg">12</div>
-      <div class="stat-lbl">Fortune 500 clients booked through us</div>
-      <p class="quote">"Stage-ready, on time, and they read the deck before walking in. That is the bar."</p>
-      <div class="who">Events lead · Amazon</div>
-    </aside>
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">The interpreter was clear, conceptually accurate, professional and personable.</p>
   </article>
 
-  <article class="spec">
-    <div>
-      <div class="spec-num">03 · Education</div>
-      <h2>Education &amp; <em>K–Higher Ed</em>.</h2>
-      <p class="desc">Classroom interpreting, IEP meetings, lectures, virtual learning, and trade schools. Consistent placements, qualified educational interpreters, and student-aware practice.</p>
-      <h4>Common settings</h4>
-      <ul>
-        <li>K-12 classroom &amp; daily placements</li>
-        <li>IEP, 504, and team meetings</li>
-        <li>University lectures &amp; seminars</li>
-        <li>Trade schools &amp; CTE programs</li>
-        <li>Virtual learning &amp; online courses</li>
-        <li>Graduations &amp; school events</li>
-      </ul>
-      <a href="request.html?spec=education" class="spec-cta">Request an educational interpreter ↗</a>
-    </div>
-    <aside class="spec-side">
-      <div class="stat-lg">15+</div>
-      <div class="stat-lbl">School districts &amp; campuses</div>
-      <p class="quote">"They placed the same two interpreters on a daily team for the whole semester. Our student finally felt seen."</p>
-      <div class="who">DHH coordinator · SDCCD</div>
-    </aside>
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">Interpreters knowledgeable in the subject matter is what set them apart.</p>
   </article>
 
-  <article class="spec">
-    <div>
-      <div class="spec-num">04 · Community &amp; arts</div>
-      <h2>Community &amp; <em>performing arts</em>.</h2>
-      <p class="desc">Religious services, theatre productions, public events, weddings, concerts. Advance prep with directors and clergy, on-stage comfort, and pre-show tech rehearsal.</p>
-      <h4>Common settings</h4>
-      <ul>
-        <li>Theatre &amp; musical productions</li>
-        <li>Concerts &amp; festival stages</li>
-        <li>Religious services &amp; ceremonies</li>
-        <li>Comic-Con &amp; fan conventions</li>
-        <li>Public hearings &amp; town meetings</li>
-        <li>Weddings &amp; milestone events</li>
-      </ul>
-      <a href="request.html?spec=community" class="spec-cta">Request a community interpreter ↗</a>
-    </div>
-    <aside class="spec-side">
-      <div class="stat-lg">100%</div>
-      <div class="stat-lbl">Of stage work runs a tech rehearsal first</div>
-      <p class="quote">"They came to soundcheck. Nobody else has ever done that."</p>
-      <div class="who">Production manager · TwitchCon</div>
-    </aside>
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">After so many years, I was finally able to &lsquo;hear&rsquo; the music again!</p>
   </article>
 
-  <article class="spec">
-    <div>
-      <div class="spec-num">05 · Private events</div>
-      <h2>Private <em>events</em>.</h2>
-      <p class="desc">Weddings, family gatherings, milestones, and personal occasions. Discreet, prepared, and tuned to the room — the interpreter is part of the day, not a fixture in the corner.</p>
-      <h4>Common settings</h4>
-      <ul>
-        <li>Weddings &amp; rehearsals</li>
-        <li>Funerals &amp; memorials</li>
-        <li>Bar &amp; bat mitzvahs</li>
-        <li>Quinceañeras</li>
-        <li>Anniversary &amp; milestone parties</li>
-        <li>Family medical conferences</li>
-      </ul>
-      <a href="request.html?spec=private" class="spec-cta">Request a private-event interpreter ↗</a>
-    </div>
-    <aside class="spec-side">
-      <div class="stat-lg">A handful</div>
-      <div class="stat-lbl">Each year — we keep this work small</div>
-      <p class="quote">"She signed our vows back to my brother in real time. He got married twice that day."</p>
-      <div class="who">Wedding · La Jolla, CA</div>
-    </aside>
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">I had such a fantastic time at my sister's wedding. The interpreters were flexible and professional enough for me to participate whenever I wanted and they represented me well.</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">I had 24/7 in-person interpreting coverage during my hospital stay. I felt valued as a patient and relieved that I could communicate my needs.</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">An ER visit is a daunting experience. Having communication access made it a manageable experience.</p>
   </article>
 
 </section>
@@ -199,14 +105,14 @@
 <footer>
   <div class="foot-grid">
     <div class="foot-brand">
-      <div class="logo-text">Rose <em>SLI</em></div>
+      <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
       <p>Certified ASL interpreting across San Diego County and nationwide via video. Founded by Amanda Rose.</p>
       <div class="foot-contact"><a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA</div>
     </div>
     <div class="foot-creds">
       <img src="rid-logo.png" alt="RID" class="rid-mark">
-      <img src="nic-logo.png" alt="NIC" class="nic-mark">
-      <span class="foot-creds-lbl">RID and NIC<br>certified interpreters</span>
+      <img src="nad-logo.png" alt="NAD" class="nad-mark">
+      <span class="foot-creds-lbl">RID and NAD<br>member interpreters</span>
     </div>
   </div>
   <div class="foot-bottom"><span>© 2026 Rose Sign Language Interpreting</span></div>
