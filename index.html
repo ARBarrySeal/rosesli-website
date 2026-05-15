@@ -46,6 +46,13 @@
   .nav-cta-lg:hover{background:var(--ink);transform:translateY(-1px);box-shadow:0 12px 28px -10px rgba(10,20,32,.45);}
   .nav-cta-lg .arrow{width:14px;height:14px;}
 
+  /* BRAND BANNER */
+  .brand-banner{background:var(--ink);color:#fff;padding:36px 28px;text-align:center;border-top:1px solid rgba(255,255,255,.08);}
+  .brand-banner-inner{max-width:1320px;margin:0 auto;}
+  .brand-banner-title{font-family:'Times New Roman',Times,serif;font-size:clamp(36px,5vw,64px);line-height:1.05;letter-spacing:-.01em;font-weight:400;margin:0;}
+  .brand-banner-title em{font-style:italic;color:var(--blue);}
+  .brand-banner-sub{margin-top:10px;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.65);font-weight:600;}
+
   /* HERO */
   .hero{padding:64px 28px 80px;max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:end;}
   .eyebrow{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:28px;}
@@ -241,19 +248,27 @@
 <nav class="main">
   <a href="#" class="logo">
     <div class="logo-mark">r</div>
-    <div class="logo-text">Rose <em>SLI</em></div>
+    <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
   </a>
   <ul class="nav-links">
     <li><a href="about.html">About</a></li>
-    <li><a href="specialties.html">Specialties</a></li>
+    <li><a href="specialties.html">Testimonials</a></li>
     <li><a href="vri.html">VRI</a></li>
+    <li><a href="blog.html">Blog</a></li>
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
 </nav>
 
+<section class="brand-banner">
+  <div class="brand-banner-inner">
+    <h2 class="brand-banner-title">Rose <em>Sign Language Interpreting</em></h2>
+    <div class="brand-banner-sub">San Diego County · Nationwide VRI</div>
+  </div>
+</section>
+
 <section class="hero">
   <div>
-    <div class="eyebrow eyebrow-lg">San Diego · Est. 2026 — Certified Interpreters</div>
+    <div class="eyebrow eyebrow-lg">San Diego — Certified Interpreters</div>
     <h1>Certified ASL<br>interpreters, <span class="serif">when the<br>meaning really matters.</span></h1>
     <p class="lede">Rose Sign Language Interpreting pairs Deaf clients and their partnering organizations with nationally-certified interpreters — on site across San Diego County, or via video anywhere in the U.S.</p>
     <div class="hero-ctas">
@@ -278,7 +293,7 @@
     <div class="eyebrow">Who we are</div>
     <h2>A specialized team — <em>chosen carefully</em>, matched intentionally.</h2>
   </div>
-  <div class="stat"><div class="stat-lbl">Years in practice</div><div class="stat-num">10+</div></div>
+  <div class="stat"><div class="stat-lbl">Years in practice</div><div class="stat-num">20+</div></div>
   <div class="stat"><div class="stat-lbl">Assignments a year</div><div class="stat-num">500+</div></div>
   <div class="stat"><div class="stat-lbl">Organizations</div><div class="stat-num">50+</div></div>
   <div class="stat"><div class="stat-lbl">Certified interpreters</div><div class="stat-num">100%</div></div>
@@ -332,7 +347,7 @@
       <ul class="vri-check">
         <li>Certified interpreter, not a call-center route</li>
         <li>Works on Zoom, Teams, and other platforms</li>
-        <li>Same-day bookings when availability allows</li>
+        <li>Same day, depending on availability</li>
         <li>Secure video for clinical and confidential settings</li>
       </ul>
     </div>
@@ -525,7 +540,7 @@
 <footer>
   <div class="foot-grid">
     <div class="foot-brand">
-      <div class="logo-text">Rose <em>SLI</em></div>
+      <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
       <p>Certified ASL interpreting across San Diego County and nationwide via video.</p>
       <div class="foot-contact">
         <a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA
@@ -533,8 +548,8 @@
     </div>
     <div class="foot-creds">
       <img src="rid-logo.png" alt="Registry of Interpreters for the Deaf (RID)" class="rid-mark">
-      <img src="nic-logo.png" alt="NIC – RID National Interpreter Certification" class="nic-mark">
-      <span class="foot-creds-lbl">RID and NIC<br>certified interpreters</span>
+      <img src="nad-logo.png" alt="National Association of the Deaf (NAD)" class="nad-mark">
+      <span class="foot-creds-lbl">RID and NAD<br>member interpreters</span>
     </div>
   </div>
   <div class="foot-bottom">
