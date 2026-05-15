@@ -76,6 +76,23 @@ def css():
     return send_from_directory(BASE_DIR, "site.css", mimetype="text/css")
 
 
+_ALLOWED_IMAGES = frozenset({
+    "hand-shaka.png",
+    "hand-iloveyou.png",
+    "nad-logo.png",
+    "nic-logo.png",
+    "rid-logo.png",
+})
+
+
+@app.route("/<path:filename>.png")
+def image(filename):
+    name = f"{filename}.png"
+    if name not in _ALLOWED_IMAGES:
+        return ("Not found", 404)
+    return send_from_directory(BASE_DIR, name, mimetype="image/png")
+
+
 FIELD_LABELS = [
     ("name", "Name"),
     ("org", "Organization"),
