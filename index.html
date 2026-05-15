@@ -252,7 +252,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="about.html">About</a></li>
-    <li><a href="specialties.html">Testimonials</a></li>
+    <li><a href="testimonials.html">Testimonials</a></li>
     <li><a href="vri.html">VRI</a></li>
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
@@ -400,7 +400,7 @@
         <li><span class="cta-list-num">03</span> A certified interpreter, matched to your room.</li>
       </ul>
     </div>
-    <form class="req-form" onsubmit="event.preventDefault(); this.querySelector('.form-success').hidden=false; this.querySelector('.form-fields').hidden=true;">
+    <form class="req-form" onsubmit="submitRequest(event)">
       <div class="form-fields">
         <div class="field-row">
           <label class="field">
@@ -487,6 +487,7 @@
         </label>
         <button type="submit" class="btn btn-dark form-submit">Send request <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></button>
         <p class="form-fine">By submitting, you agree to be contacted about this request. We never share your information.</p>
+        <p class="form-fine form-fail" hidden style="color:#b91c1c;">Couldn't send right now. Please call <a href="tel:+16192897368" style="color:inherit;font-weight:600;">619-289-7368</a> or email <a href="mailto:info@rosesli.com" style="color:inherit;font-weight:600;">info@rosesli.com</a>.</p>
       </div>
       <div class="form-success" hidden>
         <div class="check-mark">✓</div>
@@ -495,6 +496,25 @@
       </div>
     </form>
     <script>
+      async function submitRequest(ev){
+        ev.preventDefault();
+        const form = ev.currentTarget;
+        const btn = form.querySelector('.form-submit');
+        const fields = form.querySelector('.form-fields');
+        const success = form.querySelector('.form-success');
+        const fail = form.querySelector('.form-fail');
+        if(!btn.dataset.label){ btn.dataset.label = btn.textContent.trim(); }
+        btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+          const res = await fetch('/api/request', { method:'POST', body: new FormData(form) });
+          if(!res.ok) throw new Error('bad_status');
+          fields.hidden = true;
+          success.hidden = false;
+        } catch(e){
+          btn.disabled = false; btn.textContent = btn.dataset.label;
+          if(fail) fail.hidden = false;
+        }
+      }
       let slotCount = 1;
       function toggleMultiDates(cb){
         const wrap = document.getElementById('extra-dates');
