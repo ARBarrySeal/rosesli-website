@@ -1,0 +1,73 @@
+{% extends "portal_base.html" %}
+{% block title %}Users — Portal Admin{% endblock %}
+
+{% block content %}
+<h1>Users</h1>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <span style="color:var(--muted);font-size:.78rem;">{{ users|length }} account{{ 's' if users|length != 1 else '' }}</span>
+  <a href="/portal/admin/invite" class="btn btn-primary">+ Invite User</a>
+</div>
+
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Joined</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.full_name or '—' }}</td>
+      <td style="color:var(--muted);">{{ u.email }}</td>
+      <td><span class="badge" style="background:#0a1a2a;color:#6bb4ff;">{{ u.role }}</span></td>
+      <td>
+        {% if u.active %}
+          <span class="badge badge-paid">active</span>
+        {% else %}
+          <span class="badge badge-unpaid">inactive</span>
+        {% endif %}
+      </td>
+      <td style="color:var(--muted);">{{ u.created_at.strftime('%b %d, %Y') }}</td>
+      <td>
+        {% if u.role != 'admin' %}
+        <button class="btn btn-ghost toggle-btn"
+                style="font-size:.6rem;padding:.2rem .55rem;"
+                data-id="{{ u.id }}">
+          {{ 'Deactivate' if u.active else 'Activate' }}
+        </button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.toggle-btn').forEach(function(btn) {
+  btn.addEventListener('click', async function() {
+    const id = this.dataset.id;
+    this.disabled = true;
+    try {
+      const res  = await fetch('/portal/admin/users/' + id + '/toggle', {method: 'POST'});
+      const data = await res.json();
+      if (data.ok) {
+        location.reload();
+      } else {
+        alert(data.error);
+        this.disabled = false;
+      }
+    } catch {
+      this.disabled = false;
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{% block title %}Portal{% endblock %}</title>
+<link rel="stylesheet" href="/portal.css"/>
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="portal-layout">
+  <nav class="portal-sidebar">
+    <div style="padding:0 1.2rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.5rem;">
+      <div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">
+        {{ 'DoD Cyber Consulting' if g.user.company == 'dod' else 'Rose SLI' }}
+      </div>
+      <div style="font-size:.78rem;color:var(--accent);margin-top:.25rem;">{{ g.user.name }}</div>
+      <div style="font-size:.6rem;color:var(--muted);">{{ g.user.role }}</div>
+    </div>
+
+    <a href="/portal" class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+    <a href="/portal/schedule" class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
+
+    {% if g.user.role == 'admin' %}
+    <div class="sidebar-label">Admin</div>
+    <a href="/portal/admin/users"  class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
+    <a href="/portal/admin/invite" class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
+    <a href="/portal/accounting" style="opacity:.4;pointer-events:none;" title="Coming soon">Accounting</a>
+    {% endif %}
+
+    <div style="flex:1;"></div>
+    <a href="/logout" style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:auto;">Logout</a>
+  </nav>
+
+  <main class="portal-main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

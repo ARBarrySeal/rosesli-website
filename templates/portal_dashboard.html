@@ -1,0 +1,72 @@
+{% extends "portal_base.html" %}
+{% block title %}Dashboard — Portal{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="stat-cards">
+{% if g.user.role == 'admin' %}
+  <div class="stat-card">
+    <div class="label">Active Users</div>
+    <div class="value">{{ stats.users }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Invoices</div>
+    <div class="value">{{ stats.invoices }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Unpaid</div>
+    <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
+  </div>
+{% else %}
+  <div class="stat-card">
+    <div class="label">My Invoices</div>
+    <div class="value">{{ stats.invoices }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Unpaid</div>
+    <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Upcoming Bookings</div>
+    <div class="value">{{ stats.bookings }}</div>
+  </div>
+{% endif %}
+</div>
+
+<h1 style="font-size:.72rem;margin-bottom:1rem;">Recent Invoices</h1>
+{% if invoices %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      {% if g.user.role == 'admin' %}<th>Client</th>{% endif %}
+      <th>Amount</th>
+      <th>Status</th>
+      <th>Due</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in invoices %}
+    <tr>
+      {% if g.user.role == 'admin' %}
+      <td>{{ inv.full_name or inv.email or '—' }}</td>
+      {% endif %}
+      <td>${{ "%.2f"|format(inv.amount) }}</td>
+      <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+      <td>{{ inv.due_date.strftime('%b %d, %Y') if inv.due_date else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No invoices yet.</p>
+{% endif %}
+
+<div style="margin-top:2rem;">
+{% if g.user.role == 'admin' %}
+  <a href="/portal/admin/invite" class="btn btn-primary">Invite New User</a>
+{% else %}
+  <a href="/portal/schedule" class="btn btn-primary">Book a Meeting</a>
+{% endif %}
+</div>
+{% endblock %}
