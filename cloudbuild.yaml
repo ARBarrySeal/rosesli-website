@@ -5,6 +5,9 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/rosesli']
 
+  # Before first deploy, set secrets via:
+  #   gcloud run services update rosesli --region=us-central1 \
+  #     --update-env-vars DB_PASS=...,JWT_SECRET=...,FLASK_SECRET_KEY=...,SMTP_PASS=...
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -18,6 +21,7 @@ steps:
       - '--port=8080'
       - '--memory=256Mi'
       - '--cpu=1'
+      - '--update-env-vars=COMPANY_ID=rosesli,APP_URL=https://rosesli.com,DB_NAME=botdb,DB_USER=botuser,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=info@rosesli.com,SMTP_FROM=Rose Sign Language Interpreting <info@rosesli.com>'
 
 images:
   - 'gcr.io/$PROJECT_ID/rosesli'

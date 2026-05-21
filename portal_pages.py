@@ -251,12 +251,18 @@ def documents():
             "WHERE d.company = %s ORDER BY d.created_at DESC",
             (company,),
         )
+        users = portal_db.query_all(
+            "SELECT id, full_name, email FROM portal_users "
+            "WHERE company = %s AND active = TRUE ORDER BY full_name",
+            (company,),
+        )
     else:
         docs = portal_db.query_all(
             "SELECT * FROM portal_documents WHERE user_id = %s ORDER BY created_at DESC",
             (uid,),
         )
-    return render_template("portal_documents.html", docs=docs,
+        users = []
+    return render_template("portal_documents.html", docs=docs, users=users,
                            error=error, success=success, deleted=deleted)
 
 
@@ -265,6 +271,7 @@ def documents():
 def upload_document():
     uid     = g.user["sub"]
     company = g.user["company"]
+    role    = g.user["role"]
 
     if "file" not in request.files:
         return redirect("/portal/documents?error=no_file")
@@ -283,6 +290,20 @@ def upload_document():
     if size > MAX_UPLOAD_BYTES:
         return redirect("/portal/documents?error=too_large")
 
+    target_uid = uid
+    if role == "admin":
+        raw = (request.form.get("target_user_id") or "").strip()
+        if raw:
+            try:
+                target_row = portal_db.query_one(
+                    "SELECT id FROM portal_users WHERE id = %s AND company = %s",
+                    (int(raw), company),
+                )
+                if target_row:
+                    target_uid = target_row["id"]
+            except (ValueError, TypeError):
+                pass
+
     stored_name = uuid.uuid4().hex + ext.lower()
     company_dir = os.path.join(UPLOAD_BASE, company)
     os.makedirs(company_dir, exist_ok=True)
@@ -293,7 +314,7 @@ def upload_document():
         "INSERT INTO portal_documents "
         "(user_id, company, filename, original_name, mime_type, size_bytes, uploaded_by) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-        (uid, company, stored_name, secure_filename(f.filename), mime, size, uid),
+        (target_uid, company, stored_name, secure_filename(f.filename), mime, size, uid),
     )
     return redirect("/portal/documents?success=1")
 

@@ -20,10 +20,24 @@
 
 <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem;max-width:480px;">
   <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Upload a file</div>
-  <form method="POST" action="/portal/documents/upload" enctype="multipart/form-data" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-    <input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
-           style="font-size:.78rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.4rem .6rem;flex:1;min-width:0;" required/>
-    <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Upload</button>
+  <form method="POST" action="/portal/documents/upload" enctype="multipart/form-data">
+    {% if g.user.role == 'admin' and users %}
+    <div style="margin-bottom:.75rem;">
+      <label style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.35rem;">Upload for</label>
+      <select name="target_user_id"
+              style="width:100%;font-size:.78rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.4rem .6rem;">
+        <option value="">— Myself (admin) —</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.full_name or u.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+      <input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
+             style="font-size:.78rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.4rem .6rem;flex:1;min-width:0;" required/>
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Upload</button>
+    </div>
   </form>
   <div style="font-size:.68rem;color:var(--muted);margin-top:.6rem;">Max 25 MB · PDF, Word, Excel, images, CSV, ZIP</div>
 </div>
