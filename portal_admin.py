@@ -54,3 +54,48 @@ def invite():
     send_invite_email(email, full_name, setup_url, COMPANY_NAMES.get(company, company))
 
     return render_template("portal_admin_invite.html", sent=True, email=email)
+
+
+@admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
+@admin_required
+def create_invoice():
+    company = g.user["company"]
+    users   = portal_db.query_all(
+        "SELECT id, full_name, email FROM portal_users "
+        "WHERE company = %s AND active = TRUE ORDER BY full_name",
+        (company,),
+    )
+
+    if request.method == "GET":
+        return render_template("portal_admin_invoice_create.html", users=users)
+
+    user_id     = request.form.get("user_id") or ""
+    amount_raw  = (request.form.get("amount") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    due_date    = request.form.get("due_date") or None
+
+    if not user_id:
+        return render_template("portal_admin_invoice_create.html", users=users,
+                               error="Please select a client.")
+
+    try:
+        amount = float(amount_raw)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        return render_template("portal_admin_invoice_create.html", users=users,
+                               error="Amount must be a positive number.")
+
+    target = portal_db.query_one(
+        "SELECT id FROM portal_users WHERE id = %s AND company = %s",
+        (int(user_id), company),
+    )
+    if not target:
+        return render_template("portal_admin_invoice_create.html", users=users,
+                               error="Invalid user.")
+
+    portal_db.execute(
+        "INSERT INTO invoices (user_id, amount, description, due_date) VALUES (%s, %s, %s, %s)",
+        (int(user_id), amount, description or None, due_date or None),
+    )
+    return render_template("portal_admin_invoice_create.html", users=users, success=True)

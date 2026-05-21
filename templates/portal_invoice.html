@@ -1,0 +1,68 @@
+{% extends "portal_base.html" %}
+{% block title %}Invoice #{{ inv.id }} — Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Invoice #{{ inv.id }}</h1>
+  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+</div>
+
+<div style="max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">
+
+  {% if g.user.role == 'admin' %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label">Client</div>
+    <div style="font-size:.88rem;">{{ inv.full_name or '—' }} &lt;{{ inv.email }}&gt;</div>
+  </div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <div>
+      <div class="field-label">Amount</div>
+      <div style="font-size:1.5rem;font-weight:600;">${{ "%.2f"|format(inv.amount) }}</div>
+    </div>
+    <div>
+      <div class="field-label">Status</div>
+      <span class="badge badge-{{ inv.status }}" style="font-size:.75rem;padding:.3rem .7rem;">{{ inv.status }}</span>
+    </div>
+    {% if inv.due_date %}
+    <div>
+      <div class="field-label">Due Date</div>
+      <div style="font-size:.88rem;">{{ inv.due_date.strftime('%B %d, %Y') }}</div>
+    </div>
+    {% endif %}
+    <div>
+      <div class="field-label">Created</div>
+      <div style="font-size:.88rem;">{{ inv.created_at.strftime('%B %d, %Y') }}</div>
+    </div>
+  </div>
+
+  {% if inv.description %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="field-label">Description</div>
+    <div style="font-size:.88rem;line-height:1.65;color:var(--text);">{{ inv.description }}</div>
+  </div>
+  {% endif %}
+
+  {% if inv.pdf_url %}
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ inv.pdf_url }}" target="_blank" class="btn" style="font-size:.78rem;">Download PDF</a>
+  </div>
+  {% endif %}
+
+  {% if g.user.role == 'admin' and inv.status != 'paid' %}
+  <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
+    <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid">
+      <button type="submit" class="btn btn-primary">Mark as Paid</button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .field-label { font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem; }
+</style>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "portal_base.html" %}
+{% block title %}Create Invoice — Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Create Invoice</h1>
+  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+</div>
+
+{% if success %}
+<p class="success" style="margin-bottom:1.5rem;font-size:.78rem;">Invoice created successfully.</p>
+{% endif %}
+{% if error %}
+<p class="error" style="margin-bottom:1.5rem;font-size:.78rem;">{{ error }}</p>
+{% endif %}
+
+<form method="POST" style="max-width:480px;display:flex;flex-direction:column;gap:1.1rem;">
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Client
+    <select name="user_id" required
+            style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="">— select a client —</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.full_name or u.email }} {% if u.full_name %}({{ u.email }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Amount ($)
+    <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required
+           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Description (optional)
+    <textarea name="description" rows="3" placeholder="Services rendered…"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Due Date (optional)
+    <input type="date" name="due_date"
+           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+  </label>
+
+  <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Create Invoice</button>
+</form>
+{% endblock %}

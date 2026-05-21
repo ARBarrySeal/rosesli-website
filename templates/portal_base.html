@@ -19,14 +19,16 @@
     </div>
 
     <a href="/portal" class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
-    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+    <a href="/portal/invoices" class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
+    <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
     <a href="/portal/schedule" class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
 
     {% if g.user.role == 'admin' %}
     <div class="sidebar-label">Admin</div>
-    <a href="/portal/admin/users"  class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
-    <a href="/portal/admin/invite" class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
-    <a href="/portal/accounting" style="opacity:.4;pointer-events:none;" title="Coming soon">Accounting</a>
+    <a href="/portal/admin/users"           class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
+    <a href="/portal/admin/invite"          class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
+    <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Invoice</a>
     {% endif %}
 
     <div style="flex:1;"></div>

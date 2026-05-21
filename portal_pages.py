@@ -1,8 +1,20 @@
+import mimetypes
 import os
-from flask import Blueprint, g, jsonify, redirect, render_template, request
+import uuid
+
+from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, send_file
+from werkzeug.utils import secure_filename
 
 import portal_db
 from portal_auth import admin_required, check_password, hash_password, login_required
+
+UPLOAD_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+ALLOWED_EXTENSIONS = {
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+    ".png", ".jpg", ".jpeg", ".gif",
+    ".txt", ".csv", ".zip",
+}
 
 pages_bp = Blueprint("pages", __name__)
 
@@ -153,3 +165,192 @@ def toggle_user(user_id):
         (new_state, user_id),
     )
     return jsonify(ok=True, active=new_state)
+
+
+# ── Invoices ──────────────────────────────────────────────────────────────────
+
+@pages_bp.route("/portal/invoices")
+@login_required
+def invoices():
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        rows = portal_db.query_all(
+            "SELECT i.id, u.full_name, u.email, i.amount, i.status, i.due_date, i.created_at "
+            "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "WHERE u.company = %s ORDER BY i.created_at DESC",
+            (company,),
+        )
+    else:
+        rows = portal_db.query_all(
+            "SELECT id, amount, status, due_date, created_at "
+            "FROM invoices WHERE user_id = %s ORDER BY created_at DESC",
+            (uid,),
+        )
+    return render_template("portal_invoices.html", invoices=rows)
+
+
+@pages_bp.route("/portal/invoices/<int:invoice_id>")
+@login_required
+def invoice_detail(invoice_id):
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        inv = portal_db.query_one(
+            "SELECT i.*, u.full_name, u.email FROM invoices i "
+            "JOIN portal_users u ON u.id = i.user_id "
+            "WHERE i.id = %s AND u.company = %s",
+            (invoice_id, company),
+        )
+    else:
+        inv = portal_db.query_one(
+            "SELECT * FROM invoices WHERE id = %s AND user_id = %s",
+            (invoice_id, uid),
+        )
+
+    if not inv:
+        abort(404)
+    return render_template("portal_invoice.html", inv=inv)
+
+
+@pages_bp.route("/portal/admin/invoices/<int:invoice_id>/mark-paid", methods=["POST"])
+@admin_required
+def mark_invoice_paid(invoice_id):
+    company = g.user["company"]
+    inv = portal_db.query_one(
+        "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "WHERE i.id = %s AND u.company = %s",
+        (invoice_id, company),
+    )
+    if not inv:
+        abort(404)
+    portal_db.execute("UPDATE invoices SET status='paid' WHERE id=%s", (invoice_id,))
+    return redirect(f"/portal/invoices/{invoice_id}")
+
+
+# ── Documents ─────────────────────────────────────────────────────────────────
+
+@pages_bp.route("/portal/documents")
+@login_required
+def documents():
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+    error   = request.args.get("error")
+    success = request.args.get("success")
+    deleted = request.args.get("deleted")
+
+    if role == "admin":
+        docs = portal_db.query_all(
+            "SELECT d.*, u.full_name, u.email FROM portal_documents d "
+            "JOIN portal_users u ON u.id = d.user_id "
+            "WHERE d.company = %s ORDER BY d.created_at DESC",
+            (company,),
+        )
+    else:
+        docs = portal_db.query_all(
+            "SELECT * FROM portal_documents WHERE user_id = %s ORDER BY created_at DESC",
+            (uid,),
+        )
+    return render_template("portal_documents.html", docs=docs,
+                           error=error, success=success, deleted=deleted)
+
+
+@pages_bp.route("/portal/documents/upload", methods=["POST"])
+@login_required
+def upload_document():
+    uid     = g.user["sub"]
+    company = g.user["company"]
+
+    if "file" not in request.files:
+        return redirect("/portal/documents?error=no_file")
+
+    f = request.files["file"]
+    if not f.filename:
+        return redirect("/portal/documents?error=no_file")
+
+    _, ext = os.path.splitext(secure_filename(f.filename))
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        return redirect("/portal/documents?error=bad_type")
+
+    f.seek(0, 2)
+    size = f.tell()
+    f.seek(0)
+    if size > MAX_UPLOAD_BYTES:
+        return redirect("/portal/documents?error=too_large")
+
+    stored_name = uuid.uuid4().hex + ext.lower()
+    company_dir = os.path.join(UPLOAD_BASE, company)
+    os.makedirs(company_dir, exist_ok=True)
+    f.save(os.path.join(company_dir, stored_name))
+
+    mime = f.content_type or mimetypes.guess_type(f.filename)[0] or "application/octet-stream"
+    portal_db.execute(
+        "INSERT INTO portal_documents "
+        "(user_id, company, filename, original_name, mime_type, size_bytes, uploaded_by) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (uid, company, stored_name, secure_filename(f.filename), mime, size, uid),
+    )
+    return redirect("/portal/documents?success=1")
+
+
+@pages_bp.route("/portal/documents/<int:doc_id>/download")
+@login_required
+def download_document(doc_id):
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        doc = portal_db.query_one(
+            "SELECT * FROM portal_documents WHERE id = %s AND company = %s",
+            (doc_id, company),
+        )
+    else:
+        doc = portal_db.query_one(
+            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s",
+            (doc_id, uid),
+        )
+
+    if not doc:
+        abort(404)
+
+    file_path = os.path.join(UPLOAD_BASE, company, doc["filename"])
+    if not os.path.isfile(file_path):
+        abort(404)
+
+    return send_file(file_path, download_name=doc["original_name"], as_attachment=True)
+
+
+@pages_bp.route("/portal/documents/<int:doc_id>/delete", methods=["POST"])
+@login_required
+def delete_document(doc_id):
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        doc = portal_db.query_one(
+            "SELECT * FROM portal_documents WHERE id = %s AND company = %s",
+            (doc_id, company),
+        )
+    else:
+        doc = portal_db.query_one(
+            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s",
+            (doc_id, uid),
+        )
+
+    if not doc:
+        abort(404)
+
+    try:
+        os.remove(os.path.join(UPLOAD_BASE, company, doc["filename"]))
+    except OSError:
+        pass
+
+    portal_db.execute("DELETE FROM portal_documents WHERE id = %s", (doc_id,))
+    return redirect("/portal/documents?deleted=1")
