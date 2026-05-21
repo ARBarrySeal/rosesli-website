@@ -10,7 +10,16 @@ from email.message import EmailMessage
 from flask import Flask, jsonify, redirect, request, send_from_directory
 
 app = Flask(__name__, static_folder=".", static_url_path="/static")
+app.config["JWT_SECRET"] = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-flask-secret-change-in-prod")
 logging.basicConfig(level=logging.INFO)
+
+from portal_auth import auth_bp
+from portal_api import api_bp
+from portal_admin import admin_bp
+app.register_blueprint(auth_bp)
+app.register_blueprint(api_bp)
+app.register_blueprint(admin_bp)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,6 +78,11 @@ def sitemap():
 @app.route("/favicon.svg")
 def favicon():
     return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
+
+
+@app.route("/logo.svg")
+def bimi_logo():
+    return send_from_directory(BASE_DIR, "logo.svg", mimetype="image/svg+xml")
 
 
 @app.route("/site.css")
@@ -204,6 +218,11 @@ def api_request():
         return jsonify(ok=False, error="send_failed"), 502
     _log_submission(form, delivered, method)
     return jsonify(ok=True, delivered=delivered)
+
+
+@app.route("/portal.css")
+def portal_css():
+    return send_from_directory(BASE_DIR, "portal.css", mimetype="text/css")
 
 
 if __name__ == "__main__":

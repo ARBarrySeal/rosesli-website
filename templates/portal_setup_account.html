@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Set Up Your Account</title>
+<link rel="stylesheet" href="/portal.css"/>
+</head>
+<body class="auth-page">
+<div class="auth-box">
+  {% if invalid %}
+    <h1>Invitation expired</h1>
+    <p>This invitation link is invalid or has expired. Contact your administrator for a new invite.</p>
+  {% else %}
+    <h1>Set up your account</h1>
+    <p style="margin-bottom:1.2rem;font-size:.85rem;color:var(--muted);">
+      Welcome, {{ user.email }}. Fill in your details and set a password to get started.
+    </p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="POST">
+      <label>Full name<input type="text" name="full_name" required autofocus value="{{ user.full_name or '' }}"/></label>
+      <label>Phone (optional)<input type="tel" name="phone"/></label>
+      <label>Company / Organization (optional)<input type="text" name="company_name"/></label>
+      <label>Address (optional)<input type="text" name="address"/></label>
+      <label>Password (min 8 characters)<input type="password" name="password" required minlength="8"/></label>
+      <label>Confirm password<input type="password" name="confirm" required minlength="8"/></label>
+      <button type="submit">Create account</button>
+    </form>
+  {% endif %}
+</div>
+</body>
+</html>
