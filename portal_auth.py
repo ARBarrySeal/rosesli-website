@@ -11,6 +11,7 @@ from flask import (
 )
 
 import portal_db
+from portal_limiter import limiter
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -85,6 +86,7 @@ COMPANY_NAMES = {
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def login():
     email    = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
@@ -128,7 +130,7 @@ def login():
 @auth_bp.route("/logout")
 def logout():
     resp = make_response(redirect("/"))
-    resp.delete_cookie("portal_token")
+    resp.delete_cookie("portal_token", path="/")
     return resp
 
 

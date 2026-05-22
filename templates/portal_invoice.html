@@ -53,6 +53,7 @@
   {% if g.user.role == 'admin' and inv.status != 'paid' %}
   <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
     <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <button type="submit" class="btn btn-primary">Mark as Paid</button>
     </form>
   </div>

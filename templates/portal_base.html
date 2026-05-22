@@ -3,26 +3,35 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#0a0a0a"/>
 <title>{% block title %}Portal{% endblock %}</title>
 <link rel="stylesheet" href="/portal.css"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/png" href="/favicon.png"/>
 {% block head %}{% endblock %}
 </head>
 <body>
 <div class="portal-layout">
-  <nav class="portal-sidebar">
-    <div style="padding:0 1.2rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.5rem;">
-      <div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">
-        {{ 'DoD Cyber Consulting' if g.user.company == 'dod' else 'Rose SLI' }}
-      </div>
-      <div style="font-size:.78rem;color:var(--accent);margin-top:.25rem;">{{ g.user.name }}</div>
-      <div style="font-size:.6rem;color:var(--muted);">{{ g.user.role }}</div>
+
+  <header class="portal-topbar">
+    <button class="hamburger" type="button" aria-label="Open menu" aria-controls="portalSidebar" aria-expanded="false" id="hamburger">&#9776;</button>
+    <span class="topbar-title">{{ 'DoD Cyber' if g.user.company == 'dod' else 'Rose SLI' }} Portal</span>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <nav class="portal-sidebar" id="portalSidebar" aria-label="Portal navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-company">{{ 'DoD Cyber Consulting' if g.user.company == 'dod' else 'Rose SLI' }}</div>
+      <div class="sidebar-name">{{ g.user.name }}</div>
+      <div class="sidebar-role">{{ g.user.role }}</div>
     </div>
 
-    <a href="/portal" class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
-    <a href="/portal/invoices" class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
+    <a href="/portal"           class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
+    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
     <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
-    <a href="/portal/schedule" class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
-    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+    <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
+    <a href="/portal/profile"   class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
 
     {% if g.user.role == 'admin' %}
     <div class="sidebar-label">Admin</div>
@@ -31,14 +40,41 @@
     <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Invoice</a>
     {% endif %}
 
-    <div style="flex:1;"></div>
-    <a href="/logout" style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:auto;">Logout</a>
+    <div class="sidebar-spacer"></div>
+    <a href="/logout" class="sidebar-logout">Logout</a>
   </nav>
 
   <main class="portal-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+        <div class="flash flash-{{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 </div>
+
+<script>
+  (function () {
+    var sidebar  = document.getElementById('portalSidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    var toggle   = document.getElementById('hamburger');
+    if (!sidebar || !backdrop || !toggle) return;
+
+    function open()  { sidebar.classList.add('open');  backdrop.classList.add('show'); toggle.setAttribute('aria-expanded', 'true'); }
+    function close() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); toggle.setAttribute('aria-expanded', 'false'); }
+
+    toggle.addEventListener('click', function () {
+      if (sidebar.classList.contains('open')) close(); else open();
+    });
+    backdrop.addEventListener('click', close);
+    sidebar.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  })();
+</script>
+
 {% block scripts %}{% endblock %}
 </body>
 </html>

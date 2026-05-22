@@ -2,7 +2,7 @@ import mimetypes
 import os
 import uuid
 
-from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, send_file
+from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, send_file
 from werkzeug.utils import secure_filename
 
 import portal_db
@@ -90,10 +90,10 @@ def profile():
         action = request.form.get("action")
 
         if action == "update":
-            full_name    = (request.form.get("full_name")    or "").strip()
-            phone        = (request.form.get("phone")        or "").strip()
-            company_name = (request.form.get("company_name") or "").strip()
-            address      = (request.form.get("address")      or "").strip()
+            full_name    = (request.form.get("full_name")    or "").strip()[:255]
+            phone        = (request.form.get("phone")        or "").strip()[:50]
+            company_name = (request.form.get("company_name") or "").strip()[:255]
+            address      = (request.form.get("address")      or "").strip()[:500]
             if not full_name:
                 error = "Full name is required."
             else:
@@ -229,6 +229,7 @@ def mark_invoice_paid(invoice_id):
     if not inv:
         abort(404)
     portal_db.execute("UPDATE invoices SET status='paid' WHERE id=%s", (invoice_id,))
+    flash("Invoice marked as paid.", "success")
     return redirect(f"/portal/invoices/{invoice_id}")
 
 
@@ -240,10 +241,6 @@ def documents():
     company = g.user["company"]
     role    = g.user["role"]
     uid     = g.user["sub"]
-    error   = request.args.get("error")
-    success = request.args.get("success")
-    deleted = request.args.get("deleted")
-
     if role == "admin":
         docs = portal_db.query_all(
             "SELECT d.*, u.full_name, u.email FROM portal_documents d "
@@ -262,8 +259,7 @@ def documents():
             (uid,),
         )
         users = []
-    return render_template("portal_documents.html", docs=docs, users=users,
-                           error=error, success=success, deleted=deleted)
+    return render_template("portal_documents.html", docs=docs, users=users)
 
 
 @pages_bp.route("/portal/documents/upload", methods=["POST"])
@@ -274,21 +270,25 @@ def upload_document():
     role    = g.user["role"]
 
     if "file" not in request.files:
-        return redirect("/portal/documents?error=no_file")
+        flash("No file selected.", "error")
+        return redirect("/portal/documents")
 
     f = request.files["file"]
     if not f.filename:
-        return redirect("/portal/documents?error=no_file")
+        flash("No file selected.", "error")
+        return redirect("/portal/documents")
 
     _, ext = os.path.splitext(secure_filename(f.filename))
     if ext.lower() not in ALLOWED_EXTENSIONS:
-        return redirect("/portal/documents?error=bad_type")
+        flash("File type not allowed.", "error")
+        return redirect("/portal/documents")
 
     f.seek(0, 2)
     size = f.tell()
     f.seek(0)
     if size > MAX_UPLOAD_BYTES:
-        return redirect("/portal/documents?error=too_large")
+        flash("File too large (25 MB max).", "error")
+        return redirect("/portal/documents")
 
     target_uid = uid
     if role == "admin":
@@ -316,7 +316,8 @@ def upload_document():
         "VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (target_uid, company, stored_name, secure_filename(f.filename), mime, size, uid),
     )
-    return redirect("/portal/documents?success=1")
+    flash("File uploaded.", "success")
+    return redirect("/portal/documents")
 
 
 @pages_bp.route("/portal/documents/<int:doc_id>/download")
@@ -374,4 +375,5 @@ def delete_document(doc_id):
         pass
 
     portal_db.execute("DELETE FROM portal_documents WHERE id = %s", (doc_id,))
-    return redirect("/portal/documents?deleted=1")
+    flash("File deleted.", "success")
+    return redirect("/portal/documents")

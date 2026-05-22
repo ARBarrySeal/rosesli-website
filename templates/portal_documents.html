@@ -4,23 +4,11 @@
 {% block content %}
 <h1 style="margin-bottom:2rem;">Documents</h1>
 
-{% if error == 'no_file' %}
-  <p class="error" style="margin-bottom:1rem;font-size:.78rem;">No file selected.</p>
-{% elif error == 'bad_type' %}
-  <p class="error" style="margin-bottom:1rem;font-size:.78rem;">File type not allowed. Accepted: PDF, Word, Excel, images, CSV, ZIP.</p>
-{% elif error == 'too_large' %}
-  <p class="error" style="margin-bottom:1rem;font-size:.78rem;">File exceeds 25 MB limit.</p>
-{% endif %}
-{% if success %}
-  <p class="success" style="margin-bottom:1rem;font-size:.78rem;">File uploaded successfully.</p>
-{% endif %}
-{% if deleted %}
-  <p class="success" style="margin-bottom:1rem;font-size:.78rem;">File deleted.</p>
-{% endif %}
 
 <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem;max-width:480px;">
   <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Upload a file</div>
   <form method="POST" action="/portal/documents/upload" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     {% if g.user.role == 'admin' and users %}
     <div style="margin-bottom:.75rem;">
       <label style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.35rem;">Upload for</label>
@@ -69,7 +57,8 @@
         <a href="/portal/documents/{{ doc.id }}/download" class="btn" style="font-size:.7rem;padding:.3rem .65rem;margin-right:.4rem;">Download</a>
         <form method="POST" action="/portal/documents/{{ doc.id }}/delete" style="display:inline;"
               onsubmit="return confirm('Delete {{ doc.original_name }}?')">
-          <button type="submit" class="btn" style="font-size:.7rem;padding:.3rem .65rem;color:#ff5555;border-color:#ff5555;">Delete</button>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
         </form>
       </td>
     </tr>

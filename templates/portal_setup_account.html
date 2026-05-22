@@ -18,6 +18,7 @@
     </p>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <label>Full name<input type="text" name="full_name" required autofocus value="{{ user.full_name or '' }}"/></label>
       <label>Phone (optional)<input type="tel" name="phone"/></label>
       <label>Company / Organization (optional)<input type="text" name="company_name"/></label>

@@ -1,18 +1,46 @@
+import hmac
 import json
 import logging
 import os
+import secrets
 import smtplib
 import ssl
 import urllib.error
 import urllib.request
+from datetime import timedelta
 from email.message import EmailMessage
 
-from flask import Flask, jsonify, redirect, request, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_from_directory, session
+
+_testing = os.environ.get("TESTING") == "1"
+
+_jwt_secret = os.environ.get("JWT_SECRET")
+if not _jwt_secret:
+    if _testing:
+        _jwt_secret = "test-jwt-secret"
+    else:
+        raise RuntimeError("JWT_SECRET environment variable must be set")
+
+_flask_secret = os.environ.get("FLASK_SECRET_KEY")
+if not _flask_secret:
+    if _testing:
+        _flask_secret = "test-flask-secret"
+    else:
+        raise RuntimeError("FLASK_SECRET_KEY environment variable must be set")
 
 app = Flask(__name__, static_folder=".", static_url_path="/static")
-app.config["JWT_SECRET"] = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-flask-secret-change-in-prod")
+app.config["JWT_SECRET"]                 = _jwt_secret
+app.secret_key                           = _flask_secret
+app.config["TESTING"]                    = _testing
+app.config["SESSION_COOKIE_HTTPONLY"]    = True
+app.config["SESSION_COOKIE_SECURE"]      = not _testing
+app.config["SESSION_COOKIE_SAMESITE"]    = "Lax"
+app.config["SESSION_COOKIE_PATH"]        = "/"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=1)
 logging.basicConfig(level=logging.INFO)
+
+from portal_limiter import limiter
+limiter.init_app(app)
 
 from portal_auth import auth_bp
 from portal_api import api_bp
@@ -22,6 +50,47 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(pages_bp)
+
+# ── CSRF ──────────────────────────────────────────────────────────────────────
+
+def _csrf_token():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+app.jinja_env.globals["csrf_token"] = _csrf_token
+
+_CSRF_EXEMPT = {"/login", "/api/request"}
+
+@app.before_request
+def csrf_protect():
+    if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
+        return
+    if request.path in _CSRF_EXEMPT:
+        return
+    token    = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+    expected = session.get("csrf_token", "")
+    if not token or not expected or not hmac.compare_digest(token, expected):
+        from flask import abort
+        abort(403)
+
+# ── Security headers ──────────────────────────────────────────────────────────
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Frame-Options"]        = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+        "style-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+        "frame-src https://calendly.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://calendly.com;"
+    )
+    return response
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -79,6 +148,11 @@ def sitemap():
 
 @app.route("/favicon.svg")
 def favicon():
+    return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
+
+
+@app.route("/favicon.ico")
+def favicon_ico():
     return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
 
 

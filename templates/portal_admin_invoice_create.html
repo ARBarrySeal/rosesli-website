@@ -15,6 +15,7 @@
 {% endif %}
 
 <form method="POST" style="max-width:480px;display:flex;flex-direction:column;gap:1.1rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Client
     <select name="user_id" required
@@ -36,7 +37,7 @@
 
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Description (optional)
-    <textarea name="description" rows="3" placeholder="Services rendered…"
+    <textarea name="description" rows="3" maxlength="1000" placeholder="Services rendered…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
                      font-size:13px;resize:vertical;"></textarea>
