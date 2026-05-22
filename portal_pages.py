@@ -6,12 +6,13 @@ from datetime import datetime, timedelta, timezone
 
 from flask import (
     Blueprint, abort, flash, g, jsonify, make_response,
-    redirect, render_template, request, send_file,
+    redirect, render_template, request,
 )
 from werkzeug.utils import secure_filename
 
 import portal_db
 import portal_mfa
+import portal_storage
 from portal_audit import log as audit_log
 from portal_auth import (
     SESSION_HOURS, _password_too_weak, _set_session_cookie,
@@ -19,8 +20,6 @@ from portal_auth import (
     hash_password, login_required,
 )
 
-UPLOAD_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-UPLOAD_BASE_REAL = os.path.realpath(UPLOAD_BASE)
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {
     ".pdf", ".doc", ".docx", ".xls", ".xlsx",
@@ -514,9 +513,7 @@ def upload_document():
                 pass
 
     stored_name = uuid.uuid4().hex + ext.lower()
-    company_dir = os.path.join(UPLOAD_BASE, company)
-    os.makedirs(company_dir, exist_ok=True)
-    f.save(os.path.join(company_dir, stored_name))
+    portal_storage.save(company, stored_name, f)
 
     mime = f.content_type or mimetypes.guess_type(f.filename)[0] or "application/octet-stream"
     portal_db.execute(
@@ -555,18 +552,12 @@ def download_document(doc_id):
     if not doc:
         abort(404)
 
-    file_path = os.path.realpath(os.path.join(UPLOAD_BASE, company, doc["filename"]))
-    if not file_path.startswith(UPLOAD_BASE_REAL + os.sep):
-        abort(403)
-    if not os.path.isfile(file_path):
-        abort(404)
-
     audit_log(
         "doc_download",
         target=f"doc:{doc_id}",
         metadata={"original_name": doc["original_name"]},
     )
-    return send_file(file_path, download_name=doc["original_name"], as_attachment=True)
+    return portal_storage.download(company, doc["filename"], doc["original_name"])
 
 
 @pages_bp.route("/portal/documents/<int:doc_id>/delete", methods=["POST"])
@@ -590,10 +581,7 @@ def delete_document(doc_id):
     if not doc:
         abort(404)
 
-    try:
-        os.remove(os.path.join(UPLOAD_BASE, company, doc["filename"]))
-    except OSError:
-        pass
+    portal_storage.delete(company, doc["filename"])
 
     portal_db.execute("DELETE FROM portal_documents WHERE id = %s", (doc_id,))
     audit_log(
