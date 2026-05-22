@@ -40,6 +40,8 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=1)
 logging.basicConfig(level=logging.INFO)
 
 from portal_limiter import limiter
+if _testing:
+    app.config["RATELIMIT_ENABLED"] = False
 limiter.init_app(app)
 
 from portal_auth import auth_bp

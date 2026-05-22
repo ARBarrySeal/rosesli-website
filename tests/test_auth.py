@@ -40,9 +40,10 @@ def test_check_password_wrong():
 def test_encode_decode_jwt(app):
     from portal_auth import encode_jwt, decode_jwt
     with app.app_context():
-        token = encode_jwt({"sub": 42, "role": "client", "company": "dod", "email": "a@b.com"})
+        # PyJWT 2.10+ enforces RFC 7519: sub must be a string.
+        token = encode_jwt({"sub": "42", "role": "client", "company": "dod", "email": "a@b.com"})
         payload = decode_jwt(token)
-    assert payload["sub"] == 42
+    assert payload["sub"] == "42"
     assert payload["role"] == "client"
 
 
@@ -81,7 +82,14 @@ def test_send_reset_email_returns_false_when_smtp_not_configured(monkeypatch):
 
 
 def test_login_returns_json_error_for_unknown_email(client):
-    resp = client.post("/login", data={"email": "nobody@example.com", "password": "bad"})
+    import secrets
+    with client.session_transaction() as sess:
+        sess["csrf_token"] = secrets.token_hex(32)
+        csrf = sess["csrf_token"]
+    resp = client.post(
+        "/login",
+        data={"email": "nobody@example.com", "password": "bad", "csrf_token": csrf},
+    )
     assert resp.content_type == "application/json"
     data = resp.get_json()
     assert data["ok"] is False
@@ -94,9 +102,12 @@ def test_logout_redirects_and_clears_cookie(client):
     assert "portal_token" in set_cookie
 
 
-def test_api_me_returns_401_when_not_logged_in(client):
-    resp = client.get("/api/me")
-    assert resp.status_code == 401
+def test_api_me_redirects_when_not_logged_in(client):
+    # /api/me is browser-facing, decorated with @login_required which
+    # redirects unauthenticated users to / (302), not 401.
+    resp = client.get("/api/me", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == "/"
 
 
 def test_forgot_password_page_loads(client):

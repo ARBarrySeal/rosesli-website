@@ -1,0 +1,59 @@
+{% extends "portal_base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<h1>Audit Log</h1>
+
+<form method="GET" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+  <label>Action
+    <select name="action">
+      <option value="">All</option>
+      {% for a in action_options %}
+        <option value="{{ a }}" {% if a == filter_action %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Email
+    <input type="text" name="email" value="{{ filter_email or '' }}" placeholder="user@example.com"/>
+  </label>
+  <label>Since
+    <input type="date" name="since" value="{{ filter_since or '' }}"/>
+  </label>
+  <button type="submit">Filter</button>
+  {% if filter_action or filter_email or filter_since %}
+    <a href="/portal/admin/audit" style="align-self:center;font-size:.85rem;">Clear</a>
+  {% endif %}
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Action</th>
+      <th>Email</th>
+      <th>Target</th>
+      <th>IP</th>
+      <th>Detail</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <td>{{ row.ts.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+        <td><code>{{ row.action }}</code></td>
+        <td>{{ row.email or '—' }}</td>
+        <td>{{ row.target or '—' }}</td>
+        <td>{{ row.ip or '—' }}</td>
+        <td style="font-size:.8rem;color:var(--muted);">{{ row.metadata if row.metadata != {} else '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);">No audit events match.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if has_more %}
+  <p style="margin-top:1rem;">
+    <a href="?{{ next_qs }}">Older →</a>
+  </p>
+{% endif %}
+{% endblock %}

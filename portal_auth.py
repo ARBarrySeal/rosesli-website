@@ -1,3 +1,4 @@
+import json
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -11,9 +12,19 @@ from flask import (
 )
 
 import portal_db
+import portal_mfa
+from portal_audit import log as audit_log
 from portal_limiter import limiter
 
 auth_bp = Blueprint("auth", __name__)
+
+
+# ── Lockout policy ────────────────────────────────────────────────────────────
+
+LOCKOUT_THRESHOLD = 5            # failed attempts before lock
+LOCKOUT_MINUTES   = 15           # how long the lock lasts
+MFA_PENDING_MIN   = 5            # how long a /login → /mfa-challenge cookie lives
+SESSION_HOURS     = 8            # full session lifetime
 
 
 # ── Password helpers ──────────────────────────────────────────────────────────
@@ -26,11 +37,30 @@ def check_password(plaintext: str, hashed: str) -> bool:
     return bcrypt.checkpw(plaintext.encode(), hashed.encode())
 
 
+def _password_too_weak(pw: str) -> str | None:
+    if len(pw) < 12:
+        return "Password must be at least 12 characters."
+    classes = sum([
+        any(c.islower() for c in pw),
+        any(c.isupper() for c in pw),
+        any(c.isdigit() for c in pw),
+        any(not c.isalnum() for c in pw),
+    ])
+    if classes < 3:
+        return "Password must include 3 of: lowercase, uppercase, digit, symbol."
+    common = {"password", "qwerty", "letmein", "admin1234", "iloveyou"}
+    if pw.lower() in common or any(c in pw.lower() for c in common):
+        return "Password is too common."
+    return None
+
+
 # ── JWT helpers ───────────────────────────────────────────────────────────────
 
-def encode_jwt(payload: dict) -> str:
+def encode_jwt(payload: dict, *, lifetime: timedelta | None = None) -> str:
     data = dict(payload)
-    data["exp"] = datetime.now(timezone.utc) + timedelta(hours=8)
+    now = datetime.now(timezone.utc)
+    data["iat"] = int(now.timestamp())
+    data["exp"] = now + (lifetime or timedelta(hours=SESSION_HOURS))
     return jwt.encode(data, current_app.config["JWT_SECRET"], algorithm="HS256")
 
 
@@ -43,6 +73,31 @@ def decode_jwt(token: str) -> dict | None:
 
 # ── Decorators ────────────────────────────────────────────────────────────────
 
+def _load_user_for_token(payload: dict) -> dict | None:
+    """Fetch fresh user state and verify the JWT is still valid.
+
+    Rejects tokens that were issued before the user's last password change, or
+    that belong to a user who has been deactivated since the token was issued.
+    """
+    try:
+        uid = int(payload.get("sub", ""))
+    except (ValueError, TypeError):
+        return None
+    user = portal_db.query_one(
+        "SELECT id, email, role, company, full_name, active, pw_changed_at, "
+        "       locked_until, mfa_secret "
+        "FROM portal_users WHERE id = %s",
+        (uid,),
+    )
+    if not user or not user["active"]:
+        return None
+    iat = payload.get("iat")
+    if iat is not None and user["pw_changed_at"]:
+        if iat < int(user["pw_changed_at"].timestamp()):
+            return None
+    return user
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -50,11 +105,19 @@ def login_required(f):
         if not token:
             return redirect("/")
         payload = decode_jwt(token)
-        if payload is None:
+        # "pending" = mid-MFA-challenge; "enroll" = admin who hasn't finished
+        # MFA setup. Neither grants access to protected routes — the
+        # mfa_challenge and mfa_enroll routes use their own auth check.
+        if payload is None or payload.get("mfa") in ("pending", "enroll"):
             resp = make_response(redirect("/"))
             resp.delete_cookie("portal_token")
             return resp
-        g.user = payload
+        user = _load_user_for_token(payload)
+        if user is None:
+            resp = make_response(redirect("/"))
+            resp.delete_cookie("portal_token")
+            return resp
+        g.user = payload | {"db": user}
         return f(*args, **kwargs)
     return decorated
 
@@ -83,6 +146,19 @@ COMPANY_NAMES = {
 }
 
 
+# ── Cookie helper ─────────────────────────────────────────────────────────────
+
+def _set_session_cookie(resp, token: str, *, max_age: int):
+    resp.set_cookie(
+        "portal_token", token,
+        httponly=True,
+        secure=not current_app.config.get("TESTING"),
+        samesite="Lax",
+        path="/",
+        max_age=max_age,
+    )
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @auth_bp.route("/login", methods=["POST"])
@@ -96,39 +172,183 @@ def login():
         return jsonify(ok=False, error="Email and password are required."), 400
 
     user = portal_db.query_one(
-        "SELECT id, email, password_hash, role, company, full_name, active "
+        "SELECT id, email, password_hash, role, company, full_name, active, "
+        "       failed_login_count, locked_until, mfa_secret "
         "FROM portal_users WHERE email = %s AND company = %s",
         (email, company),
     )
 
-    if not user or not user["active"] or not user["password_hash"]:
+    now = datetime.now(timezone.utc)
+
+    # Account locked? — refuse before even checking the password (no oracle).
+    if user and user["locked_until"] and user["locked_until"] > now:
+        audit_log("login_locked", email=email, company=company, user_id=user["id"])
+        return jsonify(
+            ok=False,
+            error=f"Account temporarily locked. Try again after "
+                  f"{user['locked_until'].astimezone(timezone.utc).strftime('%H:%M UTC')}.",
+        ), 423
+
+    bad_credentials = (
+        not user
+        or not user["active"]
+        or not user["password_hash"]
+        or not check_password(password, user["password_hash"])
+    )
+
+    if bad_credentials:
+        if user:
+            new_count = (user["failed_login_count"] or 0) + 1
+            lock_until = (
+                now + timedelta(minutes=LOCKOUT_MINUTES)
+                if new_count >= LOCKOUT_THRESHOLD else None
+            )
+            portal_db.execute(
+                "UPDATE portal_users SET failed_login_count = %s, locked_until = %s "
+                "WHERE id = %s",
+                (new_count, lock_until, user["id"]),
+            )
+            audit_log(
+                "login_fail",
+                email=email, company=company, user_id=user["id"],
+                metadata={"attempts": new_count, "locked": bool(lock_until)},
+            )
+        else:
+            audit_log("login_fail", email=email, company=company,
+                      metadata={"reason": "unknown_email"})
         return jsonify(ok=False, error="Invalid email or password."), 401
 
-    if not check_password(password, user["password_hash"]):
-        return jsonify(ok=False, error="Invalid email or password."), 401
+    # Success: reset attempt counter and clear any prior lock.
+    portal_db.execute(
+        "UPDATE portal_users SET failed_login_count = 0, locked_until = NULL "
+        "WHERE id = %s",
+        (user["id"],),
+    )
 
+    # Admins must enroll in MFA on first login.
+    if user["role"] == "admin" and not user["mfa_secret"]:
+        token = encode_jwt(
+            {
+                "sub": str(user["id"]),
+                "email": user["email"],
+                "role": user["role"],
+                "company": user["company"],
+                "name": user["full_name"] or user["email"],
+                "mfa": "enroll",
+            },
+            lifetime=timedelta(minutes=MFA_PENDING_MIN),
+        )
+        audit_log("login_ok", email=email, company=company, user_id=user["id"],
+                  metadata={"next": "mfa_enroll"})
+        resp = make_response(jsonify(ok=True, redirect="/portal/mfa-enroll"))
+        _set_session_cookie(resp, token, max_age=MFA_PENDING_MIN * 60)
+        return resp
+
+    # Admins with MFA enrolled must pass a TOTP challenge before getting full session.
+    if user["role"] == "admin" and user["mfa_secret"]:
+        token = encode_jwt(
+            {
+                "sub": str(user["id"]),
+                "email": user["email"],
+                "role": user["role"],
+                "company": user["company"],
+                "name": user["full_name"] or user["email"],
+                "mfa": "pending",
+            },
+            lifetime=timedelta(minutes=MFA_PENDING_MIN),
+        )
+        audit_log("login_ok", email=email, company=company, user_id=user["id"],
+                  metadata={"next": "mfa_challenge"})
+        resp = make_response(jsonify(ok=True, redirect="/mfa-challenge"))
+        _set_session_cookie(resp, token, max_age=MFA_PENDING_MIN * 60)
+        return resp
+
+    # Non-admin (client/employee): straight to the portal.
     token = encode_jwt({
         "sub":     str(user["id"]),
         "email":   user["email"],
         "role":    user["role"],
         "company": user["company"],
         "name":    user["full_name"] or user["email"],
+        "mfa":     "n/a",
     })
-
+    audit_log("login_ok", email=email, company=company, user_id=user["id"])
     resp = make_response(jsonify(ok=True, redirect="/portal"))
-    resp.set_cookie(
-        "portal_token", token,
-        httponly=True,
-        secure=not current_app.config.get("TESTING"),
-        samesite="Lax",
-        path="/",
-        max_age=8 * 3600,
+    _set_session_cookie(resp, token, max_age=SESSION_HOURS * 3600)
+    return resp
+
+
+@auth_bp.route("/mfa-challenge", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
+def mfa_challenge():
+    token = request.cookies.get("portal_token")
+    payload = decode_jwt(token) if token else None
+    if not payload or payload.get("mfa") != "pending":
+        return redirect("/")
+    if request.method == "GET":
+        return render_template("portal_mfa_challenge.html")
+
+    code = (request.form.get("code") or "").strip()
+    recovery = (request.form.get("recovery") or "").strip()
+    try:
+        uid = int(payload["sub"])
+    except (ValueError, TypeError):
+        return redirect("/")
+    user = portal_db.query_one(
+        "SELECT id, email, role, company, full_name, mfa_secret, mfa_recovery_hashes "
+        "FROM portal_users WHERE id = %s AND active = TRUE",
+        (uid,),
     )
+    if not user:
+        return redirect("/")
+
+    accepted = False
+    used_recovery = False
+
+    if code and portal_mfa.verify_code(user["mfa_secret"] or "", code):
+        accepted = True
+    elif recovery:
+        ok, remaining = portal_mfa.consume_recovery_code(
+            json.dumps(user["mfa_recovery_hashes"]) if isinstance(user["mfa_recovery_hashes"], list)
+            else (user["mfa_recovery_hashes"] or "[]"),
+            recovery,
+        )
+        if ok:
+            accepted = True
+            used_recovery = True
+            portal_db.execute(
+                "UPDATE portal_users SET mfa_recovery_hashes = %s::jsonb WHERE id = %s",
+                (json.dumps(remaining), user["id"]),
+            )
+
+    if not accepted:
+        audit_log("mfa_fail", user_id=user["id"], email=user["email"], company=user["company"])
+        return render_template("portal_mfa_challenge.html", error="Invalid code."), 401
+
+    full_token = encode_jwt({
+        "sub":     str(user["id"]),
+        "email":   user["email"],
+        "role":    user["role"],
+        "company": user["company"],
+        "name":    user["full_name"] or user["email"],
+        "mfa":     "ok",
+    })
+    audit_log("mfa_ok", user_id=user["id"], email=user["email"], company=user["company"],
+              metadata={"recovery": used_recovery})
+    resp = make_response(redirect("/portal"))
+    _set_session_cookie(resp, full_token, max_age=SESSION_HOURS * 3600)
     return resp
 
 
 @auth_bp.route("/logout")
 def logout():
+    payload = None
+    token = request.cookies.get("portal_token")
+    if token:
+        payload = decode_jwt(token)
+    if payload and payload.get("sub"):
+        audit_log("logout", user_id=payload.get("sub"), email=payload.get("email"),
+                  company=payload.get("company"))
     resp = make_response(redirect("/"))
     resp.delete_cookie("portal_token", path="/")
     return resp
@@ -158,8 +378,8 @@ def forgot_password():
         reset_url = f"{app_url}/reset-password/{token}"
         from portal_email import send_reset_email
         send_reset_email(user["email"], reset_url, COMPANY_NAMES.get(company, company))
+        audit_log("pw_reset_request", user_id=user["id"], email=user["email"], company=company)
 
-    # Always show success — prevents email enumeration
     return render_template("portal_forgot_password.html", sent=True)
 
 
@@ -167,7 +387,7 @@ def forgot_password():
 def reset_password(token):
     company = os.environ.get("COMPANY_ID", "dod")
     user = portal_db.query_one(
-        "SELECT id FROM portal_users "
+        "SELECT id, email FROM portal_users "
         "WHERE reset_token = %s AND reset_expires > %s AND company = %s",
         (token, datetime.now(timezone.utc), company),
     )
@@ -180,18 +400,21 @@ def reset_password(token):
     password = request.form.get("password") or ""
     confirm  = request.form.get("confirm")  or ""
 
-    if len(password) < 8:
-        return render_template("portal_reset_password.html", token=token,
-                               error="Password must be at least 8 characters.")
+    weak = _password_too_weak(password)
+    if weak:
+        return render_template("portal_reset_password.html", token=token, error=weak)
     if password != confirm:
         return render_template("portal_reset_password.html", token=token,
                                error="Passwords do not match.")
 
     portal_db.execute(
-        "UPDATE portal_users SET password_hash = %s, reset_token = NULL, reset_expires = NULL "
+        "UPDATE portal_users "
+        "SET password_hash = %s, reset_token = NULL, reset_expires = NULL, "
+        "    pw_changed_at = NOW(), failed_login_count = 0, locked_until = NULL "
         "WHERE id = %s",
         (hash_password(password), user["id"]),
     )
+    audit_log("pw_reset_complete", user_id=user["id"], email=user["email"], company=company)
     return render_template("portal_reset_password.html", success=True)
 
 
@@ -199,7 +422,7 @@ def reset_password(token):
 def setup_account(token):
     company = os.environ.get("COMPANY_ID", "dod")
     user = portal_db.query_one(
-        "SELECT id, full_name, email FROM portal_users "
+        "SELECT id, full_name, email, role FROM portal_users "
         "WHERE invite_token = %s AND invite_expires > %s AND company = %s AND active = FALSE",
         (token, datetime.now(timezone.utc), company),
     )
@@ -219,9 +442,9 @@ def setup_account(token):
     if not full_name:
         return render_template("portal_setup_account.html", token=token, user=user,
                                error="Full name is required.")
-    if len(password) < 8:
-        return render_template("portal_setup_account.html", token=token, user=user,
-                               error="Password must be at least 8 characters.")
+    weak = _password_too_weak(password)
+    if weak:
+        return render_template("portal_setup_account.html", token=token, user=user, error=weak)
     if password != confirm:
         return render_template("portal_setup_account.html", token=token, user=user,
                                error="Passwords do not match.")
@@ -229,30 +452,43 @@ def setup_account(token):
     portal_db.execute(
         """UPDATE portal_users
            SET full_name = %s, phone = %s, company_name = %s, address = %s,
-               password_hash = %s, active = TRUE,
+               password_hash = %s, active = TRUE, pw_changed_at = NOW(),
                invite_token = NULL, invite_expires = NULL
            WHERE id = %s""",
         (full_name, phone, company_name, address, hash_password(password), user["id"]),
     )
+    audit_log("account_setup", user_id=user["id"], email=user["email"], company=company)
 
     updated = portal_db.query_one(
         "SELECT id, email, role, company, full_name FROM portal_users WHERE id = %s",
         (user["id"],),
     )
+
+    # New admins must enroll in MFA before getting a full session.
+    if updated["role"] == "admin":
+        jwt_token = encode_jwt(
+            {
+                "sub":     str(updated["id"]),
+                "email":   updated["email"],
+                "role":    updated["role"],
+                "company": updated["company"],
+                "name":    updated["full_name"],
+                "mfa":     "enroll",
+            },
+            lifetime=timedelta(minutes=MFA_PENDING_MIN),
+        )
+        resp = make_response(redirect("/portal/mfa-enroll"))
+        _set_session_cookie(resp, jwt_token, max_age=MFA_PENDING_MIN * 60)
+        return resp
+
     jwt_token = encode_jwt({
         "sub":     str(updated["id"]),
         "email":   updated["email"],
         "role":    updated["role"],
         "company": updated["company"],
         "name":    updated["full_name"],
+        "mfa":     "n/a",
     })
     resp = make_response(redirect("/portal"))
-    resp.set_cookie(
-        "portal_token", jwt_token,
-        httponly=True,
-        secure=not current_app.config.get("TESTING"),
-        samesite="Lax",
-        path="/",
-        max_age=8 * 3600,
-    )
+    _set_session_cookie(resp, jwt_token, max_age=SESSION_HOURS * 3600)
     return resp

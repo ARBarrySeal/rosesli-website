@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, g, render_template, request
 
 import portal_db
+from portal_audit import log as audit_log
 from portal_auth import admin_required, make_token
 from portal_email import send_invite_email
 
@@ -47,6 +48,16 @@ def invite():
         "INSERT INTO portal_users (email, full_name, role, company, invite_token, invite_expires, active) "
         "VALUES (%s, %s, %s, %s, %s, %s, FALSE)",
         (email, full_name, role, company, token, expires),
+    )
+
+    new_user = portal_db.query_one(
+        "SELECT id FROM portal_users WHERE email = %s AND company = %s",
+        (email, company),
+    )
+    audit_log(
+        "invite_send",
+        target=f"user:{new_user['id']}" if new_user else None,
+        metadata={"email": email, "role": role, "full_name": full_name},
     )
 
     app_url   = os.environ.get("APP_URL", "http://localhost:8080")
@@ -97,5 +108,10 @@ def create_invoice():
     portal_db.execute(
         "INSERT INTO invoices (user_id, amount, description, due_date) VALUES (%s, %s, %s, %s)",
         (int(user_id), amount, description or None, due_date or None),
+    )
+    audit_log(
+        "invoice_create",
+        target=f"user:{int(user_id)}",
+        metadata={"amount": amount, "due_date": due_date or None},
     )
     return render_template("portal_admin_invoice_create.html", users=users, success=True)

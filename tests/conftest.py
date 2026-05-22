@@ -1,13 +1,14 @@
 import os
 import pytest
 
+os.environ.setdefault("TESTING", "1")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_NAME", "botdb")
 os.environ.setdefault("DB_USER", "botuser")
-os.environ.setdefault("DB_PASS", "")
+os.environ.setdefault("DB_PASS", "password")
 os.environ.setdefault("JWT_SECRET", "test-secret-key-for-pytest-only-32chars!!")
 os.environ.setdefault("FLASK_SECRET_KEY", "test-flask-secret-for-pytest-only!!")
-os.environ.setdefault("COMPANY_ID", "dod")
+os.environ.setdefault("COMPANY_ID", "rosesli")
 os.environ.setdefault("APP_URL", "http://localhost:8080")
 
 import sys
