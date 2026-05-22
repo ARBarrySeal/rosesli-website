@@ -106,7 +106,7 @@ def login():
         return jsonify(ok=False, error="Invalid email or password."), 401
 
     token = encode_jwt({
-        "sub":     user["id"],
+        "sub":     str(user["id"]),
         "email":   user["email"],
         "role":    user["role"],
         "company": user["company"],
@@ -238,7 +238,7 @@ def setup_account(token):
         (user["id"],),
     )
     jwt_token = encode_jwt({
-        "sub":     updated["id"],
+        "sub":     str(updated["id"]),
         "email":   updated["email"],
         "role":    updated["role"],
         "company": updated["company"],
