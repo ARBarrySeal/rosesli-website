@@ -302,7 +302,15 @@
     el.appendChild(forgot);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      fetch('/login', { method: 'POST', body: new FormData(form) })
+      fetch('/api/csrf-token')
+        .then(function (r) { return r.json(); })
+        .then(function (csrf) {
+          return fetch('/login', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRF-Token': csrf.csrf_token }
+          });
+        })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (d.ok) { window.location.href = d.redirect || '/portal'; }

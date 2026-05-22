@@ -9,12 +9,36 @@ import portal_db
 from portal_auth import admin_required, check_password, hash_password, login_required
 
 UPLOAD_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+UPLOAD_BASE_REAL = os.path.realpath(UPLOAD_BASE)
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {
     ".pdf", ".doc", ".docx", ".xls", ".xlsx",
     ".png", ".jpg", ".jpeg", ".gif",
     ".txt", ".csv", ".zip",
 }
+
+_MAGIC: dict[str, list[bytes]] = {
+    ".pdf":  [b"%PDF"],
+    ".doc":  [b"\xD0\xCF\x11\xE0"],
+    ".xls":  [b"\xD0\xCF\x11\xE0"],
+    ".docx": [b"PK\x03\x04"],
+    ".xlsx": [b"PK\x03\x04"],
+    ".zip":  [b"PK\x03\x04"],
+    ".png":  [b"\x89PNG"],
+    ".jpg":  [b"\xFF\xD8\xFF"],
+    ".jpeg": [b"\xFF\xD8\xFF"],
+    ".gif":  [b"GIF87a", b"GIF89a"],
+}
+
+
+def _magic_ok(f, ext: str) -> bool:
+    sigs = _MAGIC.get(ext.lower())
+    if sigs is None:
+        return True
+    header = f.read(8)
+    f.seek(0)
+    return any(header.startswith(s) for s in sigs)
+
 
 pages_bp = Blueprint("pages", __name__)
 
@@ -283,6 +307,10 @@ def upload_document():
         flash("File type not allowed.", "error")
         return redirect("/portal/documents")
 
+    if not _magic_ok(f, ext):
+        flash("File content does not match its extension.", "error")
+        return redirect("/portal/documents")
+
     f.seek(0, 2)
     size = f.tell()
     f.seek(0)
@@ -341,7 +369,9 @@ def download_document(doc_id):
     if not doc:
         abort(404)
 
-    file_path = os.path.join(UPLOAD_BASE, company, doc["filename"])
+    file_path = os.path.realpath(os.path.join(UPLOAD_BASE, company, doc["filename"]))
+    if not file_path.startswith(UPLOAD_BASE_REAL + os.sep):
+        abort(403)
     if not os.path.isfile(file_path):
         abort(404)
 

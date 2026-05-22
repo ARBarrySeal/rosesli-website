@@ -60,7 +60,7 @@ def _csrf_token():
 
 app.jinja_env.globals["csrf_token"] = _csrf_token
 
-_CSRF_EXEMPT = {"/login", "/api/request"}
+_CSRF_EXEMPT = {"/api/request"}
 
 @app.before_request
 def csrf_protect():
