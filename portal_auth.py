@@ -118,7 +118,8 @@ def login():
         "portal_token", token,
         httponly=True,
         secure=not current_app.config.get("TESTING"),
-        samesite="Strict",
+        samesite="Lax",
+        path="/",
         max_age=8 * 3600,
     )
     return resp
@@ -248,7 +249,8 @@ def setup_account(token):
         "portal_token", jwt_token,
         httponly=True,
         secure=not current_app.config.get("TESTING"),
-        samesite="Strict",
+        samesite="Lax",
+        path="/",
         max_age=8 * 3600,
     )
     return resp
