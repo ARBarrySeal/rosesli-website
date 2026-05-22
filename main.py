@@ -17,9 +17,11 @@ logging.basicConfig(level=logging.INFO)
 from portal_auth import auth_bp
 from portal_api import api_bp
 from portal_admin import admin_bp
+from portal_pages import pages_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(pages_bp)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
