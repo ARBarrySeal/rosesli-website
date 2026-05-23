@@ -186,3 +186,114 @@ def test_audit_log_captures_account_lockout(client, csrf, admin):
     actions = [r["action"] for r in rows]
     assert "login_fail" in actions
     assert "login_locked" in actions
+
+
+# ─── P2c: CSRF token rotation on state transitions ────────────────────────────
+
+def _current_csrf(client):
+    with client.session_transaction() as sess:
+        return sess.get("csrf_token")
+
+
+def test_csrf_token_rotates_on_login(client, csrf, client_user):
+    """A CSRF token observed pre-login must stop validating after login —
+    blocks session-fixation where an attacker primes a victim's pre-auth
+    session with a known token."""
+    pre = csrf
+    r = _login(client, csrf)
+    assert r.status_code == 200
+    post = _current_csrf(client)
+    assert post is not None
+    assert post != pre
+
+
+def test_password_change_keeps_user_logged_in(client, csrf, client_user):
+    """Wave-3 bug: the success message claimed 'you'll stay signed in here'
+    but the pw_changed_at write invalidated this device's JWT too. Fix
+    reissues a fresh JWT in the response."""
+    _login(client, csrf)
+    current = _current_csrf(client)
+
+    new_pw = "BrandNewStrong456!"
+    r = client.post(
+        "/portal/profile",
+        data={
+            "action": "password",
+            "current_password": TEST_PASSWORD,
+            "new_password": new_pw,
+            "confirm_password": new_pw,
+            "csrf_token": current,
+        },
+    )
+    assert r.status_code == 200
+    assert b"Password updated" in r.data
+    # New JWT must be set on the response.
+    assert "portal_token=" in r.headers.get("Set-Cookie", "")
+    # And the new cookie must keep this client authenticated.
+    r2 = client.get("/portal/profile", follow_redirects=False)
+    assert r2.status_code == 200
+
+
+def test_password_change_rotates_csrf_token(client, csrf, client_user):
+    _login(client, csrf)
+    pre = _current_csrf(client)
+
+    new_pw = "AnotherStrongOne789!"
+    r = client.post(
+        "/portal/profile",
+        data={
+            "action": "password",
+            "current_password": TEST_PASSWORD,
+            "new_password": new_pw,
+            "confirm_password": new_pw,
+            "csrf_token": pre,
+        },
+    )
+    assert r.status_code == 200
+    post = _current_csrf(client)
+    assert post is not None
+    assert post != pre
+
+
+def test_password_change_invalidates_jwt_on_other_devices(client, csrf, client_user, app):
+    """Same user logs in from device A, changes password from device B —
+    device A's next request must be rejected (verifies the cross-device
+    invalidation half of the design)."""
+    # Device A logs in (cookies live in `client`).
+    _login(client, csrf)
+
+    # JWT iat is integer-seconds precision. If device B's pw_changed_at write
+    # lands in the same wall-clock second as device A's JWT iat, the strict
+    # `iat < pw_changed_at` check would erroneously treat device A's token
+    # as valid. Sleep to push device B's timestamps a full second forward.
+    time.sleep(1.1)
+
+    # Device B is a separate test client; logs in and changes password.
+    device_b = app.test_client()
+    with device_b.session_transaction() as sess:
+        sess["csrf_token"] = secrets.token_hex(32)
+        b_csrf = sess["csrf_token"]
+    rb = device_b.post(
+        "/login",
+        data={"email": TEST_EMAIL, "password": TEST_PASSWORD, "csrf_token": b_csrf},
+    )
+    assert rb.status_code == 200
+    with device_b.session_transaction() as sess:
+        b_current = sess["csrf_token"]
+    new_pw = "ChangedFromDeviceB!9"
+    rc = device_b.post(
+        "/portal/profile",
+        data={
+            "action": "password",
+            "current_password": TEST_PASSWORD,
+            "new_password": new_pw,
+            "confirm_password": new_pw,
+            "csrf_token": b_current,
+        },
+    )
+    assert rc.status_code == 200
+
+    # Exercise device A's now-stale JWT.
+    ra = client.get("/portal/profile", follow_redirects=False)
+    assert ra.status_code == 302
+    assert ra.headers.get("Location") == "/"

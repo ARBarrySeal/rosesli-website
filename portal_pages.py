@@ -17,7 +17,7 @@ from portal_audit import log as audit_log
 from portal_auth import (
     SESSION_HOURS, _password_too_weak, _set_session_cookie,
     admin_required, check_password, decode_jwt, encode_jwt,
-    hash_password, login_required,
+    hash_password, login_required, rotate_csrf_token,
 )
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
@@ -158,7 +158,27 @@ def profile():
                     (hash_password(new_pw), uid),
                 )
                 audit_log("pw_change", user_id=uid, email=user["email"], company=user["company"])
-                success = "Password updated. You'll stay signed in here; other devices will be signed out."
+
+                # Reissue JWT so iat advances past the pw_changed_at we just wrote
+                # — without this, the @login_required check on the next request would
+                # invalidate this device too, contradicting the success message.
+                # _set_session_cookie also rotates the per-session CSRF token (P2c).
+                fresh_token = encode_jwt({
+                    "sub":     str(uid),
+                    "email":   g.user["email"],
+                    "role":    g.user["role"],
+                    "company": g.user["company"],
+                    "name":    g.user.get("name") or user["email"],
+                    "mfa":     g.user.get("mfa", "ok"),
+                })
+                resp = make_response(render_template(
+                    "portal_profile.html",
+                    user=user,
+                    error=None,
+                    success="Password updated. You'll stay signed in here; other devices will be signed out.",
+                ))
+                _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
+                return resp
 
     return render_template("portal_profile.html", user=user, error=error, success=success)
 

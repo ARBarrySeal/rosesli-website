@@ -8,7 +8,7 @@ import bcrypt
 import jwt
 from flask import (
     Blueprint, current_app, g, jsonify,
-    make_response, redirect, render_template, request,
+    make_response, redirect, render_template, request, session,
 )
 
 import portal_db
@@ -37,6 +37,14 @@ def check_password(plaintext: str, hashed: str) -> bool:
     return bcrypt.checkpw(plaintext.encode(), hashed.encode())
 
 
+import re
+
+from portal_common_passwords import COMMON_PASSWORDS
+
+# Strip trailing digits + common symbol-suffixes ("Password123!" → "password").
+_PASSWORD_SUFFIX = re.compile(r"[\d!@#$%^&*_.?-]+$")
+
+
 def _password_too_weak(pw: str) -> str | None:
     if len(pw) < 12:
         return "Password must be at least 12 characters."
@@ -48,9 +56,10 @@ def _password_too_weak(pw: str) -> str | None:
     ])
     if classes < 3:
         return "Password must include 3 of: lowercase, uppercase, digit, symbol."
-    common = {"password", "qwerty", "letmein", "admin1234", "iloveyou"}
-    if pw.lower() in common or any(c in pw.lower() for c in common):
-        return "Password is too common."
+    lowered = pw.lower()
+    base = _PASSWORD_SUFFIX.sub("", lowered)
+    if lowered in COMMON_PASSWORDS or (base and base in COMMON_PASSWORDS):
+        return "Password is too common — please choose something more unique."
     return None
 
 
@@ -148,7 +157,18 @@ COMPANY_NAMES = {
 
 # ── Cookie helper ─────────────────────────────────────────────────────────────
 
+def rotate_csrf_token() -> str:
+    """Issue a new per-session CSRF token. Invalidates any token an attacker
+    might have observed from the prior session state (pre-login,
+    pre-MFA-completion, pre-password-change)."""
+    session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
 def _set_session_cookie(resp, token: str, *, max_age: int):
+    # Every JWT issuance is a state transition (login, MFA, account setup);
+    # rotate the CSRF token alongside so the old one stops validating.
+    rotate_csrf_token()
     resp.set_cookie(
         "portal_token", token,
         httponly=True,
