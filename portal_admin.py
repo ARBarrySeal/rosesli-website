@@ -1,12 +1,12 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, g, render_template, request
+from flask import Blueprint, g, jsonify, render_template, request
 
 import portal_db
 from portal_audit import log as audit_log
 from portal_auth import admin_required, make_token
-from portal_email import send_invite_email
+from portal_email import send_invite_email, send_test_email
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -115,3 +115,19 @@ def create_invoice():
         metadata={"amount": amount, "due_date": due_date or None},
     )
     return render_template("portal_admin_invoice_create.html", users=users, success=True)
+
+
+@admin_bp.route("/portal/admin/smtp-test", methods=["POST"])
+@admin_required
+def smtp_test():
+    """Send a test email to the calling admin so they can verify the SMTP
+    configuration actually delivers — invite + reset flows fail silently
+    today if SMTP is misconfigured (send returns False, no surface)."""
+    admin_email = g.user["email"]
+    company = g.user["company"]
+    ok, detail = send_test_email(admin_email, COMPANY_NAMES.get(company, company))
+    audit_log(
+        "smtp_test",
+        metadata={"to": admin_email, "ok": ok, "detail": detail[:200]},
+    )
+    return jsonify(ok=ok, sent_to=admin_email, detail=detail)

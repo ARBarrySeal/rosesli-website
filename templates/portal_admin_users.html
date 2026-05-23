@@ -6,7 +6,11 @@
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
   <span style="color:var(--muted);font-size:.78rem;">{{ users|length }} account{{ 's' if users|length != 1 else '' }}</span>
-  <a href="/portal/admin/invite" class="btn btn-primary">+ Invite User</a>
+  <div style="display:flex;gap:.5rem;">
+    <button id="smtp-test-btn" class="btn btn-ghost" type="button"
+            style="font-size:.78rem;">Test SMTP</button>
+    <a href="/portal/admin/invite" class="btn btn-primary">+ Invite User</a>
+  </div>
 </div>
 
 <table class="portal-table">
@@ -56,7 +60,7 @@ document.querySelectorAll('.toggle-btn').forEach(function(btn) {
     const id = this.dataset.id;
     this.disabled = true;
     try {
-      const res  = await fetch('/portal/admin/users/' + id + '/toggle', {method: 'POST'});
+      const res  = await window.csrfFetch('/portal/admin/users/' + id + '/toggle', {method: 'POST'});
       const data = await res.json();
       if (data.ok) {
         location.reload();
@@ -68,6 +72,26 @@ document.querySelectorAll('.toggle-btn').forEach(function(btn) {
       this.disabled = false;
     }
   });
+});
+
+document.getElementById('smtp-test-btn').addEventListener('click', async function() {
+  this.disabled = true;
+  const original = this.textContent;
+  this.textContent = 'Sending…';
+  try {
+    const res  = await window.csrfFetch('/portal/admin/smtp-test', {method: 'POST'});
+    const data = await res.json();
+    if (data.ok) {
+      alert('✓ Test email sent to ' + data.sent_to + '\n\n' + data.detail);
+    } else {
+      alert('✗ Test failed:\n\n' + data.detail);
+    }
+  } catch (e) {
+    alert('✗ Request failed: ' + e);
+  } finally {
+    this.disabled = false;
+    this.textContent = original;
+  }
 });
 </script>
 {% endblock %}

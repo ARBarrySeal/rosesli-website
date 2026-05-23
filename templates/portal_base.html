@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#0a0a0a"/>
+<meta name="csrf-token" content="{{ csrf_token() }}"/>
 <title>{% block title %}Portal{% endblock %}</title>
 <link rel="stylesheet" href="/portal.css"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
@@ -73,6 +74,18 @@
     sidebar.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   })();
+
+  // Global helper: fetch with CSRF token from the <meta> tag set in <head>.
+  // Use for any JSON POST from page scripts so they pass the csrf_protect
+  // before-request handler in main.py.
+  window.csrfFetch = function (url, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign(
+      {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+      opts.headers || {}
+    );
+    return fetch(url, opts);
+  };
 </script>
 
 {% block scripts %}{% endblock %}
