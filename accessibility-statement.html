@@ -60,7 +60,75 @@
     <li><a href="vri.html">VRI</a></li>
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
+  <div id="nav-auth" style="position:relative;"></div>
 </nav>
+<link rel="stylesheet" href="/portal.css"/>
+<script>
+(function () {
+  var el = document.getElementById('nav-auth');
+
+  function showUser(name) {
+    el.textContent = '';
+    var wrap = document.createElement('div');
+    wrap.className = 'nav-user-info';
+    var span = document.createElement('span');
+    span.textContent = name;
+    var aPortal = document.createElement('a');
+    aPortal.href = '/portal'; aPortal.textContent = 'Portal';
+    var aLogout = document.createElement('a');
+    aLogout.href = '/logout'; aLogout.textContent = 'Logout';
+    wrap.appendChild(span); wrap.appendChild(aPortal); wrap.appendChild(aLogout);
+    el.appendChild(wrap);
+  }
+
+  function showForm(errMsg) {
+    el.textContent = '';
+    var form = document.createElement('form');
+    form.className = 'nav-login-form';
+    var emailIn = document.createElement('input');
+    emailIn.type = 'email'; emailIn.name = 'email';
+    emailIn.placeholder = 'email'; emailIn.required = true;
+    var passIn = document.createElement('input');
+    passIn.type = 'password'; passIn.name = 'password'; passIn.placeholder = 'password'; passIn.required = true;
+    var btn = document.createElement('button');
+    btn.type = 'submit'; btn.textContent = '→';
+    form.appendChild(emailIn); form.appendChild(passIn); form.appendChild(btn);
+    if (errMsg) {
+      var err = document.createElement('span');
+      err.className = 'nav-login-error'; err.textContent = errMsg;
+      form.appendChild(err);
+    }
+    el.appendChild(form);
+    var forgot = document.createElement('a');
+    forgot.href = '/forgot-password'; forgot.textContent = 'Forgot password?';
+    forgot.style.cssText = 'font-size:.72rem;color:var(--muted);text-decoration:none;display:block;text-align:right;margin-top:3px;';
+    el.appendChild(forgot);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch('/api/csrf-token')
+        .then(function (r) { return r.json(); })
+        .then(function (csrf) {
+          return fetch('/login', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRF-Token': csrf.csrf_token }
+          });
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.ok) { window.location.href = d.redirect || '/portal'; }
+          else { showForm(d.error || 'Login failed.'); }
+        })
+        .catch(function () { showForm('Network error. Try again.'); });
+    });
+  }
+
+  fetch('/api/me')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { d && d.ok ? showUser(d.user.name) : showForm(); })
+    .catch(function () { showForm(); });
+})();
+</script>
 
 <div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Accessibility Statement</div>
 
