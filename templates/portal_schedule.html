@@ -55,7 +55,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.getElementById('intake-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const btn  = this.querySelector('button[type="submit"]');

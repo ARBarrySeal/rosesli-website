@@ -57,7 +57,7 @@
   </main>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
   (function () {
     var sidebar  = document.getElementById('portalSidebar');
     var backdrop = document.getElementById('sidebarBackdrop');
@@ -86,6 +86,18 @@
     );
     return fetch(url, opts);
   };
+
+  // CSP-friendly replacements for inline event handlers:
+  //   <tr data-href="/url">…  → click navigates to /url
+  //   <form data-confirm="msg">… → submit prompts confirm(msg) first
+  document.querySelectorAll('[data-href]').forEach(function (el) {
+    el.addEventListener('click', function () { location.href = el.dataset.href; });
+  });
+  document.querySelectorAll('[data-confirm]').forEach(function (el) {
+    el.addEventListener('submit', function (e) {
+      if (!confirm(el.dataset.confirm)) e.preventDefault();
+    });
+  });
 </script>
 
 {% block scripts %}{% endblock %}

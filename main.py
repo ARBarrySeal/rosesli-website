@@ -10,7 +10,7 @@ import urllib.request
 from datetime import timedelta
 from email.message import EmailMessage
 
-from flask import Flask, jsonify, redirect, request, send_from_directory, session
+from flask import Flask, g, jsonify, redirect, request, send_from_directory, session
 
 _testing = os.environ.get("TESTING") == "1"
 
@@ -62,6 +62,20 @@ def _csrf_token():
 
 app.jinja_env.globals["csrf_token"] = _csrf_token
 
+
+# ── CSP nonce ─────────────────────────────────────────────────────────────────
+# Per-request nonce for inline <script>/<style> blocks. Eliminates the
+# 'unsafe-inline' source for script-src in the portal CSP — any injected
+# <script> without our nonce will be blocked by the browser.
+
+def _csp_nonce():
+    if not hasattr(g, "csp_nonce"):
+        g.csp_nonce = secrets.token_urlsafe(16)
+    return g.csp_nonce
+
+app.jinja_env.globals["csp_nonce"] = _csp_nonce
+
+
 _CSRF_EXEMPT = {"/api/request"}
 
 @app.before_request
@@ -78,20 +92,51 @@ def csrf_protect():
 
 # ── Security headers ──────────────────────────────────────────────────────────
 
+_PORTAL_PATH_PREFIXES = (
+    "/portal",
+    "/login",
+    "/logout",
+    "/mfa-challenge",
+    "/forgot-password",
+    "/reset-password",
+    "/setup-account",
+)
+
+
+def _is_portal_path(path: str) -> bool:
+    return any(path == p or path.startswith(p + "/") for p in _PORTAL_PATH_PREFIXES)
+
+
 @app.after_request
 def security_headers(response):
     response.headers["X-Frame-Options"]        = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://assets.calendly.com; "
-        "style-src 'self' 'unsafe-inline' https://assets.calendly.com; "
-        "frame-src https://calendly.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' https://calendly.com;"
-    )
+
+    # Two CSPs: strict (nonce-only script-src) for the portal where every
+    # inline <script> is under our control and carries the nonce; permissive
+    # (unsafe-inline) for the marketing pages which include hand-written
+    # inline scripts that cannot be noncified (static HTML, no Jinja).
+    if _is_portal_path(request.path):
+        nonce = _csp_nonce()
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}' https://assets.calendly.com; "
+            "style-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+            "frame-src https://calendly.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://calendly.com;"
+        )
+    else:
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+            "style-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+            "frame-src https://calendly.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://calendly.com;"
+        )
     return response
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

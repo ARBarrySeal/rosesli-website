@@ -47,7 +47,7 @@
   </thead>
   <tbody>
     {% for inv in invoices %}
-    <tr style="cursor:pointer;" onclick="location.href='/portal/invoices/{{ inv.id }}'">
+    <tr style="cursor:pointer;" data-href="/portal/invoices/{{ inv.id }}">
       {% if g.user.role == 'admin' %}
       <td>{{ inv.full_name or inv.email or '—' }}</td>
       {% endif %}

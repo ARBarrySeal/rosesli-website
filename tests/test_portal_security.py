@@ -297,3 +297,57 @@ def test_password_change_invalidates_jwt_on_other_devices(client, csrf, client_u
     ra = client.get("/portal/profile", follow_redirects=False)
     assert ra.status_code == 302
     assert ra.headers.get("Location") == "/"
+
+
+# ─── P3: Content-Security-Policy routing ──────────────────────────────────────
+
+def test_csp_portal_route_uses_nonce_only(client):
+    """Portal routes must serve a strict CSP — script-src 'self' + nonce-<id>,
+    no 'unsafe-inline'. Without this, an XSS in any portal template would
+    execute arbitrary JS in an authenticated context."""
+    r = client.get("/", follow_redirects=False)
+    # /login is POST-only; use the portal index, which redirects unauth users
+    # but still emits security headers on the redirect response.
+    r = client.get("/portal", follow_redirects=False)
+    csp = r.headers.get("Content-Security-Policy", "")
+    assert csp, "no CSP header on /portal"
+    # Extract script-src directive.
+    script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    assert "nonce-" in script_src
+    assert "'unsafe-inline'" not in script_src
+
+
+def test_csp_marketing_route_allows_unsafe_inline(client):
+    """Marketing pages have hand-written inline <script> bootstrappers and
+    GTM. They cannot use nonces (static HTML, no template rendering), so
+    script-src must keep 'unsafe-inline'. Verifies the path-based scoping
+    didn't accidentally also strict-mode the marketing site."""
+    r = client.get("/")
+    csp = r.headers.get("Content-Security-Policy", "")
+    assert csp, "no CSP header on /"
+    script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    assert "'unsafe-inline'" in script_src
+    assert "nonce-" not in script_src
+
+
+def test_csp_nonce_fresh_per_request_context(app):
+    """Each portal response must carry a fresh nonce. A static nonce would
+    defeat the protection — an attacker who learns one nonce could inject
+    matching <script> tags.
+
+    Note: pytest-flask pins one app context per test, so two `client.get()`
+    calls share `g` — which is correct production behavior at the
+    per-request level. We instead verify the invariant directly by pushing
+    two independent request contexts, which is what a real WSGI server
+    does between requests."""
+    from main import _csp_nonce
+    # Two independent app contexts — each yields a fresh `g`, matching what
+    # a real WSGI server provides between requests. pytest-flask pins an
+    # outer app context for the test, but pushing nested contexts here
+    # gives each call its own `g`.
+    with app.app_context():
+        n1 = _csp_nonce()
+    with app.app_context():
+        n2 = _csp_nonce()
+    assert n1 and n2
+    assert n1 != n2

@@ -54,7 +54,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('.toggle-btn').forEach(function(btn) {
   btn.addEventListener('click', async function() {
     const id = this.dataset.id;
