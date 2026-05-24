@@ -166,10 +166,13 @@
             headers: { 'X-CSRF-Token': csrf.csrf_token }
           });
         })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          if (d.ok) { window.location.href = d.redirect || '/portal'; }
-          else { showForm(d.error || 'Login failed.'); }
+        .then(function (r) {
+          return r.text().then(function (body) {
+            var d = null;
+            try { d = JSON.parse(body); } catch (e) {}
+            if (d && d.ok) { window.location.href = d.redirect || '/portal'; return; }
+            showForm(d && d.error ? d.error : 'Server error (' + r.status + '). Try again.');
+          });
         })
         .catch(function () { showForm('Network error. Try again.'); });
     });
