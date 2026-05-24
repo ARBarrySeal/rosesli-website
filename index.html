@@ -17,6 +17,7 @@
 <meta property="og:image" content="https://rosesli.com/og-image.png">
 <meta name="twitter:image" content="https://rosesli.com/og-image.png">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/portal.css"/>
 <style>
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   :root{
@@ -50,11 +51,12 @@
   .logo-text{font-weight:700;font-size:15px;letter-spacing:.02em;}
   .logo-text em{font-style:italic;font-family:'Instrument Serif',serif;font-weight:400;font-size:18px;color:var(--mute);}
   .nav-links{display:flex;gap:26px;list-style:none;align-items:center;}
-  .nav-links a{text-decoration:none;color:var(--ink);font-size:15px;font-weight:500;letter-spacing:.01em;}
+  .nav-links a{text-decoration:none;color:var(--ink);font-size:15px;font-weight:500;letter-spacing:.01em;position:relative;}
+  .nav-links a:not(.nav-cta){padding:4px 0;min-width:104px;text-align:center;}
   .nav-links a:hover{color:var(--blue);}
-  .nav-cta{background:var(--ink);color:var(--paper)!important;padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:background .2s,transform .15s;}
+  .nav-cta{background:var(--ink);color:var(--paper)!important;padding:10px 18px;border-radius:999px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background .2s,transform .15s;}
   .nav-cta:hover{background:var(--blue);}
-  .nav-cta-lg{padding:14px 24px;font-size:15px;background:var(--blue);box-shadow:0 8px 24px -10px rgba(26,86,219,.55);}
+  .nav-cta-lg{padding:11px 22px;font-size:15px;background:var(--blue);box-shadow:0 8px 24px -10px rgba(26,86,219,.55);}
   .nav-cta-lg:hover{background:var(--ink);transform:translateY(-1px);box-shadow:0 12px 28px -10px rgba(10,20,32,.45);}
   .nav-cta-lg .arrow{width:14px;height:14px;}
 
@@ -271,7 +273,6 @@
   </ul>
   <div id="nav-auth" style="position:relative;"></div>
 </nav>
-<link rel="stylesheet" href="/portal.css"/>
 <script>
 (function () {
   var el = document.getElementById('nav-auth');
