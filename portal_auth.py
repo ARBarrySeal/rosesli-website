@@ -245,45 +245,7 @@ def login():
         (user["id"],),
     )
 
-    # Admins must enroll in MFA on first login.
-    if user["role"] == "admin" and not user["mfa_secret"]:
-        token = encode_jwt(
-            {
-                "sub": str(user["id"]),
-                "email": user["email"],
-                "role": user["role"],
-                "company": user["company"],
-                "name": user["full_name"] or user["email"],
-                "mfa": "enroll",
-            },
-            lifetime=timedelta(minutes=MFA_PENDING_MIN),
-        )
-        audit_log("login_ok", email=email, company=company, user_id=user["id"],
-                  metadata={"next": "mfa_enroll"})
-        resp = make_response(jsonify(ok=True, redirect="/portal/mfa-enroll"))
-        _set_session_cookie(resp, token, max_age=MFA_PENDING_MIN * 60)
-        return resp
-
-    # Admins with MFA enrolled must pass a TOTP challenge before getting full session.
-    if user["role"] == "admin" and user["mfa_secret"]:
-        token = encode_jwt(
-            {
-                "sub": str(user["id"]),
-                "email": user["email"],
-                "role": user["role"],
-                "company": user["company"],
-                "name": user["full_name"] or user["email"],
-                "mfa": "pending",
-            },
-            lifetime=timedelta(minutes=MFA_PENDING_MIN),
-        )
-        audit_log("login_ok", email=email, company=company, user_id=user["id"],
-                  metadata={"next": "mfa_challenge"})
-        resp = make_response(jsonify(ok=True, redirect="/mfa-challenge"))
-        _set_session_cookie(resp, token, max_age=MFA_PENDING_MIN * 60)
-        return resp
-
-    # Non-admin (client/employee): straight to the portal.
+    # MFA disabled — every authenticated user gets a full session straight to the portal.
     token = encode_jwt({
         "sub":     str(user["id"]),
         "email":   user["email"],
@@ -483,23 +445,6 @@ def setup_account(token):
         "SELECT id, email, role, company, full_name FROM portal_users WHERE id = %s",
         (user["id"],),
     )
-
-    # New admins must enroll in MFA before getting a full session.
-    if updated["role"] == "admin":
-        jwt_token = encode_jwt(
-            {
-                "sub":     str(updated["id"]),
-                "email":   updated["email"],
-                "role":    updated["role"],
-                "company": updated["company"],
-                "name":    updated["full_name"],
-                "mfa":     "enroll",
-            },
-            lifetime=timedelta(minutes=MFA_PENDING_MIN),
-        )
-        resp = make_response(redirect("/portal/mfa-enroll"))
-        _set_session_cookie(resp, jwt_token, max_age=MFA_PENDING_MIN * 60)
-        return resp
 
     jwt_token = encode_jwt({
         "sub":     str(updated["id"]),
