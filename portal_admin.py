@@ -80,10 +80,12 @@ def create_invoice():
     if request.method == "GET":
         return render_template("portal_admin_invoice_create.html", users=users)
 
-    user_id     = request.form.get("user_id") or ""
-    amount_raw  = (request.form.get("amount") or "").strip()
-    description = (request.form.get("description") or "").strip()
-    due_date    = request.form.get("due_date") or None
+    user_id           = request.form.get("user_id") or ""
+    amount_raw        = (request.form.get("amount") or "").strip()
+    description       = (request.form.get("description") or "").strip()
+    due_date          = request.form.get("due_date") or None
+    interpreter_rates = (request.form.get("interpreter_rates") or "").strip()
+    notes             = (request.form.get("notes") or "").strip()
 
     if not user_id:
         return render_template("portal_admin_invoice_create.html", users=users,
@@ -106,8 +108,10 @@ def create_invoice():
                                error="Invalid user.")
 
     portal_db.execute(
-        "INSERT INTO invoices (user_id, amount, description, due_date) VALUES (%s, %s, %s, %s)",
-        (int(user_id), amount, description or None, due_date or None),
+        "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, notes) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        (int(user_id), amount, description or None, due_date or None,
+         interpreter_rates or None, notes or None),
     )
     audit_log(
         "invoice_create",

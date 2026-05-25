@@ -50,6 +50,22 @@
                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
   </label>
 
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Interpreter Rates (optional)
+    <textarea name="interpreter_rates" rows="2" maxlength="1000" placeholder="e.g. J. Smith — $85/hr (2 hrs); A. Lee — $80/hr (2 hrs)"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Notes (optional)
+    <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes for this invoice…"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
   <div style="display:flex;gap:.75rem;align-items:center;">
     <button type="submit" class="btn btn-primary">Create Invoice</button>
     <a href="/portal/invoices" class="btn" style="text-decoration:none;">Cancel</a>

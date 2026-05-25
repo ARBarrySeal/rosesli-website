@@ -1,0 +1,61 @@
+{% extends "portal_base.html" %}
+{% block title %}Assignments — Portal{% endblock %}
+
+{% macro job_table(rows) %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Client</th>
+      <th>Location</th>
+      <th>Interpreters</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for j in rows %}
+    <tr style="cursor:pointer;" data-href="/portal/assignments/{{ j.id }}">
+      <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
+      <td style="color:var(--muted);">{{ j.start_time or '—' }}{% if j.end_time %}–{{ j.end_time }}{% endif %}</td>
+      <td>{{ j.client_name or j.requester_name or '—' }}</td>
+      <td>{{ j.event_address or (j.event_zip and 'ZIP ' ~ j.event_zip) or '—' }}</td>
+      <td>
+        {{ j.interpreter_1_name or '—' }}{% if j.interpreter_2_name %}, {{ j.interpreter_2_name }}{% endif %}
+      </td>
+      <td><span class="badge badge-{{ j.status }}">{{ j.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Assignments</h1>
+  {% if is_admin %}
+  <a href="/portal/admin/assignments/new" class="btn btn-primary">+ New Assignment</a>
+  {% endif %}
+</div>
+
+{% if not upcoming and not past and not undated %}
+<p style="color:var(--muted);font-size:.78rem;">
+  No assignments yet.{% if is_admin %} New interpreter requests from the website show up here automatically.{% endif %}
+</p>
+{% endif %}
+
+{% if upcoming %}
+<h2 style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 .8rem;">Upcoming</h2>
+{{ job_table(upcoming) }}
+{% endif %}
+
+{% if undated %}
+<h2 style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2rem 0 .8rem;">Unscheduled / Pending</h2>
+{{ job_table(undated) }}
+{% endif %}
+
+{% if past %}
+<h2 style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2rem 0 .8rem;">Past</h2>
+{{ job_table(past) }}
+{% endif %}
+{% endblock %}

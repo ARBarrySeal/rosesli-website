@@ -37,6 +37,9 @@
 
     <a href="/portal"           class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
     <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
+    {% if g.user.company == 'rosesli' and g.user.role in ['admin', 'employee'] %}
+    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    {% endif %}
     <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
     <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
     <a href="/portal/profile"   class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>

@@ -128,13 +128,43 @@ def profile():
             phone        = (request.form.get("phone")        or "").strip()[:50]
             company_name = (request.form.get("company_name") or "").strip()[:255]
             address      = (request.form.get("address")      or "").strip()[:500]
+            zip_code     = (request.form.get("zip")          or "").strip()[:20]
+            role         = user["role"]
             if not full_name:
                 error = "Full name is required."
+            elif role == "employee":
+                certification = (request.form.get("certification") or "").strip()[:255]
+                rate_raw      = (request.form.get("interpreter_rate") or "").strip()
+                try:
+                    interpreter_rate = float(rate_raw) if rate_raw else None
+                except ValueError:
+                    interpreter_rate = None
+                portal_db.execute(
+                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
+                    "address=%s, zip=%s, certification=%s, interpreter_rate=%s WHERE id=%s",
+                    (full_name, phone, company_name, address, zip_code or None,
+                     certification or None, interpreter_rate, uid),
+                )
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+                success = "Profile updated."
+            elif role == "client":
+                poc           = (request.form.get("point_of_contact") or "").strip()[:255]
+                billing_email = (request.form.get("billing_email") or "").strip()[:255]
+                billing_phone = (request.form.get("billing_phone") or "").strip()[:50]
+                portal_db.execute(
+                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
+                    "address=%s, zip=%s, point_of_contact=%s, billing_email=%s, "
+                    "billing_phone=%s WHERE id=%s",
+                    (full_name, phone, company_name, address, zip_code or None,
+                     poc or None, billing_email or None, billing_phone or None, uid),
+                )
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+                success = "Profile updated."
             else:
                 portal_db.execute(
-                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, address=%s "
-                    "WHERE id=%s",
-                    (full_name, phone, company_name, address, uid),
+                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
+                    "address=%s, zip=%s WHERE id=%s",
+                    (full_name, phone, company_name, address, zip_code or None, uid),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
                 success = "Profile updated."
@@ -437,7 +467,132 @@ def invoice_detail(invoice_id):
 
     if not inv:
         abort(404)
-    return render_template("portal_invoice.html", inv=inv)
+    attachments = portal_db.query_all(
+        "SELECT id, original_name, size_bytes, created_at FROM invoice_attachments "
+        "WHERE invoice_id = %s ORDER BY created_at",
+        (invoice_id,),
+    )
+    return render_template("portal_invoice.html", inv=inv, attachments=attachments)
+
+
+@pages_bp.route("/portal/invoices/<int:invoice_id>/attachments", methods=["POST"])
+@login_required
+def upload_invoice_attachment(invoice_id):
+    """Admin attaches files or photos to an invoice. Mirrors document upload."""
+    uid     = g.user["sub"]
+    company = g.user["company"]
+    if g.user["role"] != "admin":
+        abort(403)
+
+    inv = portal_db.query_one(
+        "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "WHERE i.id = %s AND u.company = %s",
+        (invoice_id, company),
+    )
+    if not inv:
+        abort(404)
+
+    if "file" not in request.files or not request.files["file"].filename:
+        flash("No file selected.", "error")
+        return redirect(f"/portal/invoices/{invoice_id}")
+
+    f = request.files["file"]
+    _, ext = os.path.splitext(secure_filename(f.filename))
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        flash("File type not allowed.", "error")
+        return redirect(f"/portal/invoices/{invoice_id}")
+
+    f.seek(0, os.SEEK_END)
+    size = f.tell()
+    f.seek(0)
+    if size > MAX_UPLOAD_BYTES:
+        flash("File too large (25 MB max).", "error")
+        return redirect(f"/portal/invoices/{invoice_id}")
+
+    stored_name = uuid.uuid4().hex + ext.lower()
+    portal_storage.save(company, stored_name, f)
+    mime = f.content_type or mimetypes.guess_type(f.filename)[0] or "application/octet-stream"
+    portal_db.execute(
+        "INSERT INTO invoice_attachments "
+        "(invoice_id, company, filename, original_name, mime_type, size_bytes, uploaded_by) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (invoice_id, company, stored_name, secure_filename(f.filename), mime, size, uid),
+    )
+    audit_log(
+        "invoice_attach",
+        target=f"invoice:{invoice_id}",
+        metadata={"original_name": secure_filename(f.filename), "size": size, "mime": mime},
+    )
+    flash("Attachment uploaded.", "success")
+    return redirect(f"/portal/invoices/{invoice_id}")
+
+
+@pages_bp.route("/portal/invoices/<int:invoice_id>/attachments/<int:att_id>/download")
+@login_required
+def download_invoice_attachment(invoice_id, att_id):
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        inv = portal_db.query_one(
+            "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "WHERE i.id = %s AND u.company = %s",
+            (invoice_id, company),
+        )
+    else:
+        inv = portal_db.query_one(
+            "SELECT id FROM invoices WHERE id = %s AND user_id = %s",
+            (invoice_id, uid),
+        )
+    if not inv:
+        abort(404)
+
+    att = portal_db.query_one(
+        "SELECT * FROM invoice_attachments WHERE id = %s AND invoice_id = %s",
+        (att_id, invoice_id),
+    )
+    if not att:
+        abort(404)
+    audit_log(
+        "invoice_attach_download",
+        target=f"invoice:{invoice_id}",
+        metadata={"original_name": att["original_name"]},
+    )
+    return portal_storage.download(company, att["filename"], att["original_name"])
+
+
+@pages_bp.route("/portal/invoices/<int:invoice_id>/attachments/<int:att_id>/delete", methods=["POST"])
+@login_required
+def delete_invoice_attachment(invoice_id, att_id):
+    company = g.user["company"]
+    if g.user["role"] != "admin":
+        abort(403)
+
+    inv = portal_db.query_one(
+        "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "WHERE i.id = %s AND u.company = %s",
+        (invoice_id, company),
+    )
+    if not inv:
+        abort(404)
+
+    att = portal_db.query_one(
+        "SELECT * FROM invoice_attachments WHERE id = %s AND invoice_id = %s",
+        (att_id, invoice_id),
+    )
+    if not att:
+        abort(404)
+
+    portal_storage.delete(company, att["filename"])
+    portal_db.execute("DELETE FROM invoice_attachments WHERE id = %s", (att_id,))
+    audit_log(
+        "invoice_attach_delete",
+        target=f"invoice:{invoice_id}",
+        metadata={"original_name": att["original_name"]},
+    )
+    flash("Attachment deleted.", "success")
+    return redirect(f"/portal/invoices/{invoice_id}")
 
 
 @pages_bp.route("/portal/admin/invoices/<int:invoice_id>/mark-paid", methods=["POST"])

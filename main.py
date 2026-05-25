@@ -44,14 +44,17 @@ if _testing:
     app.config["RATELIMIT_ENABLED"] = False
 limiter.init_app(app)
 
+import portal_db
 from portal_auth import auth_bp
 from portal_api import api_bp
 from portal_admin import admin_bp
 from portal_pages import pages_bp
+from portal_jobs import jobs_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(pages_bp)
+app.register_blueprint(jobs_bp)
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 
@@ -323,6 +326,56 @@ def _send_via_smtp(body, reply_to):
     return True
 
 
+def _valid_date(raw):
+    """Return raw if it's an ISO date (YYYY-MM-DD) the jobs.event_date column accepts, else None."""
+    raw = (raw or "").strip()
+    try:
+        from datetime import date
+        date.fromisoformat(raw)
+        return raw
+    except ValueError:
+        return None
+
+
+def _create_job_from_request(form):
+    """Auto-create a pending job from a public interpreter request.
+
+    Rose SLI only. Best-effort: a DB failure here must never break the public
+    request (email is the critical path), so all errors are swallowed + logged.
+    """
+    company = os.environ.get("COMPANY_ID", "dod")
+    if company != "rosesli":
+        return
+    extra_dates = [v for k, v in form.items() if k.startswith("date_") and v]
+    notes = (form.get("details") or "").strip()
+    if extra_dates:
+        notes = (notes + "\n" if notes else "") + "Additional dates: " + ", ".join(extra_dates)
+    try:
+        portal_db.execute(
+            "INSERT INTO jobs (company, status, source, requester_name, requester_email, "
+            "requester_phone, organization, setting, service_format, event_zip, deaf_clients, "
+            "event_date, start_time, end_time, notes) "
+            "VALUES (%s, 'pending', 'public_request', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                company,
+                (form.get("name") or "").strip() or None,
+                (form.get("email") or "").strip() or None,
+                (form.get("phone") or "").strip() or None,
+                (form.get("org") or "").strip() or None,
+                (form.get("setting") or "").strip() or None,
+                (form.get("format") or "").strip() or None,
+                (form.get("zip") or "").strip() or None,
+                (form.get("client_count") or "").strip() or None,
+                _valid_date(form.get("date")),
+                (form.get("start_time") or "").strip() or None,
+                (form.get("end_time") or "").strip() or None,
+                notes or None,
+            ),
+        )
+    except Exception as exc:
+        _structured_log("ERROR", message="job_autocreate_failed", error=str(exc))
+
+
 @app.route("/api/request", methods=["POST"])
 def api_request():
     form = request.form
@@ -343,6 +396,7 @@ def api_request():
     except Exception as exc:
         _log_submission(form, False, method or "error", error=exc)
         return jsonify(ok=False, error="send_failed"), 502
+    _create_job_from_request(form)
     _log_submission(form, delivered, method)
     return jsonify(ok=True, delivered=delivered)
 
