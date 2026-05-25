@@ -6,7 +6,7 @@
   --border: #1e2330;
   --accent: #00d4ff;
   --accent-dim: rgba(0, 212, 255, 0.08);
-  --text: #f0f4f8;
+  --text: #ffffff;
   --muted: #6b7a99;
   --error: #ff4444;
   --success: #00cc88;
@@ -70,6 +70,22 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   min-width: 40px; min-height: 40px;
 }
 .portal-topbar .hamburger:hover { border-color: var(--accent); }
+.portal-topbar .topbar-action {
+  margin-left: auto;
+  background: var(--accent); color: #001018; font-weight: 600;
+  padding: .45rem .7rem; border-radius: var(--radius);
+  font-size: .72rem; text-decoration: none; white-space: nowrap;
+}
+
+.create-invoice-fab {
+  position: fixed; top: 1rem; right: 1.25rem; z-index: 25;
+  background: var(--accent); color: #001018; font-weight: 600;
+  padding: .5rem .9rem; border-radius: var(--radius);
+  font-size: .78rem; text-decoration: none; white-space: nowrap;
+  box-shadow: var(--shadow);
+}
+.create-invoice-fab:hover { filter: brightness(1.08); }
+@media (max-width: 820px) { .create-invoice-fab { display: none; } }
 
 .sidebar-backdrop {
   display: none;

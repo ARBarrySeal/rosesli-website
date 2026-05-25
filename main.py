@@ -131,11 +131,13 @@ def security_headers(response):
     else:
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://assets.calendly.com; "
+            "script-src 'self' 'unsafe-inline' https://assets.calendly.com "
+            "https://www.googletagmanager.com https://www.google-analytics.com; "
             "style-src 'self' 'unsafe-inline' https://assets.calendly.com; "
             "frame-src https://calendly.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' https://calendly.com;"
+            "connect-src 'self' https://calendly.com https://www.google-analytics.com "
+            "https://*.google-analytics.com https://*.analytics.google.com;"
         )
     return response
 
@@ -239,6 +241,7 @@ FIELD_LABELS = [
     ("setting", "Setting"),
     ("client_count", "Deaf clients"),
     ("format", "Format"),
+    ("zip", "Event ZIP"),
     ("date", "Date"),
     ("start_time", "Start"),
     ("end_time", "End"),

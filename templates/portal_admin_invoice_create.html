@@ -50,6 +50,9 @@
                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
   </label>
 
-  <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Create Invoice</button>
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <button type="submit" class="btn btn-primary">Create Invoice</button>
+    <a href="/portal/invoices" class="btn" style="text-decoration:none;">Cancel</a>
+  </div>
 </form>
 {% endblock %}

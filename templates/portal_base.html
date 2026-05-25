@@ -17,7 +17,14 @@
   <header class="portal-topbar">
     <button class="hamburger" type="button" aria-label="Open menu" aria-controls="portalSidebar" aria-expanded="false" id="hamburger">&#9776;</button>
     <span class="topbar-title">{{ 'DoD Cyber' if g.user.company == 'dod' else 'Rose SLI' }} Portal</span>
+    {% if g.user.role == 'admin' %}
+    <a href="/portal/admin/invoices/create" class="topbar-action">+ Invoice</a>
+    {% endif %}
   </header>
+
+  {% if g.user.role == 'admin' %}
+  <a href="/portal/admin/invoices/create" class="create-invoice-fab">+ Create Invoice</a>
+  {% endif %}
 
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
