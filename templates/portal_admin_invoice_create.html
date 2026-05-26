@@ -16,6 +16,7 @@
 
 <form method="POST" style="max-width:480px;display:flex;flex-direction:column;gap:1.1rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  {% if g.user.role == 'admin' %}
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Client
     <select name="user_id" required
@@ -27,6 +28,13 @@
       {% endfor %}
     </select>
   </label>
+  {% else %}
+  <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Billing As
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);
+                font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">{{ g.user.name }}</div>
+  </div>
+  {% endif %}
 
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Amount ($)

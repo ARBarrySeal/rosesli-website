@@ -1,11 +1,11 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, g, jsonify, render_template, request
+from flask import Blueprint, abort, g, jsonify, render_template, request
 
 import portal_db
 from portal_audit import log as audit_log
-from portal_auth import admin_required, make_token
+from portal_auth import admin_required, login_required, make_token
 from portal_email import send_invite_email, send_test_email
 
 admin_bp = Blueprint("admin", __name__)
@@ -68,28 +68,44 @@ def invite():
 
 
 @admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
-@admin_required
+@login_required
 def create_invoice():
-    company = g.user["company"]
-    users   = portal_db.query_all(
+    role = g.user["role"]
+    if role == "client":
+        abort(403)
+    company  = g.user["company"]
+    is_admin = role == "admin"
+    # Admins bill any company user; interpreters submit invoices as themselves.
+    users = portal_db.query_all(
         "SELECT id, full_name, email FROM portal_users "
         "WHERE company = %s AND active = TRUE ORDER BY full_name",
         (company,),
-    )
+    ) if is_admin else []
 
     if request.method == "GET":
         return render_template("portal_admin_invoice_create.html", users=users)
 
-    user_id           = request.form.get("user_id") or ""
     amount_raw        = (request.form.get("amount") or "").strip()
     description       = (request.form.get("description") or "").strip()
     due_date          = request.form.get("due_date") or None
     interpreter_rates = (request.form.get("interpreter_rates") or "").strip()
     notes             = (request.form.get("notes") or "").strip()
 
-    if not user_id:
-        return render_template("portal_admin_invoice_create.html", users=users,
-                               error="Please select a client.")
+    if is_admin:
+        user_id = request.form.get("user_id") or ""
+        if not user_id:
+            return render_template("portal_admin_invoice_create.html", users=users,
+                                   error="Please select a client.")
+        target = portal_db.query_one(
+            "SELECT id FROM portal_users WHERE id = %s AND company = %s",
+            (int(user_id), company),
+        )
+        if not target:
+            return render_template("portal_admin_invoice_create.html", users=users,
+                                   error="Invalid user.")
+        recipient_id = int(user_id)
+    else:
+        recipient_id = int(g.user["sub"])
 
     try:
         amount = float(amount_raw)
@@ -99,24 +115,16 @@ def create_invoice():
         return render_template("portal_admin_invoice_create.html", users=users,
                                error="Amount must be a positive number.")
 
-    target = portal_db.query_one(
-        "SELECT id FROM portal_users WHERE id = %s AND company = %s",
-        (int(user_id), company),
-    )
-    if not target:
-        return render_template("portal_admin_invoice_create.html", users=users,
-                               error="Invalid user.")
-
     portal_db.execute(
         "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, notes) "
         "VALUES (%s, %s, %s, %s, %s, %s)",
-        (int(user_id), amount, description or None, due_date or None,
+        (recipient_id, amount, description or None, due_date or None,
          interpreter_rates or None, notes or None),
     )
     audit_log(
         "invoice_create",
-        target=f"user:{int(user_id)}",
-        metadata={"amount": amount, "due_date": due_date or None},
+        target=f"user:{recipient_id}",
+        metadata={"amount": amount, "due_date": due_date or None, "self_submitted": not is_admin},
     )
     return render_template("portal_admin_invoice_create.html", users=users, success=True)
 
