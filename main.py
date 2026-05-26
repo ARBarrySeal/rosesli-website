@@ -144,6 +144,19 @@ def security_headers(response):
         )
     return response
 
+# ── Canonical redirect ────────────────────────────────────────────────────────
+# Page canonicals and the sitemap declare the non-www apex (rosesli.com) as the
+# canonical host. 301 any www traffic to it so ranking signal consolidates on
+# one hostname instead of splitting across www / non-www.
+
+@app.before_request
+def redirect_to_canonical():
+    host = request.host.split(":")[0]
+    if host == "www.rosesli.com":
+        path = request.full_path.rstrip("?")
+        return redirect(f"https://rosesli.com{path}", code=301)
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
