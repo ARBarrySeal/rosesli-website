@@ -1,0 +1,94 @@
+{% extends "portal_base.html" %}
+{% block title %}Schedule — Portal{% endblock %}
+
+{% block head %}
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+<style>
+  .intake-section { margin-top:2.5rem; padding-top:2rem; border-top:1px solid var(--border); }
+  .intake-form { max-width:420px; display:flex; flex-direction:column; gap:.9rem; margin-top:1rem; }
+  .intake-form label { display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted); }
+  .intake-form input,
+  .intake-form select,
+  .intake-form textarea { background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none; }
+  .intake-form input:focus,
+  .intake-form select:focus,
+  .intake-form textarea:focus { border-color:var(--accent); }
+  .intake-form textarea { resize:vertical; min-height:80px; }
+  .intake-form select option { background:var(--surface); }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Schedule</h1>
+<p style="font-size:.78rem;color:var(--muted);margin-bottom:1.5rem;">Book a call directly using the calendar below.</p>
+
+<div class="calendly-inline-widget"
+     data-url="{{ calendly_url }}?hide_event_type_details=1&hide_gdpr_banner=1&text_color=f0f4f8&primary_color=00d4ff&background_color=0a0a0a"
+     style="min-width:320px;height:660px;"></div>
+
+<div class="intake-section">
+  <h1 style="font-size:.72rem;margin-bottom:.25rem;">Project Intake</h1>
+  <p style="font-size:.78rem;color:var(--muted);">Optional — fill this out before your call so we can come prepared.</p>
+  <form class="intake-form" id="intake-form">
+    <label>Organization / Company
+      <input type="text" name="org" placeholder="Acme Defense Inc."/>
+    </label>
+    <label>CAGE Code (if known)
+      <input type="text" name="cage" placeholder="1AB23"/>
+    </label>
+    <label>Service Needed
+      <select name="service">
+        <option value="cmmc-l1">CMMC Level 1 Readiness</option>
+        <option value="cmmc-l2">CMMC Level 2 Readiness</option>
+        <option value="gap-analysis">Gap Analysis / NIST 800-171</option>
+        <option value="interpretation">Sign Language / Interpretation</option>
+        <option value="other">Other</option>
+      </select>
+    </label>
+    <label>Brief Description
+      <textarea name="notes" placeholder="What are you trying to accomplish?"></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Send Intake</button>
+    <p id="intake-msg" style="display:none;font-size:.78rem;"></p>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.getElementById('intake-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn  = this.querySelector('button[type="submit"]');
+  const msg  = document.getElementById('intake-msg');
+  btn.disabled  = true;
+  btn.textContent = 'Sending…';
+  msg.style.display = 'none';
+
+  const payload = Object.fromEntries(new FormData(this));
+  payload.source = 'portal-intake';
+
+  try {
+    const res = await fetch('{{ n8n_webhook }}', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify(payload),
+    });
+    msg.style.display = 'block';
+    if (res.ok) {
+      msg.style.color = 'var(--success)';
+      msg.textContent = 'Received — we\'ll review before your call.';
+      this.reset();
+    } else {
+      throw new Error('server error');
+    }
+  } catch {
+    msg.style.display = 'block';
+    msg.style.color = 'var(--error)';
+    msg.textContent = 'Could not submit. Email charles@dodcyberconsulting.com directly.';
+  }
+
+  btn.disabled    = false;
+  btn.textContent = 'Send Intake';
+});
+</script>
+{% endblock %}

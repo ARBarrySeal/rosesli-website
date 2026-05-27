@@ -1,0 +1,101 @@
+{% extends "portal_base.html" %}
+{% block title %}Profile — Portal{% endblock %}
+
+{% block content %}
+<h1>Profile</h1>
+
+{% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
+{% if success %}<p class="success" style="margin-bottom:1rem;font-size:.78rem;">{{ success }}</p>{% endif %}
+
+<div style="max-width:480px;">
+
+  <form method="POST" style="display:flex;flex-direction:column;gap:.9rem;margin-bottom:2.5rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="action" value="update"/>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Full Name
+      <input type="text" name="full_name" value="{{ user.full_name or '' }}" required
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Email and Log In (read-only)
+      <input type="email" value="{{ user.email }}" disabled
+             style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Phone
+      <input type="tel" name="phone" value="{{ user.phone or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Company / Organization
+      <input type="text" name="company_name" value="{{ user.company_name or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Address
+      <input type="text" name="address" value="{{ user.address or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    {% if user.role in ['employee', 'client'] %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      ZIP Code
+      <input type="text" name="zip" value="{{ user.zip or '' }}" maxlength="20"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    {% endif %}
+    {% if user.role == 'employee' %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Certification
+      <input type="text" name="certification" value="{{ user.certification or '' }}" placeholder="e.g. RID NIC, NAD IV"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Rate ($/hr)
+      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    {% elif user.role == 'client' %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Point of Contact
+      <input type="text" name="point_of_contact" value="{{ user.point_of_contact or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Billing Email
+      <input type="email" name="billing_email" value="{{ user.billing_email or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Billing Phone
+      <input type="tel" name="billing_phone" value="{{ user.billing_phone or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    {% endif %}
+    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Save Changes</button>
+  </form>
+
+  <h1 style="font-size:.72rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Change Password</h1>
+  <form method="POST" style="display:flex;flex-direction:column;gap:.9rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="action" value="password"/>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Current Password
+      <input type="password" name="current_password" required
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      New Password
+      <input type="password" name="new_password" required minlength="8"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Confirm New Password
+      <input type="password" name="confirm_password" required minlength="8"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <button type="submit" class="btn btn-ghost" style="align-self:flex-start;">Update Password</button>
+  </form>
+
+</div>
+{% endblock %}

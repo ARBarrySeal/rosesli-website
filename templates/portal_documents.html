@@ -1,0 +1,71 @@
+{% extends "portal_base.html" %}
+{% block title %}Documents — Portal{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom:2rem;">Documents</h1>
+
+
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem;max-width:480px;">
+  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Upload a file</div>
+  <form method="POST" action="/portal/documents/upload" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    {% if g.user.role == 'admin' and users %}
+    <div style="margin-bottom:.75rem;">
+      <label style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.35rem;">Upload for</label>
+      <select name="target_user_id"
+              style="width:100%;font-size:.78rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.4rem .6rem;">
+        <option value="">— Myself (admin) —</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.full_name or u.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+      <input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip"
+             style="font-size:.78rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.4rem .6rem;flex:1;min-width:0;" required/>
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Upload</button>
+    </div>
+  </form>
+  <div style="font-size:.68rem;color:var(--muted);margin-top:.6rem;">Max 25 MB · PDF, Word, Excel, images, CSV, ZIP</div>
+</div>
+
+{% if docs %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      {% if g.user.role == 'admin' %}<th>Owner</th>{% endif %}
+      <th>Filename</th>
+      <th>Size</th>
+      <th>Date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in docs %}
+    <tr>
+      {% if g.user.role == 'admin' %}
+      <td style="color:var(--muted);">{{ doc.full_name or doc.email or '—' }}</td>
+      {% endif %}
+      <td>{{ doc.original_name }}</td>
+      <td style="color:var(--muted);">
+        {% set kb = (doc.size_bytes / 1024)|round(1) %}
+        {% if kb >= 1024 %}{{ (kb / 1024)|round(1) }} MB{% else %}{{ kb }} KB{% endif %}
+      </td>
+      <td style="color:var(--muted);">{{ doc.created_at.strftime('%b %d, %Y') }}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <a href="/portal/documents/{{ doc.id }}/download" class="btn" style="font-size:.7rem;padding:.3rem .65rem;margin-right:.4rem;">Download</a>
+        <form method="POST" action="/portal/documents/{{ doc.id }}/delete" style="display:inline;"
+              data-confirm="Delete {{ doc.original_name|e }}?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No documents uploaded yet.</p>
+{% endif %}
+{% endblock %}

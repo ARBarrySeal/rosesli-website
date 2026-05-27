@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 100 100">
+  <title>Rose SLI</title>
+  <circle cx="50" cy="50" r="50" fill="#0d1b2a"/>
+  <text x="50" y="70" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="62" fill="#1a56db">R</text>
+</svg>

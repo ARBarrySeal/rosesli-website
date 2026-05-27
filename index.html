@@ -1,8 +1,10 @@
-<html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Google Analytics 4 -->
-<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-SDVM4N2F3T"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SDVM4N2F3T"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -56,8 +58,8 @@
   }
 }
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/portal.css">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/portal.css"/>
 <style>
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   :root{
@@ -333,7 +335,7 @@
     <li><a href="specialties.html">Testimonials</a></li>
     <li><a href="vri.html">VRI</a></li>
     <li class="nav-auth-li" id="nav-auth"></li>
-    <li class="nav-links-cta"><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"></path></svg></a></li>
+    <li class="nav-links-cta"><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
 </nav>
 <script>
@@ -363,8 +365,8 @@
     fieldsWrap.className = 'nav-auth-fields';
     var emailIn = document.createElement('input');
     emailIn.type = 'text'; emailIn.name = 'email';
-    emailIn.placeholder = 'Log in'; emailIn.required = true;
     emailIn.setAttribute('autocomplete', 'username');
+    emailIn.placeholder = 'Log in'; emailIn.required = true;
     var passIn = document.createElement('input');
     passIn.type = 'password'; passIn.name = 'password'; passIn.placeholder = 'Password'; passIn.required = true;
     passIn.setAttribute('autocomplete', 'current-password');
@@ -378,6 +380,10 @@
       form.appendChild(err);
     }
     el.appendChild(form);
+    var forgot = document.createElement('a');
+    forgot.href = '/forgot-password'; forgot.textContent = 'Forgot password?';
+    forgot.style.cssText = 'font-size:.72rem;color:var(--muted);text-decoration:none;display:block;text-align:right;margin-top:3px;';
+    el.appendChild(forgot);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       fetch('/api/csrf-token')
@@ -421,7 +427,7 @@
     <h1>Certified ASL<br>interpreters, <span class="serif">when the<br>meaning really matters.</span></h1>
     <p class="lede">Rose Sign Language Interpreting pairs Deaf clients and their partnering organizations with nationally-certified interpreters — on site across San Diego County, or via video anywhere in the U.S.</p>
     <div class="hero-ctas">
-      <a href="request.html" class="btn btn-dark">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"></path></svg></a>
+      <a href="request.html" class="btn btn-dark">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
     </div>
   </div>
   <div class="hero-visual">
@@ -534,7 +540,7 @@
         <li>Secure video for clinical and confidential settings</li>
       </ul>
     </div>
-    <a href="request.html" class="btn">Request VRI <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"></path></svg></a>
+    <a href="request.html" class="btn">Request VRI <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
   </aside>
 </section>
 
@@ -545,7 +551,7 @@
       <h2>Tell us about your<br>event, <span class="serif">we'll take it<br>from there.</span></h2>
       <p>We confirm availability within one business day. Same-day requests? Call us directly at <a href="tel:+16192897368" style="color:var(--blue);text-decoration:none;font-weight:600;">619-289-7368</a>.</p>
       <ul class="cta-list">
-        <li><span class="cta-list-num">01</span> Tell us the basics — setting, date, location.</li>
+        <li><span class="cta-list-num">01</span> Tell us the basics &mdash; setting, date, location.</li>
         <li><span class="cta-list-num">02</span> We confirm availability within one business day.</li>
         <li><span class="cta-list-num">03</span> A certified interpreter, matched to your room.</li>
       </ul>
@@ -555,17 +561,17 @@
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Your name</span>
-            <input type="text" name="name" required="" placeholder="Jane Smith">
+            <input type="text" name="name" required placeholder="Jane Smith">
           </label>
           <label class="field">
             <span class="field-lbl">Organization</span>
-            <input type="text" name="org" placeholder="Hospital, agency, firm…">
+            <input type="text" name="org" placeholder="Hospital, agency, firm&hellip;">
           </label>
         </div>
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Email</span>
-            <input type="email" name="email" required="" placeholder="you@org.com">
+            <input type="email" name="email" required placeholder="you@org.com">
           </label>
           <label class="field">
             <span class="field-lbl">Phone</span>
@@ -575,8 +581,8 @@
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Setting</span>
-            <select name="setting" required="">
-              <option value="">Select setting…</option>
+            <select name="setting" required>
+              <option value="">Select setting&hellip;</option>
               <option>Conference</option>
               <option>Education</option>
               <option>Medical</option>
@@ -587,8 +593,8 @@
           </label>
           <label class="field">
             <span class="field-lbl">Number of Deaf clients</span>
-            <select name="client_count" required="">
-              <option value="">Select…</option>
+            <select name="client_count" required>
+              <option value="">Select&hellip;</option>
               <option>1</option>
               <option>2</option>
               <option>3–5</option>
@@ -602,15 +608,15 @@
           <div class="field-row field-row-3 date-row" data-slot="0">
             <label class="field">
               <span class="field-lbl">Date</span>
-              <input type="date" name="date" required="">
+              <input type="date" name="date" required>
             </label>
             <label class="field">
               <span class="field-lbl">Start time</span>
-              <input type="time" name="start_time" required="">
+              <input type="time" name="start_time" required>
             </label>
             <label class="field">
               <span class="field-lbl">End time</span>
-              <input type="time" name="end_time" required="">
+              <input type="time" name="end_time" required>
             </label>
           </div>
           <label class="multi-toggle">
@@ -618,15 +624,15 @@
             <span class="box"></span>
             <span class="toggle-lbl">This booking is for multiple dates</span>
           </label>
-          <div class="extra-dates" id="extra-dates" hidden=""></div>
-          <button type="button" class="btn-add" id="add-date-btn" onclick="addDateSlot()" hidden="">
+          <div class="extra-dates" id="extra-dates" hidden></div>
+          <button type="button" class="btn-add" id="add-date-btn" onclick="addDateSlot()" hidden>
             <span class="plus">+</span> Add another date
           </button>
         </div>
         <label class="field">
           <span class="field-lbl">Format</span>
           <div class="radio-group">
-            <label><input type="radio" name="format" value="onsite" checked=""><span>On-site</span></label>
+            <label><input type="radio" name="format" value="onsite" checked><span>On-site</span></label>
             <label><input type="radio" name="format" value="vri"><span>VRI</span></label>
             <label><input type="radio" name="format" value="either"><span>Either</span></label>
           </div>
@@ -635,14 +641,14 @@
           <span class="field-lbl">Brief details</span>
           <textarea name="details" rows="3" placeholder="Audience size, location, any prep materials we should review…"></textarea>
         </label>
-        <button type="submit" class="btn btn-dark form-submit">Send request <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"></path></svg></button>
+        <button type="submit" class="btn btn-dark form-submit">Send request <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></button>
         <p class="form-fine">By submitting, you agree to be contacted about this request. We never share your information.</p>
-        <p class="form-fine form-fail" hidden="" style="color:#b91c1c;">Couldn't send right now. Please call <a href="tel:+16192897368" style="color:inherit;font-weight:600;">619-289-7368</a> or email <a href="mailto:info@rosesli.com" style="color:inherit;font-weight:600;">info@rosesli.com</a>.</p>
+        <p class="form-fine form-fail" hidden style="color:#b91c1c;">Couldn't send right now. Please call <a href="tel:+16192897368" style="color:inherit;font-weight:600;">619-289-7368</a> or email <a href="mailto:info@rosesli.com" style="color:inherit;font-weight:600;">info@rosesli.com</a>.</p>
       </div>
-      <div class="form-success" hidden="">
+      <div class="form-success" hidden>
         <div class="check-mark">✓</div>
         <h3>Request received.</h3>
-        <p>Thanks — we'll be in touch within one business day. For same-day needs, please call <a href="tel:+16192897368">619-289-7368</a>.</p>
+        <p>Thanks &mdash; we'll be in touch within one business day. For same-day needs, please call <a href="tel:+16192897368">619-289-7368</a>.</p>
       </div>
     </form>
     <script>
@@ -726,6 +732,5 @@
   </div>
 </footer>
 
-
-
-</body></html>
+</body>
+</html>

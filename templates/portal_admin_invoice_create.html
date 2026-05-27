@@ -1,0 +1,82 @@
+{% extends "portal_base.html" %}
+{% block title %}Create Invoice — Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Create Invoice</h1>
+  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+</div>
+
+{% if success %}
+<p class="success" style="margin-bottom:1.5rem;font-size:.78rem;">Invoice created successfully.</p>
+{% endif %}
+{% if error %}
+<p class="error" style="margin-bottom:1.5rem;font-size:.78rem;">{{ error }}</p>
+{% endif %}
+
+<form method="POST" style="max-width:480px;display:flex;flex-direction:column;gap:1.1rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  {% if g.user.role == 'admin' %}
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Client
+    <select name="user_id" required
+            style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="">— select a client —</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.full_name or u.email }} {% if u.full_name %}({{ u.email }}){% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% else %}
+  <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Billing As
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);
+                font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">{{ g.user.name }}</div>
+  </div>
+  {% endif %}
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Amount ($)
+    <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required
+           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Description (optional)
+    <textarea name="description" rows="3" maxlength="1000" placeholder="Services rendered…"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Due Date (optional)
+    <input type="date" name="due_date"
+           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Interpreter Rates (optional)
+    <textarea name="interpreter_rates" rows="2" maxlength="1000" placeholder="e.g. J. Smith — $85/hr (2 hrs); A. Lee — $80/hr (2 hrs)"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Notes (optional)
+    <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes for this invoice…"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
+                     font-size:13px;resize:vertical;"></textarea>
+  </label>
+
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <button type="submit" class="btn btn-primary">Create Invoice</button>
+    <a href="/portal/invoices" class="btn" style="text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

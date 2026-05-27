@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SDVM4N2F3T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SDVM4N2F3T');
+</script>
+<title>Testimonials · Rose Sign Language Interpreting</title>
+<meta name="description" content="What clients say about Rose Sign Language Interpreting — certified ASL interpreters trusted across San Diego for clinical, legal, and educational work.">
+<link rel="canonical" href="https://rosesli.com/testimonials">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rose Sign Language Interpreting">
+<meta property="og:title" content="Testimonials · Rose Sign Language Interpreting">
+<meta property="og:description" content="What clients say about Rose Sign Language Interpreting — certified ASL interpreters trusted across San Diego.">
+<meta property="og:url" content="https://rosesli.com/testimonials">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Testimonials · Rose Sign Language Interpreting">
+<meta name="twitter:description" content="What clients say about Rose Sign Language Interpreting — certified ASL interpreters trusted across San Diego.">
+<meta property="og:image" content="https://rosesli.com/og-image.png">
+<meta name="twitter:image" content="https://rosesli.com/og-image.png">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/portal.css"/>
+<link rel="stylesheet" href="site.css">
+<style>
+  /* Testimonials grid */
+  .tgrid{max-width:1320px;margin:0 auto;padding:80px 28px;display:grid;grid-template-columns:repeat(2,1fr);gap:32px;}
+  .tcard{background:var(--paper2);border:1px solid var(--rule);border-radius:6px;padding:40px 36px;display:flex;flex-direction:column;gap:18px;}
+  .tcard.feature{grid-column:1 / -1;background:var(--ink);color:#fff;border-color:transparent;}
+  .tcard.feature .tquote{color:#fff;}
+  .tcard.feature .tmark{color:var(--blue);}
+  .tmark{font-family:'Instrument Serif',serif;font-size:72px;line-height:.6;color:var(--blue);font-style:italic;}
+  .tquote{font-family:'Instrument Serif',serif;font-size:24px;line-height:1.4;color:var(--ink);font-style:italic;letter-spacing:-.005em;}
+  .tcard.feature .tquote{font-size:32px;line-height:1.35;}
+
+  @media(max-width:880px){
+    .tgrid{grid-template-columns:1fr;padding:60px 22px;gap:22px;}
+    .tcard{padding:32px 26px;}
+    .tquote{font-size:21px;}
+    .tcard.feature .tquote{font-size:26px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="left"><span><span class="dot"></span>Accepting new bookings this week</span></div>
+  <div class="right">
+    <span>In person for San Diego County and VRI nationwide</span>
+    <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
+    <span>info@rosesli.com</span>
+  </div>
+</div>
+
+<nav class="main">
+  <a href="/" class="logo">
+    <div class="logo-mark">r</div>
+    <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="about.html">About</a></li>
+    <li><a href="testimonials.html" class="active">Testimonials</a></li>
+    <li><a href="vri.html">VRI</a></li>
+    <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
+  </ul>
+  <div id="nav-auth" style="position:relative;"></div>
+</nav>
+<script>
+(function () {
+  var el = document.getElementById('nav-auth');
+
+  function showUser(name) {
+    el.textContent = '';
+    var wrap = document.createElement('div');
+    wrap.className = 'nav-user-info';
+    var span = document.createElement('span');
+    span.textContent = name;
+    var aPortal = document.createElement('a');
+    aPortal.href = '/portal'; aPortal.textContent = 'Portal';
+    var aLogout = document.createElement('a');
+    aLogout.href = '/logout'; aLogout.textContent = 'Logout';
+    wrap.appendChild(span); wrap.appendChild(aPortal); wrap.appendChild(aLogout);
+    el.appendChild(wrap);
+  }
+
+  function showForm(errMsg) {
+    el.textContent = '';
+    var form = document.createElement('form');
+    form.className = 'nav-login-form';
+    var emailIn = document.createElement('input');
+    emailIn.type = 'email'; emailIn.name = 'email';
+    emailIn.placeholder = 'email'; emailIn.required = true;
+    var passIn = document.createElement('input');
+    passIn.type = 'password'; passIn.name = 'password'; passIn.placeholder = 'password'; passIn.required = true;
+    var btn = document.createElement('button');
+    btn.type = 'submit'; btn.textContent = '→';
+    form.appendChild(emailIn); form.appendChild(passIn); form.appendChild(btn);
+    if (errMsg) {
+      var err = document.createElement('span');
+      err.className = 'nav-login-error'; err.textContent = errMsg;
+      form.appendChild(err);
+    }
+    el.appendChild(form);
+    var forgot = document.createElement('a');
+    forgot.href = '/forgot-password'; forgot.textContent = 'Forgot password?';
+    forgot.style.cssText = 'font-size:.72rem;color:var(--muted);text-decoration:none;display:block;text-align:right;margin-top:3px;';
+    el.appendChild(forgot);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch('/api/csrf-token')
+        .then(function (r) { return r.json(); })
+        .then(function (csrf) {
+          return fetch('/login', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRF-Token': csrf.csrf_token }
+          });
+        })
+        .then(function (r) {
+          return r.text().then(function (body) {
+            var d = null;
+            try { d = JSON.parse(body); } catch (e) {}
+            if (d && d.ok) { window.location.href = d.redirect || '/portal'; return; }
+            showForm(d && d.error ? d.error : 'Server error (' + r.status + '). Try again.');
+          });
+        })
+        .catch(function () { showForm('Network error. Try again.'); });
+    });
+  }
+
+  fetch('/api/me')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { d && d.ok ? showUser(d.user.name) : showForm(); })
+    .catch(function () { showForm(); });
+})();
+</script>
+
+<div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Testimonials</div>
+<header class="page-head">
+  <div class="eyebrow">In their words</div>
+  <h1>What customers love about us:</h1>
+</header>
+
+<section class="tgrid">
+
+  <article class="tcard feature">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">If you weren't here, I would not have continued to work as a nurse. This year is 6 years as a nurse!&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">The interpreter was clear, conceptually accurate, professional and personable.&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">Interpreters knowledgeable in the subject matter is what set them apart.&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">After so many years, I was finally able to &lsquo;hear&rsquo; the music again!&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">I had such a fantastic time at my sister's wedding. The interpreters were flexible and professional enough for me to participate whenever I wanted and they represented me well.&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">I had 24/7 in-person interpreting coverage during my hospital stay. I felt valued as a patient and relieved that I could communicate my needs.&rdquo;</p>
+  </article>
+
+  <article class="tcard">
+    <div class="tmark">&ldquo;</div>
+    <p class="tquote">An ER visit is a daunting experience. Having communication access made it a manageable experience.&rdquo;</p>
+  </article>
+
+</section>
+
+<section class="page-cta">
+  <div class="page-cta-inner">
+    <h3>Don't see your setting? <span class="serif">Tell us anyway.</span></h3>
+    <a href="request.html" class="btn btn-dark">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
+      <p>Certified ASL interpreting across San Diego County and nationwide via video. Founded by Amanda Rose.</p>
+      <div class="foot-contact"><a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA</div>
+    </div>
+    <div class="foot-creds">
+      <img src="rid-logo.png" alt="RID" class="rid-mark">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" class="nad-mark" role="img" aria-label="National Association of the Deaf (NAD)">
+        <circle cx="80" cy="80" r="80" fill="#f0f4f8"/>
+        <circle cx="80" cy="80" r="72" fill="none" stroke="#1e3a8a" stroke-width="3.5"/>
+        <text x="80" y="72" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="46" font-weight="700" fill="#1e3a8a" letter-spacing="-2">NAD</text>
+        <text x="80" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">NATIONAL ASSOC.</text>
+        <text x="80" y="110" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">OF THE DEAF</text>
+      </svg>
+      <span class="foot-creds-lbl">RID or NAD certified interpreters</span>
+    </div>
+  </div>
+  <div class="foot-bottom"><span>© 2026 Rose Sign Language Interpreting</span></div>
+</footer>
+
+</body>
+</html>

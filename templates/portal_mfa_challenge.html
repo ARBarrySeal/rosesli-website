@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Verification</title>
+<link rel="stylesheet" href="/portal.css"/>
+</head>
+<body class="auth-page">
+<div class="auth-box">
+  <h1>Verification required</h1>
+  <p style="margin-bottom:1.2rem;font-size:.9rem;color:var(--muted);">
+    Enter the 6-digit code from your authenticator app.
+  </p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <label>Authentication code
+      <input type="text" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autofocus/>
+    </label>
+    <button type="submit">Verify</button>
+  </form>
+  <details style="margin-top:1rem;">
+    <summary style="cursor:pointer;font-size:.85rem;color:var(--muted);">Use a recovery code instead</summary>
+    <form method="POST" style="margin-top:.6rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <label>Recovery code
+        <input type="text" name="recovery" autocomplete="off"/>
+      </label>
+      <button type="submit">Use recovery code</button>
+    </form>
+  </details>
+  <p style="margin-top:1rem;font-size:.8rem;"><a href="/logout">Cancel and sign out</a></p>
+</div>
+</body>
+</html>

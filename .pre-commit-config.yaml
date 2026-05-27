@@ -1,0 +1,18 @@
+# Pre-commit hooks for Rose SLI portal.
+#
+# Install once per clone:
+#   pip install --user pre-commit
+#   pre-commit install
+#
+# Bypass for a single commit (use sparingly):
+#   git commit --no-verify
+#
+# Hooks here intentionally minimal — solo-maintainer project, secret-leak
+# prevention is the only must-have. Added after an Anthropic API key was
+# accidentally committed in the dod portal and had to be scrubbed.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks

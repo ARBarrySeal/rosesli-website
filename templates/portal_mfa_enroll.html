@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Enroll MFA</title>
+<link rel="stylesheet" href="/portal.css"/>
+</head>
+<body class="auth-page">
+<div class="auth-box" style="max-width:520px">
+  <h1>Two-factor authentication</h1>
+
+  {% if success %}
+    <p class="success">MFA enabled. You'll be asked for a 6-digit code every time you sign in.</p>
+    <p><a href="/portal" class="button">Continue to portal</a></p>
+  {% else %}
+    <p style="margin-bottom:1.2rem;font-size:.9rem;color:var(--muted);">
+      Admin accounts must use an authenticator app. Scan this QR code in
+      <strong>Google Authenticator</strong>, <strong>1Password</strong>, or
+      <strong>Authy</strong>, then enter the 6-digit code below to confirm.
+    </p>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <div style="background:#fff;padding:12px;border-radius:8px;display:inline-block;margin-bottom:1rem;">
+      {{ qr_svg | safe }}
+    </div>
+
+    <details style="margin-bottom:1rem;">
+      <summary style="cursor:pointer;font-size:.85rem;color:var(--muted);">Can't scan? Enter the secret manually.</summary>
+      <code style="display:block;padding:.5rem;background:#1a1a1a;border-radius:4px;font-size:.8rem;word-break:break-all;margin-top:.5rem;">{{ secret }}</code>
+    </details>
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="action" value="confirm"/>
+      <label>6-digit code from your authenticator
+        <input type="text" name="code" required autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autofocus/>
+      </label>
+      <button type="submit">Enable MFA</button>
+    </form>
+
+    {% if recovery_codes %}
+      <hr style="margin:1.5rem 0;border-color:#333;"/>
+      <h2 style="font-size:1rem;">Recovery codes — save these</h2>
+      <p style="font-size:.85rem;color:var(--muted);">
+        Use one of these if you lose your authenticator. Each works once. Print them
+        or store in a password manager — they will not be shown again.
+      </p>
+      <pre style="background:#1a1a1a;padding:.8rem;border-radius:4px;font-size:.9rem;">{% for c in recovery_codes %}{{ c }}
+{% endfor %}</pre>
+    {% endif %}
+  {% endif %}
+</div>
+</body>
+</html>

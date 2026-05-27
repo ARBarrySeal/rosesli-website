@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta name="csrf-token" content="{{ csrf_token() }}"/>
+<title>{% block title %}Portal{% endblock %}</title>
+<link rel="stylesheet" href="/portal.css"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/png" href="/favicon.png"/>
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <button class="hamburger" type="button" aria-label="Open menu" aria-controls="portalSidebar" aria-expanded="false" id="hamburger">&#9776;</button>
+    <span class="topbar-title">{{ 'DoD Cyber' if g.user.company == 'dod' else 'Rose SLI' }} Portal</span>
+    {% if g.user.role in ['admin', 'employee'] %}
+    <a href="/portal/admin/invoices/create" class="topbar-action">+ Invoice</a>
+    {% endif %}
+  </header>
+
+  {% if g.user.role in ['admin', 'employee'] %}
+  <a href="/portal/admin/invoices/create" class="create-invoice-fab">+ Create Invoice</a>
+  {% endif %}
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <nav class="portal-sidebar" id="portalSidebar" aria-label="Portal navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-company">{{ 'DoD Cyber Consulting' if g.user.company == 'dod' else 'Rose SLI' }}</div>
+      <div class="sidebar-name">{{ g.user.name }}</div>
+      <div class="sidebar-role">{{ g.user.role }}</div>
+    </div>
+
+    <a href="/portal"           class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
+    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
+    {% if g.user.company == 'rosesli' and g.user.role in ['admin', 'employee'] %}
+    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    {% endif %}
+    <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
+    <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
+    <a href="/portal/profile"   class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+
+    {% if g.user.role == 'admin' %}
+    <div class="sidebar-label">Admin</div>
+    <a href="/portal/admin/users"           class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
+    <a href="/portal/admin/invite"          class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
+    <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Invoice</a>
+    {% endif %}
+
+    <div class="sidebar-spacer"></div>
+    <a href="/logout" class="sidebar-logout">Logout</a>
+  </nav>
+
+  <main class="portal-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+        <div class="flash flash-{{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var sidebar  = document.getElementById('portalSidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    var toggle   = document.getElementById('hamburger');
+    if (!sidebar || !backdrop || !toggle) return;
+
+    function open()  { sidebar.classList.add('open');  backdrop.classList.add('show'); toggle.setAttribute('aria-expanded', 'true'); }
+    function close() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); toggle.setAttribute('aria-expanded', 'false'); }
+
+    toggle.addEventListener('click', function () {
+      if (sidebar.classList.contains('open')) close(); else open();
+    });
+    backdrop.addEventListener('click', close);
+    sidebar.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  })();
+
+  // Global helper: fetch with CSRF token from the <meta> tag set in <head>.
+  // Use for any JSON POST from page scripts so they pass the csrf_protect
+  // before-request handler in main.py.
+  window.csrfFetch = function (url, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign(
+      {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+      opts.headers || {}
+    );
+    return fetch(url, opts);
+  };
+
+  // CSP-friendly replacements for inline event handlers:
+  //   <tr data-href="/url">…  → click navigates to /url
+  //   <form data-confirm="msg">… → submit prompts confirm(msg) first
+  document.querySelectorAll('[data-href]').forEach(function (el) {
+    el.addEventListener('click', function () { location.href = el.dataset.href; });
+  });
+  document.querySelectorAll('[data-confirm]').forEach(function (el) {
+    el.addEventListener('submit', function (e) {
+      if (!confirm(el.dataset.confirm)) e.preventDefault();
+    });
+  });
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

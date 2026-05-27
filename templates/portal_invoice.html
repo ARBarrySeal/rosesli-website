@@ -1,0 +1,113 @@
+{% extends "portal_base.html" %}
+{% block title %}Invoice #{{ inv.id }} — Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Invoice #{{ inv.id }}</h1>
+  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+</div>
+
+<div style="max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">
+
+  {% if g.user.role == 'admin' %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label">Client</div>
+    <div style="font-size:.88rem;">{{ inv.full_name or '—' }} &lt;{{ inv.email }}&gt;</div>
+  </div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <div>
+      <div class="field-label">Amount</div>
+      <div style="font-size:1.5rem;font-weight:600;">${{ "%.2f"|format(inv.amount) }}</div>
+    </div>
+    <div>
+      <div class="field-label">Status</div>
+      <span class="badge badge-{{ inv.status }}" style="font-size:.75rem;padding:.3rem .7rem;">{{ inv.status }}</span>
+    </div>
+    {% if inv.due_date %}
+    <div>
+      <div class="field-label">Due Date</div>
+      <div style="font-size:.88rem;">{{ inv.due_date.strftime('%B %d, %Y') }}</div>
+    </div>
+    {% endif %}
+    <div>
+      <div class="field-label">Created</div>
+      <div style="font-size:.88rem;">{{ inv.created_at.strftime('%B %d, %Y') }}</div>
+    </div>
+  </div>
+
+  {% if inv.description %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="field-label">Description</div>
+    <div style="font-size:.88rem;line-height:1.65;color:var(--text);">{{ inv.description }}</div>
+  </div>
+  {% endif %}
+
+  {% if inv.interpreter_rates %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="field-label">Interpreter Rates</div>
+    <div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">{{ inv.interpreter_rates }}</div>
+  </div>
+  {% endif %}
+
+  {% if inv.notes %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="field-label">Notes</div>
+    <div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">{{ inv.notes }}</div>
+  </div>
+  {% endif %}
+
+  {% if inv.pdf_url %}
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ inv.pdf_url }}" target="_blank" class="btn" style="font-size:.78rem;">Download PDF</a>
+  </div>
+  {% endif %}
+
+  <div style="margin-bottom:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+    <div class="field-label">Attachments</div>
+    {% if attachments %}
+    <ul style="list-style:none;padding:0;margin:.5rem 0 0;display:flex;flex-direction:column;gap:.5rem;">
+      {% for a in attachments %}
+      <li style="display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:.82rem;">
+        <a href="/portal/invoices/{{ inv.id }}/attachments/{{ a.id }}/download" style="color:var(--accent);">{{ a.original_name }}</a>
+        {% if g.user.role == 'admin' %}
+        <form method="POST" action="/portal/invoices/{{ inv.id }}/attachments/{{ a.id }}/delete" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;">Remove</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div style="font-size:.82rem;color:var(--muted);margin-top:.4rem;">No attachments.</div>
+    {% endif %}
+
+    {% if g.user.role == 'admin' %}
+    <form method="POST" action="/portal/invoices/{{ inv.id }}/attachments" enctype="multipart/form-data"
+          style="margin-top:1rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="file" name="file" required style="font-size:.78rem;color:var(--muted);"/>
+      <button type="submit" class="btn" style="font-size:.72rem;">Attach File</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if g.user.role == 'admin' and inv.status != 'paid' %}
+  <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
+    <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-primary">Mark as Paid</button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .field-label { font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem; }
+</style>
+{% endblock %}

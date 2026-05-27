@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Invite User</title>
+<link rel="stylesheet" href="/portal.css"/>
+</head>
+<body class="auth-page">
+<div class="auth-box">
+  <h1>Invite a new user</h1>
+  {% if sent %}
+    <p class="success">Invitation sent to {{ email }}.</p>
+    <a href="/portal/admin/invite" class="btn-link">Invite another</a>
+  {% else %}
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <label>Full name<input type="text" name="full_name" required autofocus/></label>
+      <label>Email address<input type="email" name="email" required/></label>
+      <label>Role
+        <select name="role" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+          <option value="client">Client</option>
+          <option value="employee">Employee</option>
+        </select>
+      </label>
+      <div style="display:flex;gap:.6rem;align-items:center;">
+        <button type="submit">Send invitation</button>
+        <a href="/portal/admin/users" class="btn-link" style="margin-top:0;">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+</body>
+</html>

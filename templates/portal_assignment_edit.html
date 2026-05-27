@@ -1,0 +1,113 @@
+{% extends "portal_base.html" %}
+{% block title %}{{ 'Edit' if job else 'New' }} Assignment — Portal{% endblock %}
+
+{% set v = job or {} %}
+
+{% macro text_field(name, label, type='text', placeholder='') %}
+<label class="asn-field">
+  <span>{{ label }}</span>
+  <input type="{{ type }}" name="{{ name }}" value="{{ v[name] if v[name] is not none else '' }}" placeholder="{{ placeholder }}"/>
+</label>
+{% endmacro %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <h1>{{ 'Edit' if job else 'New' }} Assignment</h1>
+  <a href="/portal/assignments" style="font-size:.78rem;color:var(--muted);">← Assignments</a>
+</div>
+
+<form method="POST"
+      action="{{ '/portal/admin/assignments/' ~ job.id ~ '/edit' if job else '/portal/admin/assignments/new' }}"
+      class="asn-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+  <label class="asn-field">
+    <span>Status</span>
+    <select name="status">
+      {% for s in statuses %}
+      <option value="{{ s }}" {{ 'selected' if v['status'] == s else '' }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <h2 class="asn-section">Schedule</h2>
+  <div class="asn-grid">
+    <label class="asn-field"><span>Date</span>
+      <input type="date" name="event_date" value="{{ v['event_date'].isoformat() if v['event_date'] else '' }}"/>
+    </label>
+    {{ text_field('start_time', 'Start time', placeholder='9:00 AM') }}
+    {{ text_field('end_time', 'End time', placeholder='11:00 AM') }}
+    {{ text_field('duration', 'Duration', placeholder='2 hours') }}
+  </div>
+
+  <h2 class="asn-section">Location</h2>
+  <div class="asn-grid">
+    {{ text_field('event_address', 'Address of event', placeholder='123 Main St, San Diego') }}
+    {{ text_field('event_zip', 'Event ZIP') }}
+    {{ text_field('setting', 'Setting', placeholder='Medical, legal, education…') }}
+    {{ text_field('service_format', 'Format', placeholder='In-person / VRI') }}
+    {{ text_field('dress_code', 'Dress code', placeholder='Business casual') }}
+    {{ text_field('deaf_clients', 'Deaf clients') }}
+  </div>
+
+  <h2 class="asn-section">Client &amp; contact</h2>
+  <div class="asn-grid">
+    <label class="asn-field"><span>Client (account)</span>
+      <select name="client_id">
+        <option value="">— none —</option>
+        {% for c in clients %}
+        <option value="{{ c.id }}" {{ 'selected' if v['client_id'] == c.id else '' }}>{{ c.full_name or c.email }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ text_field('client_name', "Client name (if no account)") }}
+    {{ text_field('client_address', 'Client address') }}
+    {{ text_field('poc_name', 'Point of contact') }}
+    {{ text_field('poc_email', 'Contact email', type='email') }}
+    {{ text_field('poc_phone', 'Contact phone', type='tel') }}
+  </div>
+
+  <h2 class="asn-section">Interpreters</h2>
+  <div class="asn-grid">
+    {{ text_field('num_interpreters', 'Number of interpreters', type='number') }}
+    <label class="asn-field"><span>Interpreter 1</span>
+      <select name="interpreter_1_id">
+        <option value="">— unassigned —</option>
+        {% for i in interpreters %}
+        <option value="{{ i.id }}" {{ 'selected' if v['interpreter_1_id'] == i.id else '' }}>{{ i.full_name or i.email }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="asn-field"><span>Interpreter 2</span>
+      <select name="interpreter_2_id">
+        <option value="">— unassigned —</option>
+        {% for i in interpreters %}
+        <option value="{{ i.id }}" {{ 'selected' if v['interpreter_2_id'] == i.id else '' }}>{{ i.full_name or i.email }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <h2 class="asn-section">Billing</h2>
+  <div class="asn-grid">
+    {{ text_field('client_rate', 'Client rate ($)', type='number') }}
+    <label class="asn-field"><span>Rate type</span>
+      <select name="rate_type">
+        {% for r in rate_types %}
+        <option value="{{ r }}" {{ 'selected' if v['rate_type'] == r else '' }}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <label class="asn-field" style="margin-top:1rem;">
+    <span>Notes</span>
+    <textarea name="notes" rows="4">{{ v['notes'] if v['notes'] is not none else '' }}</textarea>
+  </label>
+
+  <div style="display:flex;gap:.75rem;align-items:center;margin-top:1.4rem;">
+    <button type="submit" class="btn btn-primary">{{ 'Save Changes' if job else 'Create Assignment' }}</button>
+    <a href="{{ '/portal/assignments/' ~ job.id if job else '/portal/assignments' }}" class="btn" style="text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}
