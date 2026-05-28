@@ -311,11 +311,25 @@ def _send_via_resend(body, reply_to):
     req = urllib.request.Request(
         "https://api.resend.com/emails",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Resend's anti-abuse appears to flag urllib's default UA from Cloud Run.
+            "User-Agent": "rosesli-website/1.0",
+        },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return 200 <= resp.status < 300
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return 200 <= resp.status < 300
+    except urllib.error.HTTPError as exc:
+        # Capture Resend's error body so structured logs explain *why* it failed.
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", errors="replace")[:500]
+        except Exception:
+            pass
+        raise RuntimeError(f"resend_http_{exc.code}: {detail}") from exc
 
 
 def _send_via_smtp(body, reply_to):
