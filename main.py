@@ -398,19 +398,27 @@ def api_request():
     reply_to = form.get("email")
     method = "none"
     delivered = False
+    last_error = None
+    # Email is best-effort. Each provider gets its own try so a Resend failure
+    # still allows the SMTP fallback to run, and a total email failure does not
+    # block persisting the lead to the DB or showing the user success.
     try:
         result = _send_via_resend(body, reply_to)
         if result is not None:
             method, delivered = "resend", result
-        else:
+    except Exception as exc:
+        last_error = exc
+        _structured_log("ERROR", message="resend_send_failed", error=str(exc))
+    if not delivered:
+        try:
             result = _send_via_smtp(body, reply_to)
             if result is not None:
                 method, delivered = "smtp", result
-    except Exception as exc:
-        _log_submission(form, False, method or "error", error=exc)
-        return jsonify(ok=False, error="send_failed"), 502
+        except Exception as exc:
+            last_error = exc
+            _structured_log("ERROR", message="smtp_send_failed", error=str(exc))
     _create_job_from_request(form)
-    _log_submission(form, delivered, method)
+    _log_submission(form, delivered, method, error=last_error)
     return jsonify(ok=True, delivered=delivered)
 
 
