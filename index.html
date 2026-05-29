@@ -289,6 +289,25 @@
   .nav-auth-go{align-self:stretch;background:var(--ink);color:var(--paper);border:none;border-radius:4px;font-family:inherit;font-weight:600;font-size:13px;padding:0 12px;cursor:pointer;letter-spacing:.04em;}
   .nav-auth-go:hover{background:var(--blue);}
 
+  .nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;border:none;background:none;padding:6px;margin-left:8px;z-index:60;}
+  .nav-hamburger span{display:block;width:22px;height:2px;background:var(--ink);border-radius:2px;transition:transform .2s,opacity .2s;}
+  .nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-hamburger.open span:nth-child(2){opacity:0;}
+  .nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+  .nav-mobile-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--paper);border-bottom:2px solid var(--rule);padding:68px 28px 24px;z-index:49;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.1);}
+  .nav-mobile-menu.open{display:flex;}
+  .nav-mobile-menu a{font-size:17px;font-weight:500;color:var(--ink);text-decoration:none;padding:13px 0;border-bottom:1px solid var(--rule);}
+  .nav-mobile-menu a:last-child{border-bottom:none;color:var(--blue);}
+  .topbar-request-pill{display:none;}
+
+  @media(max-width:700px){
+    .topbar .left,.topbar .right{flex-direction:column;gap:0;}
+    .topbar .left span,.topbar .right span{display:block;white-space:nowrap;padding:2px 0;}
+    .topbar-request-pill{display:block!important;}
+    .nav-links,#nav-auth,.nav-auth-li{display:none!important;}
+    .nav-hamburger{display:flex;}
+  }
+
   @media(max-width:960px){
     .topbar{flex-direction:column;gap:4px;font-size:12px;padding:8px 14px;align-items:center;}
     .topbar .left,.topbar .right{flex-direction:column;align-items:center;gap:2px;white-space:nowrap;}
@@ -326,7 +345,7 @@
     <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
     <span>info@rosesli.com</span>
   </div>
-  <a href="request.html" class="topbar-request-pill" style="display:none;margin-top:8px;background:#4ade80;color:#0d1b2a;padding:6px 16px;border-radius:20px;font-weight:700;text-decoration:none;font-size:14px;">Request Interpreter</a>
+  <a href="request.html" class="topbar-request-pill" style="margin-top:8px;background:#4ade80;color:#0d1b2a;padding:6px 16px;border-radius:20px;font-weight:700;text-decoration:none;font-size:14px;">Request Interpreter</a>
 </div>
 
 <nav class="main">
