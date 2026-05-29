@@ -115,15 +115,47 @@ def dashboard():
 @pages_bp.route("/portal/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    uid     = g.user["sub"]
-    user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+    uid          = g.user["sub"]
+    is_admin_view = False
+    target_uid   = uid
+
+    # Admins can view/edit another user's profile via ?uid=<id>
+    if g.user["role"] == "admin":
+        raw = (request.args.get("uid") or request.form.get("view_uid") or "").strip()
+        if raw and raw != str(uid):
+            try:
+                candidate = int(raw)
+                target = portal_db.query_one(
+                    "SELECT id FROM portal_users WHERE id=%s AND company=%s AND role!='admin'",
+                    (candidate, g.user["company"]),
+                )
+                if target:
+                    target_uid    = candidate
+                    is_admin_view = True
+            except ValueError:
+                pass
+
+    user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
     error   = None
     success = None
 
     if request.method == "POST":
         action = request.form.get("action")
 
-        if action == "update":
+        if action == "change_role" and is_admin_view:
+            new_role = request.form.get("role")
+            if new_role in ("employee", "client"):
+                portal_db.execute(
+                    "UPDATE portal_users SET role=%s WHERE id=%s",
+                    (new_role, target_uid),
+                )
+                audit_log("role_change", user_id=uid, email=g.user["email"],
+                          company=g.user["company"],
+                          detail=f"uid={target_uid} role->{new_role}")
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
+                success = f"Role updated to {'Interpreter' if new_role == 'employee' else 'Client'}."
+
+        elif action == "update":
             full_name    = (request.form.get("full_name")    or "").strip()[:255]
             phone        = (request.form.get("phone")        or "").strip()[:50]
             company_name = (request.form.get("company_name") or "").strip()[:255]
@@ -143,9 +175,9 @@ def profile():
                     "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
                     "address=%s, zip=%s, certification=%s, interpreter_rate=%s WHERE id=%s",
                     (full_name, phone, company_name, address, zip_code or None,
-                     certification or None, interpreter_rate, uid),
+                     certification or None, interpreter_rate, target_uid),
                 )
-                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
             elif role == "client":
                 poc           = (request.form.get("point_of_contact") or "").strip()[:255]
@@ -156,17 +188,17 @@ def profile():
                     "address=%s, zip=%s, point_of_contact=%s, billing_email=%s, "
                     "billing_phone=%s WHERE id=%s",
                     (full_name, phone, company_name, address, zip_code or None,
-                     poc or None, billing_email or None, billing_phone or None, uid),
+                     poc or None, billing_email or None, billing_phone or None, target_uid),
                 )
-                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
             else:
                 portal_db.execute(
                     "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
                     "address=%s, zip=%s WHERE id=%s",
-                    (full_name, phone, company_name, address, zip_code or None, uid),
+                    (full_name, phone, company_name, address, zip_code or None, target_uid),
                 )
-                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (uid,))
+                user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
 
         elif action == "password":
@@ -206,11 +238,20 @@ def profile():
                     user=user,
                     error=None,
                     success="Password updated. You'll stay signed in here; other devices will be signed out.",
+                    is_admin_view=False,
+                    view_uid=None,
                 ))
                 _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
                 return resp
 
-    return render_template("portal_profile.html", user=user, error=error, success=success)
+    return render_template(
+        "portal_profile.html",
+        user=user,
+        error=error,
+        success=success,
+        is_admin_view=is_admin_view,
+        view_uid=target_uid if is_admin_view else None,
+    )
 
 
 @pages_bp.route("/portal/schedule")

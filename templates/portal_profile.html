@@ -2,16 +2,40 @@
 {% block title %}Profile — Portal{% endblock %}
 
 {% block content %}
-<h1>{% if user.role == 'employee' %}Interpreter Profile{% elif user.role == 'client' %}Client Profile{% else %}Profile{% endif %}</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
+  <h1 style="margin:0;">{% if user.role == 'employee' %}Interpreter Profile{% elif user.role == 'client' %}Client Profile{% else %}Profile{% endif %}</h1>
+  {% if is_admin_view %}
+  <a href="/portal/admin/users" style="font-size:.78rem;color:var(--muted);">← Back to Users</a>
+  {% endif %}
+</div>
 
 {% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
 {% if success %}<p class="success" style="margin-bottom:1rem;font-size:.78rem;">{{ success }}</p>{% endif %}
+
+{% if is_admin_view %}
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;max-width:480px;">
+  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">Role</div>
+  <form method="POST" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="action" value="change_role"/>
+    <input type="hidden" name="view_uid" value="{{ view_uid }}"/>
+    <select name="role"
+            style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                   font-family:var(--font);padding:.45rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="employee" {{ 'selected' if user.role == 'employee' else '' }}>Interpreter</option>
+      <option value="client"   {{ 'selected' if user.role == 'client'   else '' }}>Client</option>
+    </select>
+    <button type="submit" class="btn btn-primary" style="font-size:.78rem;">Save Role</button>
+  </form>
+</div>
+{% endif %}
 
 <div style="max-width:480px;">
 
   <form method="POST" style="display:flex;flex-direction:column;gap:.9rem;margin-bottom:2.5rem;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="action" value="update"/>
+    {% if is_admin_view %}<input type="hidden" name="view_uid" value="{{ view_uid }}"/>{% endif %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Full Name
       <input type="text" name="full_name" value="{{ user.full_name or '' }}" required
@@ -78,6 +102,7 @@
     <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Save Changes</button>
   </form>
 
+  {% if not is_admin_view %}
   <h1 style="font-size:.72rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Change Password</h1>
   <form method="POST" style="display:flex;flex-direction:column;gap:.9rem;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -99,6 +124,7 @@
     </label>
     <button type="submit" class="btn btn-ghost" style="align-self:flex-start;">Update Password</button>
   </form>
+  {% endif %}
 
 </div>
 {% endblock %}

@@ -40,6 +40,8 @@
       <td style="color:var(--muted);">{{ u.created_at.strftime('%b %d, %Y') }}</td>
       <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
         {% if u.role != 'admin' %}
+        <a href="/portal/profile?uid={{ u.id }}" class="btn btn-ghost"
+           style="font-size:.6rem;padding:.2rem .55rem;text-decoration:none;">Profile</a>
         <button class="btn btn-ghost toggle-btn"
                 style="font-size:.6rem;padding:.2rem .55rem;"
                 data-id="{{ u.id }}">
