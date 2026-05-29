@@ -40,19 +40,17 @@
   {% endif %}
 
   {% if g.user.role == 'admin' %}
-  <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);">
-    {% if inv.status == 'unpaid' %}
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);align-items:center;">
     <form method="POST" action="/portal/admin/client-invoices/{{ inv.id }}/mark-paid" style="display:flex;gap:.5rem;align-items:center;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <input type="date" name="paid_date" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:var(--radius);font-size:12px;" placeholder="Date paid"/>
+      <input type="date" name="paid_date" value="{{ inv.paid_date.strftime('%Y-%m-%d') if inv.paid_date else '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:var(--radius);font-size:12px;" placeholder="Date paid"/>
       <button type="submit" class="btn btn-primary" style="font-size:.78rem;">Mark as Paid</button>
     </form>
-    {% else %}
     <form method="POST" action="/portal/admin/client-invoices/{{ inv.id }}/mark-unpaid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <button type="submit" class="btn btn-ghost" style="font-size:.78rem;">Mark as Unpaid</button>
     </form>
-    {% endif %}
   </div>
   {% endif %}
 </div>

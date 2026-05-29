@@ -88,9 +88,17 @@
       <select name="differential" id="differential"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
-        <option value="1.0">Standard (1×)</option>
-        <option value="1.5">OT / Holiday (1.5×)</option>
-        <option value="2.0">Double time (2×)</option>
+        <option value="0">Daytime Weekday 7a–5p (BR)</option>
+        <option value="5">Weekend 7a–5p (BR+$5/hr)</option>
+        <option value="5">Evening Weekday 5p–10p (BR+$5/hr)</option>
+        <option value="10">Evening Weekend 5p–10p (BR+$10/hr)</option>
+        <option value="10">Overnight Weekday 10p–7a (BR+$10/hr)</option>
+        <option value="15">Overnight Weekend 10p–7a (BR+$15/hr)</option>
+        <option value="15">Conference (BR+$15/hr)</option>
+        <option value="12">Holiday (BR+$12/hr)</option>
+        <option value="10">LMR ≤24hr notice (BR+$10/hr)</option>
+        <option value="0">XCL&lt;48 — Cancellation &lt;48hr (BR)</option>
+        <option value="xcl">XCL — No charge</option>
       </select>
     </label>
   </div>
@@ -147,12 +155,16 @@
   function fmt2(n) { return n.toFixed(2); }
 
   function recompute() {
-    var base = parseFloat(baseRate ? baseRate.value : 0) || 0;
-    var diff = parseFloat(diffSel ? diffSel.value : 1) || 1;
-    var hrs  = parseFloat(durHrs ? durHrs.value : 0) || 0;
-    var rate = base * diff;
-    if (rateDisp) rateDisp.textContent = rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
-    if (amountIn && hrs > 0 && rate > 0) amountIn.value = fmt2(hrs * rate);
+    var base   = parseFloat(baseRate ? baseRate.value : 0) || 0;
+    var addon  = parseFloat(diffSel ? diffSel.value : 0) || 0;
+    var hrs    = parseFloat(durHrs ? durHrs.value : 0) || 0;
+    // XCL — no charge
+    var isXcl  = diffSel && diffSel.options[diffSel.selectedIndex].text.indexOf('No charge') !== -1;
+    var rate   = isXcl ? 0 : base + addon;
+    // 2-hour minimum
+    var billHrs = (hrs > 0 && hrs < 2) ? 2 : hrs;
+    if (rateDisp) rateDisp.textContent = isXcl ? '$0 (XCL)' : rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
+    if (amountIn && billHrs > 0 && (rate > 0 || isXcl)) amountIn.value = fmt2(billHrs * rate);
   }
 
   // Auto-fill duration from start/end times

@@ -2,7 +2,7 @@
 {% block title %}Profile — Portal{% endblock %}
 
 {% block content %}
-<h1>Profile</h1>
+<h1>{% if user.role == 'employee' %}Interpreter Profile{% elif user.role == 'client' %}Client Profile{% else %}Profile{% endif %}</h1>
 
 {% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
 {% if success %}<p class="success" style="margin-bottom:1rem;font-size:.78rem;">{{ success }}</p>{% endif %}
@@ -52,7 +52,7 @@
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
-      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}"
+      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or 80 }}" placeholder="80.00"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     <p style="font-size:.72rem;color:var(--muted);margin:-.4rem 0 0;">
