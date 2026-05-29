@@ -122,7 +122,15 @@
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
   <div id="nav-auth" style="position:relative;"></div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
 </nav>
+<div class="nav-mobile-menu" id="nav-mobile-menu" role="navigation" aria-label="Mobile menu">
+  <a href="/">Home</a>
+  <a href="about.html">About</a>
+  <a href="testimonials.html">Testimonials</a>
+  <a href="vri.html" class="active">VRI</a>
+  <a href="/login">Login</a>
+</div>
 <script>
 (function () {
   var el = document.getElementById('nav-auth');
@@ -191,6 +199,7 @@
     .then(function (d) { d && d.ok ? showUser(d.user.name) : showForm(); })
     .catch(function () { showForm(); });
 })();
+(function(){var b=document.getElementById('nav-hamburger'),m=document.getElementById('nav-mobile-menu');if(!b||!m)return;b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('open',o);b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');}});})();
 </script>
 
 <div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Video Remote Interpreting</div>
@@ -276,7 +285,7 @@
       <div class="plat">
         <div class="plat-name">Microsoft Teams</div>
         <div class="plat-meta">Enterprise standard</div>
-        <p>Pin-to-screen, large gallery, live transcription. We also test through Teams Rooms for boardroom setups.</p>
+        <p>Pin-to-screen, large gallery, live transcription.</p>
       </div>
     </div>
   </div>
@@ -319,14 +328,8 @@
     </div>
     <div class="foot-creds">
       <img src="rid-logo.png" alt="RID" class="rid-mark">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" class="nad-mark" role="img" aria-label="National Association of the Deaf (NAD)">
-        <circle cx="80" cy="80" r="80" fill="#f0f4f8"/>
-        <circle cx="80" cy="80" r="72" fill="none" stroke="#1e3a8a" stroke-width="3.5"/>
-        <text x="80" y="72" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="46" font-weight="700" fill="#1e3a8a" letter-spacing="-2">NAD</text>
-        <text x="80" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">NATIONAL ASSOC.</text>
-        <text x="80" y="110" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">OF THE DEAF</text>
-      </svg>
-      <span class="foot-creds-lbl">RID or NAD certified interpreters</span>
+      <img src="nad-logo.png" alt="NAD" class="nad-mark">
+      <span class="foot-creds-lbl">RID and NAD certified interpreters</span>
     </div>
   </div>
   <div class="foot-bottom"><span>© 2026 Rose Sign Language Interpreting</span></div>

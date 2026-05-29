@@ -36,22 +36,47 @@
     </div>
 
     <a href="/portal"           class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
-    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Invoices</a>
+
+    {# Interpreter Invoices — employees and admins #}
+    {% if g.user.role in ['admin', 'employee'] %}
+    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
+    {% endif %}
+
+    {# Client Invoices — admin and clients #}
+    {% if g.user.role in ['admin', 'client'] %}
+    <a href="/portal/client-invoices" class="{{ 'active' if request.path.startswith('/portal/client-invoices') else '' }}">Client Invoices</a>
+    {% endif %}
+
     {% if g.user.company == 'rosesli' and g.user.role in ['admin', 'employee'] %}
     <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
     {% endif %}
     <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
     <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
-    <a href="/portal/profile"   class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+
+    {# Profile — role-aware label #}
+    {% if g.user.role == 'employee' %}
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Interpreter Profile</a>
+    {% elif g.user.role == 'client' %}
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Client Profile</a>
+    {% else %}
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
+    {% endif %}
 
     {% if g.user.role == 'admin' %}
     <div class="sidebar-label">Admin</div>
     <a href="/portal/admin/users"           class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
     <a href="/portal/admin/invite"          class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
-    <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Invoice</a>
+    <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Interpreter Invoice</a>
+    <a href="/portal/admin/client-invoices/create" class="{{ 'active' if request.path == '/portal/admin/client-invoices/create' else '' }}">Create Client Invoice</a>
+    {% if g.user.company == 'rosesli' %}
+    <a href="/portal/calendar"              class="{{ 'active' if request.path == '/portal/calendar' else '' }}">Calendar</a>
+    {% endif %}
+    <a href="/portal/admin/archived-users"  class="{{ 'active' if request.path == '/portal/admin/archived-users' else '' }}">Archived Profiles</a>
+    <a href="/portal/unpaid-invoices"       class="{{ 'active' if request.path == '/portal/unpaid-invoices' else '' }}">Unpaid Invoices</a>
     {% endif %}
 
     <div class="sidebar-spacer"></div>
+    <a href="/" style="font-size:.78rem;color:var(--muted);padding:.4rem 1rem;">&#8592; Return to Home</a>
     <a href="/logout" class="sidebar-logout">Logout</a>
   </nav>
 
@@ -85,9 +110,6 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   })();
 
-  // Global helper: fetch with CSRF token from the <meta> tag set in <head>.
-  // Use for any JSON POST from page scripts so they pass the csrf_protect
-  // before-request handler in main.py.
   window.csrfFetch = function (url, opts) {
     opts = opts || {};
     opts.headers = Object.assign(
@@ -97,9 +119,6 @@
     return fetch(url, opts);
   };
 
-  // CSP-friendly replacements for inline event handlers:
-  //   <tr data-href="/url">…  → click navigates to /url
-  //   <form data-confirm="msg">… → submit prompts confirm(msg) first
   document.querySelectorAll('[data-href]').forEach(function (el) {
     el.addEventListener('click', function () { location.href = el.dataset.href; });
   });

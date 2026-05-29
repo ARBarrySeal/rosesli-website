@@ -1,9 +1,9 @@
 {% extends "portal_base.html" %}
-{% block title %}Create Invoice — Portal{% endblock %}
+{% block title %}Create Interpreter Invoice — Portal{% endblock %}
 
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
-  <h1>Create Invoice</h1>
+  <h1>Create Interpreter Invoice</h1>
   <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
 </div>
 
@@ -14,17 +14,21 @@
 <p class="error" style="margin-bottom:1.5rem;font-size:.78rem;">{{ error }}</p>
 {% endif %}
 
-<form method="POST" style="max-width:480px;display:flex;flex-direction:column;gap:1.1rem;">
+<form method="POST" style="max-width:520px;display:flex;flex-direction:column;gap:1.1rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
   {% if g.user.role == 'admin' %}
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Client
-    <select name="user_id" required
+    Interpreter
+    <select name="user_id" id="interp-select" required
             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
-      <option value="">— select a client —</option>
-      {% for u in users %}
-      <option value="{{ u.id }}">{{ u.full_name or u.email }} {% if u.full_name %}({{ u.email }}){% endif %}</option>
+      <option value="">— select interpreter —</option>
+      {% for u in interpreters %}
+      <option value="{{ u.id }}"
+              data-rate="{{ u.interpreter_rate or '' }}">
+        {{ u.full_name or u.email }}{% if u.full_name %} ({{ u.email }}){% endif %}{% if u.interpreter_rate %} — ${{ '%.2f'|format(u.interpreter_rate) }}/hr{% endif %}
+      </option>
       {% endfor %}
     </select>
   </label>
@@ -36,39 +40,87 @@
   </div>
   {% endif %}
 
-  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Amount ($)
-    <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required
-           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
-                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
-  </label>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Date of Service
+      <input type="date" name="date_of_service" id="date-of-service"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Due Date <span style="text-transform:none;font-size:.65rem;">(optional)</span>
+      <input type="date" name="due_date"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Start Time
+      <input type="time" name="start_time" id="start-time"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      End Time
+      <input type="time" name="end_time" id="end-time"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Duration (hrs)
+      <input type="number" name="duration_hours" id="duration-hours" step="0.25" min="0" placeholder="0.00"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Base Rate ($/hr)
+      <input type="number" name="base_rate" id="base-rate" step="0.01" min="0" placeholder="0.00"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Differential
+      <select name="differential" id="differential"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+        <option value="1.0">Standard (1×)</option>
+        <option value="1.5">OT / Holiday (1.5×)</option>
+        <option value="2.0">Double time (2×)</option>
+      </select>
+    </label>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;align-items:end;">
+    <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Rate Applied
+      <div id="rate-applied-display"
+           style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">—</div>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Amount ($)
+      <input type="number" name="amount" id="amount" step="0.01" min="0.01" placeholder="0.00" required
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+    </label>
+  </div>
 
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Description (optional)
-    <textarea name="description" rows="3" maxlength="1000" placeholder="Services rendered…"
+    Description <span style="text-transform:none;font-size:.65rem;">(optional)</span>
+    <textarea name="description" id="description-field" rows="3" maxlength="1000" placeholder="Services rendered…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
                      font-size:13px;resize:vertical;"></textarea>
   </label>
 
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Due Date (optional)
-    <input type="date" name="due_date"
-           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
-                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
-  </label>
-
-  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Interpreter Rates (optional)
-    <textarea name="interpreter_rates" rows="2" maxlength="1000" placeholder="e.g. J. Smith — $85/hr (2 hrs); A. Lee — $80/hr (2 hrs)"
-              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
-                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
-                     font-size:13px;resize:vertical;"></textarea>
-  </label>
-
-  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Notes (optional)
-    <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes for this invoice…"
+    Notes <span style="text-transform:none;font-size:.65rem;">(optional)</span>
+    <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
                      font-size:13px;resize:vertical;"></textarea>
@@ -79,4 +131,69 @@
     <a href="/portal/invoices" class="btn" style="text-decoration:none;">Cancel</a>
   </div>
 </form>
+
+<script>
+(function () {
+  var interpSel  = document.getElementById('interp-select');
+  var baseRate   = document.getElementById('base-rate');
+  var diffSel    = document.getElementById('differential');
+  var durHrs     = document.getElementById('duration-hours');
+  var amountIn   = document.getElementById('amount');
+  var rateDisp   = document.getElementById('rate-applied-display');
+  var descField  = document.getElementById('description-field');
+  var startTime  = document.getElementById('start-time');
+  var endTime    = document.getElementById('end-time');
+
+  function fmt2(n) { return n.toFixed(2); }
+
+  function recompute() {
+    var base = parseFloat(baseRate ? baseRate.value : 0) || 0;
+    var diff = parseFloat(diffSel ? diffSel.value : 1) || 1;
+    var hrs  = parseFloat(durHrs ? durHrs.value : 0) || 0;
+    var rate = base * diff;
+    if (rateDisp) rateDisp.textContent = rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
+    if (amountIn && hrs > 0 && rate > 0) amountIn.value = fmt2(hrs * rate);
+  }
+
+  // Auto-fill duration from start/end times
+  function autoFillDuration() {
+    if (!startTime || !endTime || !startTime.value || !endTime.value) return;
+    var s = startTime.value.split(':').map(Number);
+    var e = endTime.value.split(':').map(Number);
+    var diff = (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
+    if (diff > 0 && durHrs) {
+      durHrs.value = fmt2(diff / 60);
+      recompute();
+    }
+  }
+
+  // Pre-fill base rate when interpreter is selected
+  if (interpSel) {
+    interpSel.addEventListener('change', function () {
+      var opt = interpSel.options[interpSel.selectedIndex];
+      var rate = opt ? opt.getAttribute('data-rate') : '';
+      if (rate && baseRate) baseRate.value = rate;
+      recompute();
+      autoFillDescription();
+    });
+  }
+
+  function autoFillDescription() {
+    if (!descField || descField.value) return;
+    var interpName = '';
+    if (interpSel && interpSel.selectedIndex > 0) {
+      interpName = interpSel.options[interpSel.selectedIndex].text.split(' (')[0].split(' — ')[0];
+    }
+    var dateVal = document.getElementById('date-of-service');
+    dateVal = dateVal ? dateVal.value : '';
+    if (interpName && dateVal) descField.value = interpName + ' — ' + dateVal;
+  }
+
+  if (baseRate) baseRate.addEventListener('input', recompute);
+  if (diffSel)  diffSel.addEventListener('change', recompute);
+  if (durHrs)   durHrs.addEventListener('input', recompute);
+  if (startTime) startTime.addEventListener('change', autoFillDuration);
+  if (endTime)   endTime.addEventListener('change', autoFillDuration);
+})();
+</script>
 {% endblock %}

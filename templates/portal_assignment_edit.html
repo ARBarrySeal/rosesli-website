@@ -30,6 +30,16 @@
     </select>
   </label>
 
+  <label class="asn-field">
+    <span>Assignment type</span>
+    <select name="assignment_type">
+      <option value="">— none —</option>
+      {% for t in assignment_types %}
+      <option value="{{ t }}" {{ 'selected' if v.get('assignment_type') == t else '' }}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
   <h2 class="asn-section">Schedule</h2>
   <div class="asn-grid">
     <label class="asn-field"><span>Date</span>
@@ -70,19 +80,31 @@
   <h2 class="asn-section">Interpreters</h2>
   <div class="asn-grid">
     {{ text_field('num_interpreters', 'Number of interpreters', type='number') }}
-    <label class="asn-field"><span>Interpreter 1</span>
-      <select name="interpreter_1_id">
+    <label class="asn-field">
+      <span>Interpreter 1</span>
+      <input type="text" id="interp1-search" class="interp-search" placeholder="Search by name…" autocomplete="off"
+             data-target="interpreter_1_id"/>
+      <select name="interpreter_1_id" id="interp1-select">
         <option value="">— unassigned —</option>
         {% for i in interpreters %}
-        <option value="{{ i.id }}" {{ 'selected' if v['interpreter_1_id'] == i.id else '' }}>{{ i.full_name or i.email }}</option>
+        <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
+                {{ 'selected' if v['interpreter_1_id'] == i.id else '' }}>
+          {{ i.full_name or i.email }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
+        </option>
         {% endfor %}
       </select>
     </label>
-    <label class="asn-field"><span>Interpreter 2</span>
-      <select name="interpreter_2_id">
+    <label class="asn-field">
+      <span>Interpreter 2</span>
+      <input type="text" id="interp2-search" class="interp-search" placeholder="Search by name…" autocomplete="off"
+             data-target="interpreter_2_id"/>
+      <select name="interpreter_2_id" id="interp2-select">
         <option value="">— unassigned —</option>
         {% for i in interpreters %}
-        <option value="{{ i.id }}" {{ 'selected' if v['interpreter_2_id'] == i.id else '' }}>{{ i.full_name or i.email }}</option>
+        <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
+                {{ 'selected' if v['interpreter_2_id'] == i.id else '' }}>
+          {{ i.full_name or i.email }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
+        </option>
         {% endfor %}
       </select>
     </label>
@@ -110,4 +132,42 @@
     <a href="{{ '/portal/assignments/' ~ job.id if job else '/portal/assignments' }}" class="btn" style="text-decoration:none;">Cancel</a>
   </div>
 </form>
+
+{% if job %}
+<form method="POST" action="/portal/admin/assignments/{{ job.id }}/delete"
+      style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);"
+      onsubmit="return confirm('Delete this assignment permanently?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <button type="submit" class="btn" style="color:#ef4444;border-color:#ef4444;">Delete Assignment</button>
+</form>
+{% endif %}
+
+<script>
+(function () {
+  function wireSearch(searchId, selectId) {
+    var inp = document.getElementById(searchId);
+    var sel = document.getElementById(selectId);
+    if (!inp || !sel) return;
+    var allOpts = Array.from(sel.options).slice(1); // skip blank
+    // Seed the search box with the currently selected text
+    if (sel.selectedIndex > 0) inp.value = sel.options[sel.selectedIndex].text;
+    inp.addEventListener('input', function () {
+      var q = inp.value.toLowerCase();
+      Array.from(sel.options).forEach(function (o, i) {
+        if (i === 0) return; // keep blank
+        o.hidden = q && o.text.toLowerCase().indexOf(q) === -1;
+      });
+      // Auto-select if exactly one visible match
+      var visible = Array.from(sel.options).filter(function (o, i) { return i > 0 && !o.hidden; });
+      if (visible.length === 1) sel.value = visible[0].value;
+    });
+    inp.addEventListener('blur', function () {
+      // If nothing selected, clear search
+      if (!sel.value) inp.value = '';
+    });
+  }
+  wireSearch('interp1-search', 'interp1-select');
+  wireSearch('interp2-search', 'interp2-select');
+})();
+</script>
 {% endblock %}

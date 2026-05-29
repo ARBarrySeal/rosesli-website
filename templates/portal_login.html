@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sign In — Rose Sign Language Interpreting</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',system-ui,sans-serif;background:#f8f9fb;display:flex;flex-direction:column;min-height:100vh;align-items:center;justify-content:center;padding:24px;}
+    .card{background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+    .brand{font-size:15px;font-weight:600;color:#111;margin-bottom:28px;text-align:center;}
+    .brand em{font-style:italic;font-family:Georgia,serif;font-weight:400;color:#444;}
+    h1{font-size:1.35rem;font-weight:700;color:#111;margin-bottom:6px;text-align:center;}
+    .sub{font-size:.82rem;color:#6b7280;text-align:center;margin-bottom:24px;}
+    label{display:flex;flex-direction:column;gap:5px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:14px;}
+    input[type=email],input[type=password]{background:#f8f9fb;border:1px solid #d1d5db;color:#111;font-size:14px;padding:9px 12px;border-radius:7px;outline:none;transition:border .15s;}
+    input:focus{border-color:#1a56db;}
+    .btn{width:100%;background:#1a56db;color:#fff;border:none;border-radius:7px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.02em;margin-top:4px;transition:background .15s;}
+    .btn:hover{background:#1447c0;}
+    .btn:disabled{opacity:.6;cursor:default;}
+    .error-msg{font-size:.78rem;color:#ef4444;margin-top:10px;text-align:center;min-height:1.2em;}
+    .footer-links{margin-top:20px;text-align:center;font-size:.78rem;color:#6b7280;}
+    .footer-links a{color:#1a56db;text-decoration:none;}
+    .footer-links a:hover{text-decoration:underline;}
+    .back{display:block;text-align:center;font-size:.78rem;color:#6b7280;margin-top:16px;text-decoration:none;}
+    .back:hover{color:#111;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">Rose <em>Sign Language Interpreting</em></div>
+  <h1>Sign in</h1>
+  <p class="sub">Access the interpreter &amp; client portal</p>
+
+  <form id="login-form" novalidate>
+    <label>
+      Email
+      <input type="email" name="email" id="email" autocomplete="email" required autofocus/>
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" id="password" autocomplete="current-password" required/>
+    </label>
+    <button type="submit" class="btn" id="submit-btn">Sign in</button>
+    <div class="error-msg" id="error-msg"></div>
+  </form>
+
+  <div class="footer-links">
+    <a href="/forgot-password">Forgot password?</a>
+  </div>
+</div>
+<a href="/" class="back">← Back to rosesli.com</a>
+
+<script>
+(function () {
+  var form   = document.getElementById('login-form');
+  var errEl  = document.getElementById('error-msg');
+  var btn    = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    fetch('/api/csrf-token')
+      .then(function (r) { return r.json(); })
+      .then(function (csrf) {
+        return fetch('/login', {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-CSRF-Token': csrf.csrf_token }
+        });
+      })
+      .then(function (r) {
+        return r.text().then(function (body) {
+          var d = null;
+          try { d = JSON.parse(body); } catch (ex) {}
+          if (d && d.ok) {
+            window.location.href = d.redirect || '/portal';
+          } else {
+            errEl.textContent = (d && d.error) ? d.error : 'Server error (' + r.status + '). Try again.';
+            btn.disabled = false;
+            btn.textContent = 'Sign in';
+          }
+        });
+      })
+      .catch(function () {
+        errEl.textContent = 'Network error. Try again.';
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      });
+  });
+})();
+</script>
+</body>
+</html>

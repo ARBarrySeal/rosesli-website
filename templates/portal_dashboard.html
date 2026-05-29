@@ -6,27 +6,27 @@
 
 <div class="stat-cards">
 {% if g.user.role == 'admin' %}
-  <div class="stat-card">
+  <a href="/portal/admin/users" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Active Users</div>
     <div class="value">{{ stats.users }}</div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/portal/invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Total Invoices</div>
     <div class="value">{{ stats.invoices }}</div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="/portal/unpaid-invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Unpaid</div>
     <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
-  </div>
+  </a>
 {% else %}
   <div class="stat-card">
     <div class="label">My Invoices</div>
     <div class="value">{{ stats.invoices }}</div>
   </div>
-  <div class="stat-card">
+  <a href="/portal/unpaid-invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Unpaid</div>
     <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
-  </div>
+  </a>
   <div class="stat-card">
     <div class="label">Upcoming Bookings</div>
     <div class="value">{{ stats.bookings }}</div>

@@ -11,7 +11,11 @@
   <h1>Invite a new user</h1>
   {% if sent %}
     <p class="success">Invitation sent to {{ email }}.</p>
-    <a href="/portal/admin/invite" class="btn-link">Invite another</a>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.8rem;">
+      <a href="/portal/admin/invite" class="btn-link">Invite another</a>
+      <a href="/" class="btn-link">Return to Home</a>
+      <a href="/portal/admin/users" class="btn-link">Back to Users</a>
+    </div>
   {% else %}
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     <form method="POST">
@@ -21,7 +25,7 @@
       <label>Role
         <select name="role" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
           <option value="client">Client</option>
-          <option value="employee">Employee</option>
+          <option value="employee">Interpreter</option>
         </select>
       </label>
       <div style="display:flex;gap:.6rem;align-items:center;">

@@ -1,0 +1,36 @@
+{% extends "portal_base.html" %}
+{% block title %}Client Invoices — Portal{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Client Invoices</h1>
+  {% if g.user.role == 'admin' %}
+  <a href="/portal/admin/client-invoices/create" class="btn btn-primary">+ New Client Invoice</a>
+  {% endif %}
+</div>
+{% if invoices %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Client</th>
+      <th>Date of Service</th>
+      <th>Total</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in invoices %}
+    <tr style="cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">
+      <td style="color:var(--muted);">#{{ inv.id }}</td>
+      <td>{{ inv.client_name or inv.user_full_name or '—' }}</td>
+      <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>
+      <td>{% if inv.total %}${{ "%.2f"|format(inv.total) }}{% else %}—{% endif %}</td>
+      <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No client invoices yet.</p>
+{% endif %}
+{% endblock %}

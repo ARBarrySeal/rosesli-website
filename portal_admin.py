@@ -64,7 +64,8 @@ def invite():
     setup_url = f"{app_url}/setup-account/{token}"
     send_invite_email(email, full_name, setup_url, COMPANY_NAMES.get(company, company))
 
-    return render_template("portal_admin_invite.html", sent=True, email=email)
+    return render_template("portal_admin_invite.html", sent=True, email=email,
+                           home_url="/")
 
 
 @admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
@@ -75,15 +76,15 @@ def create_invoice():
         abort(403)
     company  = g.user["company"]
     is_admin = role == "admin"
-    # Admins bill any company user; interpreters submit invoices as themselves.
-    users = portal_db.query_all(
-        "SELECT id, full_name, email FROM portal_users "
-        "WHERE company = %s AND active = TRUE ORDER BY full_name",
+    # Admins create pay invoices for interpreters; interpreters submit their own.
+    interpreters = portal_db.query_all(
+        "SELECT id, full_name, email, interpreter_rate FROM portal_users "
+        "WHERE company = %s AND role = 'employee' AND active = TRUE ORDER BY full_name",
         (company,),
     ) if is_admin else []
 
     if request.method == "GET":
-        return render_template("portal_admin_invoice_create.html", users=users)
+        return render_template("portal_admin_invoice_create.html", interpreters=interpreters)
 
     amount_raw        = (request.form.get("amount") or "").strip()
     description       = (request.form.get("description") or "").strip()
@@ -94,15 +95,15 @@ def create_invoice():
     if is_admin:
         user_id = request.form.get("user_id") or ""
         if not user_id:
-            return render_template("portal_admin_invoice_create.html", users=users,
-                                   error="Please select a client.")
+            return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                                   error="Please select an interpreter.")
         target = portal_db.query_one(
-            "SELECT id FROM portal_users WHERE id = %s AND company = %s",
+            "SELECT id FROM portal_users WHERE id = %s AND company = %s AND role = 'employee'",
             (int(user_id), company),
         )
         if not target:
-            return render_template("portal_admin_invoice_create.html", users=users,
-                                   error="Invalid user.")
+            return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                                   error="Invalid interpreter.")
         recipient_id = int(user_id)
     else:
         recipient_id = int(g.user["sub"])
@@ -112,7 +113,7 @@ def create_invoice():
         if amount <= 0:
             raise ValueError
     except ValueError:
-        return render_template("portal_admin_invoice_create.html", users=users,
+        return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
                                error="Amount must be a positive number.")
 
     portal_db.execute(
@@ -126,7 +127,7 @@ def create_invoice():
         target=f"user:{recipient_id}",
         metadata={"amount": amount, "due_date": due_date or None, "self_submitted": not is_admin},
     )
-    return render_template("portal_admin_invoice_create.html", users=users, success=True)
+    return render_template("portal_admin_invoice_create.html", interpreters=interpreters, success=True)
 
 
 @admin_bp.route("/portal/admin/smtp-test", methods=["POST"])

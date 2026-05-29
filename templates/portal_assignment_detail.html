@@ -21,6 +21,8 @@
 
 <div class="asn-detail">
   <h2 class="asn-section">Schedule</h2>
+  {{ row("Job #", '%03d'|format(job.job_number) if job.job_number else None) }}
+  {{ row("Assignment type", job.assignment_type) }}
   {{ row("Date", job.event_date.strftime('%A, %B %d, %Y') if job.event_date else None) }}
   {{ row("Start", job.start_time) }}
   {{ row("End", job.end_time) }}

@@ -4,7 +4,9 @@ Admin creates and edits jobs and assigns interpreters; interpreters get a
 read-only view of jobs assigned to them. Everything is scoped by company so
 the DoD portal never sees Rose SLI assignments.
 """
-from flask import Blueprint, abort, flash, g, redirect, render_template, request
+from flask import (
+    Blueprint, abort, flash, g, jsonify, redirect, render_template, request,
+)
 
 import portal_db
 from portal_audit import log as audit_log
@@ -12,8 +14,12 @@ from portal_auth import admin_required, login_required
 
 jobs_bp = Blueprint("jobs", __name__)
 
-STATUSES = ("pending", "confirmed", "completed", "cancelled")
-RATE_TYPES = ("hourly", "flat")
+STATUSES      = ("pending", "confirmed", "completed", "cancelled")
+RATE_TYPES    = ("hourly", "flat")
+ASSIGNMENT_TYPES = (
+    "Conference", "Educational", "Legal", "Medical",
+    "Other", "Performance/Entertainment", "Private Event", "Work Related",
+)
 
 
 def _clients(company):
@@ -25,11 +31,16 @@ def _clients(company):
 
 
 def _interpreters(company):
-    return portal_db.query_all(
-        "SELECT id, full_name, email FROM portal_users "
-        "WHERE company = %s AND role = 'employee' AND active = TRUE ORDER BY full_name",
+    """Return active interpreters sorted by last name, including interpreter_rate."""
+    rows = portal_db.query_all(
+        "SELECT id, full_name, email, interpreter_rate FROM portal_users "
+        "WHERE company = %s AND role = 'employee' AND active = TRUE",
         (company,),
     )
+    def _last(r):
+        parts = (r["full_name"] or "").split()
+        return parts[-1].lower() if parts else ""
+    return sorted(rows, key=_last)
 
 
 def _name_for(user_id, company):
@@ -72,6 +83,14 @@ def _date_or_none(raw):
         return None
 
 
+def _next_job_number(company):
+    row = portal_db.query_one(
+        "SELECT COALESCE(MAX(job_number), 0) AS n FROM jobs WHERE company = %s",
+        (company,),
+    )
+    return (row["n"] or 0) + 1
+
+
 def _parse_job_form(form, company):
     """Map the admin job form to the jobs column set, snapshotting interpreter/client names."""
     client_id = _int_or_none(form.get("client_id"))
@@ -79,11 +98,15 @@ def _parse_job_form(form, company):
     interp2   = _int_or_none(form.get("interpreter_2_id"))
     status    = form.get("status") if form.get("status") in STATUSES else "pending"
     rate_type = form.get("rate_type") if form.get("rate_type") in RATE_TYPES else "hourly"
+    atype     = form.get("assignment_type")
+    if atype not in ASSIGNMENT_TYPES:
+        atype = None
 
     client_name = (form.get("client_name") or "").strip() or _name_for(client_id, company)
 
     return {
         "status":             status,
+        "assignment_type":    atype,
         "client_id":          client_id,
         "client_name":        client_name,
         "client_address":     (form.get("client_address") or "").strip() or None,
@@ -147,7 +170,6 @@ def assignments():
             upcoming.append(r)
         else:
             past.append(r)
-    # Upcoming reads best soonest-first; the SQL ordered DESC, so flip it.
     upcoming.reverse()
 
     return render_template(
@@ -175,7 +197,7 @@ def assignment_detail(job_id):
     return render_template("portal_assignment_detail.html", job=job, is_admin=(role == "admin"))
 
 
-# ── Admin create / edit ───────────────────────────────────────────────────────
+# ── Admin create / edit / delete ──────────────────────────────────────────────
 
 @jobs_bp.route("/portal/admin/assignments/new", methods=["GET", "POST"])
 @admin_required
@@ -185,13 +207,18 @@ def create_assignment():
     if request.method == "GET":
         return render_template(
             "portal_assignment_edit.html",
-            job=None, clients=_clients(company), interpreters=_interpreters(company),
-            statuses=STATUSES, rate_types=RATE_TYPES,
+            job=None,
+            clients=_clients(company),
+            interpreters=_interpreters(company),
+            statuses=STATUSES,
+            rate_types=RATE_TYPES,
+            assignment_types=ASSIGNMENT_TYPES,
         )
 
-    data = _parse_job_form(request.form, company)
-    cols = ["company", "source"] + list(data.keys())
-    vals = [company, "manual"] + list(data.values())
+    data   = _parse_job_form(request.form, company)
+    jnum   = _next_job_number(company)
+    cols   = ["company", "source", "job_number"] + list(data.keys())
+    vals   = [company, "manual", jnum] + list(data.values())
     placeholders = ", ".join(["%s"] * len(cols))
     row = portal_db.execute(
         f"INSERT INTO jobs ({', '.join(cols)}) VALUES ({placeholders}) RETURNING id",
@@ -216,8 +243,12 @@ def edit_assignment(job_id):
     if request.method == "GET":
         return render_template(
             "portal_assignment_edit.html",
-            job=job, clients=_clients(company), interpreters=_interpreters(company),
-            statuses=STATUSES, rate_types=RATE_TYPES,
+            job=job,
+            clients=_clients(company),
+            interpreters=_interpreters(company),
+            statuses=STATUSES,
+            rate_types=RATE_TYPES,
+            assignment_types=ASSIGNMENT_TYPES,
         )
 
     data = _parse_job_form(request.form, company)
@@ -229,3 +260,91 @@ def edit_assignment(job_id):
     audit_log("job_update", target=f"job:{job_id}", metadata={"status": data["status"]})
     flash("Assignment updated.", "success")
     return redirect(f"/portal/assignments/{job_id}")
+
+
+@jobs_bp.route("/portal/admin/assignments/<int:job_id>/delete", methods=["POST"])
+@admin_required
+def delete_assignment(job_id):
+    company = g.user["company"]
+    job = portal_db.query_one(
+        "SELECT id FROM jobs WHERE id = %s AND company = %s", (job_id, company),
+    )
+    if not job:
+        abort(404)
+    portal_db.execute("DELETE FROM jobs WHERE id = %s AND company = %s", (job_id, company))
+    audit_log("job_delete", target=f"job:{job_id}")
+    flash("Assignment deleted.", "success")
+    return redirect("/portal/assignments")
+
+
+# ── Calendar (admin only) ─────────────────────────────────────────────────────
+
+@jobs_bp.route("/portal/calendar")
+@admin_required
+def calendar_view():
+    company = g.user["company"]
+    import calendar as cal
+    from datetime import date
+
+    year  = request.args.get("year",  type=int, default=date.today().year)
+    month = request.args.get("month", type=int, default=date.today().month)
+    if month < 1:
+        month = 12; year -= 1
+    elif month > 12:
+        month = 1;  year += 1
+
+    first_day   = date(year, month, 1)
+    _, num_days = cal.monthrange(year, month)
+    last_day    = date(year, month, num_days)
+
+    jobs = portal_db.query_all(
+        "SELECT id, job_number, event_date, start_time, end_time, "
+        "       organization, client_name, requester_name, status "
+        "FROM jobs "
+        "WHERE company = %s AND event_date >= %s AND event_date <= %s "
+        "ORDER BY event_date, start_time",
+        (company, first_day.isoformat(), last_day.isoformat()),
+    )
+
+    # Build a dict: {day_number: [job, ...]}
+    by_day: dict = {}
+    for j in jobs:
+        d = j["event_date"]
+        if d:
+            by_day.setdefault(d.day, []).append(j)
+
+    # Build a 6-row × 7-col grid (same as calendar.monthcalendar but flat)
+    weeks = cal.monthcalendar(year, month)
+
+    prev_month = month - 1 if month > 1 else 12
+    prev_year  = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year  = year if month < 12 else year + 1
+
+    return render_template(
+        "portal_calendar.html",
+        year=year, month=month,
+        month_name=first_day.strftime("%B %Y"),
+        weeks=weeks,
+        by_day=by_day,
+        prev_year=prev_year, prev_month=prev_month,
+        next_year=next_year, next_month=next_month,
+        today=date.today(),
+    )
+
+
+# ── Interpreter JSON endpoint for autocomplete ────────────────────────────────
+
+@jobs_bp.route("/api/interpreters")
+@admin_required
+def interpreters_json():
+    company = g.user["company"]
+    rows = _interpreters(company)
+    return jsonify([
+        {
+            "id":   r["id"],
+            "name": r["full_name"] or r["email"],
+            "rate": float(r["interpreter_rate"]) if r["interpreter_rate"] else None,
+        }
+        for r in rows
+    ])

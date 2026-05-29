@@ -1,0 +1,32 @@
+{% extends "portal_base.html" %}
+{% block title %}Unpaid Invoices — Portal{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Unpaid Invoices</h1>
+  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+</div>
+{% if invoices %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      {% if g.user.role == 'admin' %}<th>Interpreter</th>{% endif %}
+      <th>Amount</th><th>Due</th><th>Created</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in invoices %}
+    <tr style="cursor:pointer;" data-href="/portal/invoices/{{ inv.id }}">
+      <td style="color:var(--muted);">#{{ inv.id }}</td>
+      {% if g.user.role == 'admin' %}<td>{{ inv.full_name or inv.email or '—' }}</td>{% endif %}
+      <td>${{ "%.2f"|format(inv.amount) }}</td>
+      <td>{{ inv.due_date.strftime('%b %d, %Y') if inv.due_date else '—' }}</td>
+      <td style="color:var(--muted);">{{ inv.created_at.strftime('%b %d, %Y') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No unpaid invoices.</p>
+{% endif %}
+{% endblock %}

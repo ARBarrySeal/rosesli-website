@@ -5,6 +5,7 @@
 <table class="portal-table">
   <thead>
     <tr>
+      <th>Job #</th>
       <th>Date</th>
       <th>Time</th>
       <th>Client</th>
@@ -16,6 +17,7 @@
   <tbody>
     {% for j in rows %}
     <tr style="cursor:pointer;" data-href="/portal/assignments/{{ j.id }}">
+      <td style="color:var(--muted);font-variant-numeric:tabular-nums;">{{ '%03d'|format(j.job_number) if j.job_number else '—' }}</td>
       <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
       <td style="color:var(--muted);">{{ j.start_time or '—' }}{% if j.end_time %}–{{ j.end_time }}{% endif %}</td>
       <td>{{ j.client_name or j.requester_name or '—' }}</td>

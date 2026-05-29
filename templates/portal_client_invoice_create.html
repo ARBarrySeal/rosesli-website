@@ -1,0 +1,39 @@
+{% extends "portal_base.html" %}
+{% block title %}Create Client Invoice — Portal{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Create Client Invoice</h1>
+  <a href="/portal/client-invoices" style="font-size:.78rem;color:var(--muted);">← Client Invoices</a>
+</div>
+{% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
+<form method="POST" style="max-width:500px;display:flex;flex-direction:column;gap:1rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Client (account)
+    <select name="client_id" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="">— manual entry —</option>
+      {% for c in clients %}<option value="{{ c.id }}">{{ c.full_name or c.email }}</option>{% endfor %}
+    </select>
+  </label>
+  <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Client Name (if no account)
+    <input type="text" name="client_name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
+  </label>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Email<input type="email" name="poc_email" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Phone<input type="tel" name="poc_phone" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Date of Service<input type="date" name="date_of_service" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Start Time<input type="text" name="start_time" placeholder="9:00 AM" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">End Time<input type="text" name="end_time" placeholder="11:00 AM" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Duration (hrs)<input type="number" name="duration_hours" step="0.5" min="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Rate/hr ($) <span style="color:#e55;">*</span><input type="number" name="rate_per_hour" step="0.01" min="0" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Incidentals ($)<input type="number" name="incidentals" step="0.01" min="0" value="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+  </div>
+  <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Notes
+    <textarea name="notes" rows="2" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;resize:vertical;"></textarea>
+  </label>
+  <p style="font-size:.72rem;color:var(--muted);">Total = duration × rate + incidentals (auto-calculated)</p>
+  <div style="display:flex;gap:.75rem;">
+    <button type="submit" class="btn btn-primary">Create Invoice</button>
+    <a href="/portal/client-invoices" class="btn" style="text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

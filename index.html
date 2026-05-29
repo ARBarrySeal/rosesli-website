@@ -326,10 +326,11 @@
     <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
     <span>info@rosesli.com</span>
   </div>
+  <a href="request.html" class="topbar-request-pill" style="display:none;margin-top:8px;background:#4ade80;color:#0d1b2a;padding:6px 16px;border-radius:20px;font-weight:700;text-decoration:none;font-size:14px;">Request Interpreter</a>
 </div>
 
 <nav class="main">
-  <a href="#" class="logo">
+  <a href="/" class="logo">
     <div class="logo-mark">r</div>
     <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
   </a>
@@ -340,7 +341,15 @@
     <li class="nav-auth-li" id="nav-auth"></li>
     <li class="nav-links-cta"><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
 </nav>
+<div class="nav-mobile-menu" id="nav-mobile-menu" role="navigation" aria-label="Mobile menu">
+  <a href="/" class="active">Home</a>
+  <a href="about.html">About</a>
+  <a href="testimonials.html">Testimonials</a>
+  <a href="vri.html">VRI</a>
+  <a href="/login">Login</a>
+</div>
 <script>
 (function () {
   var el = document.getElementById('nav-auth');
@@ -415,6 +424,7 @@
     .then(function (d) { d && d.ok ? showUser(d.user.name) : showForm(); })
     .catch(function () { showForm(); });
 })();
+(function(){var b=document.getElementById('nav-hamburger'),m=document.getElementById('nav-mobile-menu');if(!b||!m)return;b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('open',o);b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');}});})();
 </script>
 
 <section class="brand-banner">
@@ -726,8 +736,8 @@
     </div>
     <div class="foot-creds">
       <img src="rid-logo.png" alt="Registry of Interpreters for the Deaf (RID)" class="rid-mark">
-      <img src="nad-logo.png" alt="National Association of the Deaf (NAD)" class="nad-mark">
-      <span class="foot-creds-lbl">RID and NAD<br>member interpreters</span>
+      <img src="nad-logo.png" alt="NAD" class="nad-mark">
+      <span class="foot-creds-lbl">RID and NAD certified interpreters</span>
     </div>
   </div>
   <div class="foot-bottom">

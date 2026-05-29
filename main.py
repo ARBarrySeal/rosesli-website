@@ -50,11 +50,13 @@ from portal_api import api_bp
 from portal_admin import admin_bp
 from portal_pages import pages_bp
 from portal_jobs import jobs_bp
+from portal_client_invoices import client_inv_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(pages_bp)
 app.register_blueprint(jobs_bp)
+app.register_blueprint(client_inv_bp)
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 

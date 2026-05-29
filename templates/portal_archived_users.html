@@ -1,0 +1,23 @@
+{% extends "portal_base.html" %}
+{% block title %}Archived Profiles — Portal{% endblock %}
+{% block content %}
+<h1>Archived Profiles</h1>
+<p style="color:var(--muted);font-size:.78rem;margin-bottom:1.5rem;">{{ users|length }} archived account{{ 's' if users|length != 1 else '' }}</p>
+{% if users %}
+<table class="portal-table">
+  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Archived</th></tr></thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.full_name or '—' }}</td>
+      <td style="color:var(--muted);">{{ u.email }}</td>
+      <td><span class="badge" style="background:#0a1a2a;color:#6bb4ff;">{{ u.role }}</span></td>
+      <td style="color:var(--muted);">{{ u.archived_at.strftime('%b %d, %Y') if u.archived_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No archived profiles.</p>
+{% endif %}
+{% endblock %}

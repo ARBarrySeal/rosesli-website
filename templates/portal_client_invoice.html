@@ -1,0 +1,62 @@
+{% extends "portal_base.html" %}
+{% block title %}Client Invoice #{{ inv.id }} — Portal{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+  <h1>Client Invoice #{{ inv.id }}</h1>
+  <a href="/portal/client-invoices" style="font-size:.78rem;color:var(--muted);">← Client Invoices</a>
+</div>
+
+<div style="max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+    <div><div class="field-label">Client</div><div style="font-size:.88rem;">{{ inv.client_name or '—' }}</div></div>
+    <div><div class="field-label">Status</div>
+      {% if g.user.role == 'admin' %}
+      <div style="display:flex;gap:1rem;align-items:center;margin-top:.3rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;font-size:.82rem;cursor:pointer;">
+          <input type="radio" name="status_disp" {{ 'checked' if inv.status == 'paid' else '' }} disabled> Paid
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;font-size:.82rem;cursor:pointer;">
+          <input type="radio" name="status_disp" {{ 'checked' if inv.status == 'unpaid' else '' }} disabled> Unpaid
+        </label>
+      </div>
+      {% else %}
+      <span class="badge badge-{{ inv.status }}">{{ inv.status }}</span>
+      {% endif %}
+    </div>
+    {% if inv.poc_email %}<div><div class="field-label">POC Email</div><div style="font-size:.88rem;">{{ inv.poc_email }}</div></div>{% endif %}
+    {% if inv.poc_phone %}<div><div class="field-label">POC Phone</div><div style="font-size:.88rem;">{{ inv.poc_phone }}</div></div>{% endif %}
+    {% if inv.date_of_service %}<div><div class="field-label">Date of Service</div><div style="font-size:.88rem;">{{ inv.date_of_service.strftime('%B %d, %Y') }}</div></div>{% endif %}
+    {% if inv.start_time %}<div><div class="field-label">Start</div><div style="font-size:.88rem;">{{ inv.start_time }}{% if inv.end_time %} – {{ inv.end_time }}{% endif %}</div></div>{% endif %}
+    {% if inv.duration_hours %}<div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours }} hrs</div></div>{% endif %}
+    {% if inv.rate_per_hour %}<div><div class="field-label">Rate/hr</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.rate_per_hour) }}</div></div>{% endif %}
+    {% if inv.incidentals %}<div><div class="field-label">Incidentals</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.incidentals) }}</div></div>{% endif %}
+    {% if inv.total %}<div><div class="field-label">Total</div><div style="font-size:1.4rem;font-weight:600;">${{ "%.2f"|format(inv.total) }}</div></div>{% endif %}
+    {% if inv.paid_date %}<div><div class="field-label">Date Paid</div><div style="font-size:.88rem;">{{ inv.paid_date.strftime('%B %d, %Y') }}</div></div>{% endif %}
+  </div>
+
+  {% if inv.notes %}
+  <div style="margin-bottom:1.5rem;"><div class="field-label">Notes</div><div style="font-size:.88rem;white-space:pre-wrap;">{{ inv.notes }}</div></div>
+  {% endif %}
+
+  {% if g.user.role == 'admin' %}
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);">
+    {% if inv.status == 'unpaid' %}
+    <form method="POST" action="/portal/admin/client-invoices/{{ inv.id }}/mark-paid" style="display:flex;gap:.5rem;align-items:center;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="date" name="paid_date" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:var(--radius);font-size:12px;" placeholder="Date paid"/>
+      <button type="submit" class="btn btn-primary" style="font-size:.78rem;">Mark as Paid</button>
+    </form>
+    {% else %}
+    <form method="POST" action="/portal/admin/client-invoices/{{ inv.id }}/mark-unpaid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-ghost" style="font-size:.78rem;">Mark as Unpaid</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<style>.field-label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;}</style>
+{% endblock %}

@@ -229,10 +229,45 @@ def admin_users():
     company = g.user["company"]
     users   = portal_db.query_all(
         "SELECT id, email, full_name, role, active, created_at "
-        "FROM portal_users WHERE company = %s ORDER BY created_at DESC",
+        "FROM portal_users WHERE company = %s AND (archived IS NULL OR archived = FALSE) "
+        "ORDER BY created_at DESC",
         (company,),
     )
     return render_template("portal_admin_users.html", users=users)
+
+
+@pages_bp.route("/portal/admin/users/<int:user_id>/archive", methods=["POST"])
+@admin_required
+def archive_user(user_id):
+    company = g.user["company"]
+    user    = portal_db.query_one(
+        "SELECT id, email, role FROM portal_users WHERE id = %s AND company = %s",
+        (user_id, company),
+    )
+    if not user:
+        return jsonify(ok=False, error="User not found"), 404
+    if user["role"] == "admin":
+        return jsonify(ok=False, error="Cannot archive admin accounts"), 400
+    portal_db.execute(
+        "UPDATE portal_users SET active = FALSE, archived = TRUE, archived_at = NOW() "
+        "WHERE id = %s",
+        (user_id,),
+    )
+    audit_log("user_archive", target=f"user:{user_id}", metadata={"email": user["email"]})
+    return jsonify(ok=True)
+
+
+@pages_bp.route("/portal/admin/archived-users")
+@admin_required
+def archived_users():
+    company = g.user["company"]
+    users   = portal_db.query_all(
+        "SELECT id, email, full_name, role, archived_at "
+        "FROM portal_users WHERE company = %s AND archived = TRUE "
+        "ORDER BY archived_at DESC",
+        (company,),
+    )
+    return render_template("portal_archived_users.html", users=users)
 
 
 @pages_bp.route("/portal/admin/users/<int:user_id>/toggle", methods=["POST"])
@@ -431,18 +466,48 @@ def invoices():
 
     if role == "admin":
         rows = portal_db.query_all(
-            "SELECT i.id, u.full_name, u.email, i.amount, i.status, i.due_date, i.created_at "
+            "SELECT i.id, u.full_name, u.email, u.role AS user_role, i.amount, i.status, "
+            "i.due_date, i.created_at, i.submitted "
             "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
             "WHERE u.company = %s ORDER BY i.created_at DESC",
             (company,),
         )
+        interpreters = portal_db.query_all(
+            "SELECT id, full_name, email FROM portal_users "
+            "WHERE company = %s AND role = 'employee' AND active = TRUE ORDER BY full_name",
+            (company,),
+        )
     else:
         rows = portal_db.query_all(
-            "SELECT id, amount, status, due_date, created_at "
+            "SELECT id, amount, status, due_date, created_at, submitted "
             "FROM invoices WHERE user_id = %s ORDER BY created_at DESC",
             (uid,),
         )
-    return render_template("portal_invoices.html", invoices=rows)
+        interpreters = []
+    return render_template("portal_invoices.html", invoices=rows, interpreters=interpreters)
+
+
+@pages_bp.route("/portal/unpaid-invoices")
+@login_required
+def unpaid_invoices():
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = g.user["sub"]
+
+    if role == "admin":
+        rows = portal_db.query_all(
+            "SELECT i.id, u.full_name, u.email, i.amount, i.due_date, i.created_at "
+            "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "WHERE u.company = %s AND i.status = 'unpaid' ORDER BY i.created_at DESC",
+            (company,),
+        )
+    else:
+        rows = portal_db.query_all(
+            "SELECT id, amount, due_date, created_at FROM invoices "
+            "WHERE user_id = %s AND status = 'unpaid' ORDER BY created_at DESC",
+            (uid,),
+        )
+    return render_template("portal_unpaid_invoices.html", invoices=rows)
 
 
 @pages_bp.route("/portal/invoices/<int:invoice_id>")
@@ -595,6 +660,55 @@ def delete_invoice_attachment(invoice_id, att_id):
     return redirect(f"/portal/invoices/{invoice_id}")
 
 
+@pages_bp.route("/portal/invoices/<int:invoice_id>/submit", methods=["POST"])
+@login_required
+def submit_invoice(invoice_id):
+    """Interpreter submits their invoice to admin for approval."""
+    uid  = g.user["sub"]
+    role = g.user["role"]
+    if role == "client":
+        abort(403)
+    if role == "employee":
+        inv = portal_db.query_one(
+            "SELECT id FROM invoices WHERE id = %s AND user_id = %s",
+            (invoice_id, uid),
+        )
+    else:
+        company = g.user["company"]
+        inv = portal_db.query_one(
+            "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "WHERE i.id = %s AND u.company = %s",
+            (invoice_id, company),
+        )
+    if not inv:
+        abort(404)
+    portal_db.execute(
+        "UPDATE invoices SET submitted = TRUE, submitted_at = NOW() WHERE id = %s",
+        (invoice_id,),
+    )
+    flash("Invoice submitted for approval.", "success")
+    return redirect(f"/portal/invoices/{invoice_id}")
+
+
+@pages_bp.route("/portal/admin/invoices/<int:invoice_id>/mark-unpaid", methods=["POST"])
+@admin_required
+def mark_invoice_unpaid(invoice_id):
+    company = g.user["company"]
+    inv = portal_db.query_one(
+        "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "WHERE i.id = %s AND u.company = %s",
+        (invoice_id, company),
+    )
+    if not inv:
+        abort(404)
+    portal_db.execute(
+        "UPDATE invoices SET status='unpaid', paid_date=NULL WHERE id=%s", (invoice_id,)
+    )
+    audit_log("invoice_mark_unpaid", target=f"invoice:{invoice_id}")
+    flash("Invoice marked as unpaid.", "success")
+    return redirect(f"/portal/invoices/{invoice_id}")
+
+
 @pages_bp.route("/portal/admin/invoices/<int:invoice_id>/mark-paid", methods=["POST"])
 @admin_required
 def mark_invoice_paid(invoice_id):
@@ -606,8 +720,11 @@ def mark_invoice_paid(invoice_id):
     )
     if not inv:
         abort(404)
-    portal_db.execute("UPDATE invoices SET status='paid' WHERE id=%s", (invoice_id,))
-    audit_log("invoice_mark_paid", target=f"invoice:{invoice_id}")
+    paid_date = request.form.get("paid_date") or None
+    portal_db.execute(
+        "UPDATE invoices SET status='paid', paid_date=%s WHERE id=%s", (paid_date, invoice_id)
+    )
+    audit_log("invoice_mark_paid", target=f"invoice:{invoice_id}", metadata={"paid_date": paid_date})
     flash("Invoice marked as paid.", "success")
     return redirect(f"/portal/invoices/{invoice_id}")
 

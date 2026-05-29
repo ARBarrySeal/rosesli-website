@@ -38,13 +38,20 @@
         {% endif %}
       </td>
       <td style="color:var(--muted);">{{ u.created_at.strftime('%b %d, %Y') }}</td>
-      <td>
+      <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
         {% if u.role != 'admin' %}
         <button class="btn btn-ghost toggle-btn"
                 style="font-size:.6rem;padding:.2rem .55rem;"
                 data-id="{{ u.id }}">
           {{ 'Deactivate' if u.active else 'Activate' }}
         </button>
+        {% if not u.active %}
+        <button class="btn btn-ghost archive-btn"
+                style="font-size:.6rem;padding:.2rem .55rem;color:#e55;"
+                data-id="{{ u.id }}">
+          Archive
+        </button>
+        {% endif %}
         {% endif %}
       </td>
     </tr>
@@ -55,6 +62,20 @@
 
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
+document.querySelectorAll('.archive-btn').forEach(function(btn) {
+  btn.addEventListener('click', async function() {
+    if (!confirm('Archive this user? They will be moved to Archived Profiles.')) return;
+    const id = this.dataset.id;
+    this.disabled = true;
+    try {
+      const res  = await window.csrfFetch('/portal/admin/users/' + id + '/archive', {method: 'POST'});
+      const data = await res.json();
+      if (data.ok) { location.reload(); }
+      else { alert(data.error); this.disabled = false; }
+    } catch { this.disabled = false; }
+  });
+});
+
 document.querySelectorAll('.toggle-btn').forEach(function(btn) {
   btn.addEventListener('click', async function() {
     const id = this.dataset.id;

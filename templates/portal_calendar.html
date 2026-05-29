@@ -1,0 +1,43 @@
+{% extends "portal_base.html" %}
+{% block title %}Calendar — Portal{% endblock %}
+{% block head %}
+<style>
+.cal-nav{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;}
+.cal-nav h2{font-size:1.1rem;font-weight:600;flex:1;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid var(--border);border-top:1px solid var(--border);}
+.cal-dow{background:var(--card);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.5rem 0;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.cal-day{min-height:90px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:.4rem .5rem;font-size:.75rem;vertical-align:top;background:var(--bg);}
+.cal-day.other-month{background:rgba(255,255,255,.02);color:var(--muted);}
+.cal-day.today .day-num{background:var(--accent,#1a56db);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+.day-num{font-size:.78rem;font-weight:600;margin-bottom:.3rem;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+.cal-event{background:var(--accent,#1a56db);color:#fff;border-radius:3px;padding:2px 5px;margin-bottom:2px;font-size:.65rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event:hover{opacity:.85;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="cal-nav">
+  <a href="/portal/calendar?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-ghost" style="font-size:.78rem;">‹ Prev</a>
+  <h2>{{ month_name }}</h2>
+  <a href="/portal/calendar?year={{ next_year }}&month={{ next_month }}" class="btn btn-ghost" style="font-size:.78rem;">Next ›</a>
+</div>
+<div class="cal-grid">
+  {% for dow in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+  <div class="cal-dow">{{ dow }}</div>
+  {% endfor %}
+  {% for week in weeks %}
+    {% for day in week %}
+    {% set jobs_today = by_day.get(day, []) %}
+    <div class="cal-day {{ 'today' if day == today.day and year == today.year and month == today.month else '' }} {{ 'other-month' if day == 0 else '' }}">
+      {% if day > 0 %}
+      <div class="day-num">{{ day }}</div>
+      {% for j in jobs_today %}
+      <div class="cal-event" onclick="location.href='/portal/assignments/{{ j.id }}'">
+        {{ j.start_time or '' }} {{ j.client_name or j.requester_name or j.organization or '#' ~ j.id }}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endblock %}

@@ -94,12 +94,34 @@
     {% endif %}
   </div>
 
-  {% if g.user.role == 'admin' and inv.status != 'paid' %}
+  {% if g.user.role in ['employee'] and not inv.submitted %}
   <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
-    <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid">
+    <form method="POST" action="/portal/invoices/{{ inv.id }}/submit">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-primary">Submit Invoice for Approval</button>
+    </form>
+  </div>
+  {% elif inv.submitted and g.user.role == 'employee' %}
+  <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
+    <span style="font-size:.78rem;color:var(--muted);">✓ Submitted for admin review</span>
+  </div>
+  {% endif %}
+
+  {% if g.user.role == 'admin' %}
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);">
+    {% if inv.status != 'paid' %}
+    <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid" style="display:flex;gap:.5rem;align-items:center;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="date" name="paid_date" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.35rem .6rem;border-radius:var(--radius);font-size:12px;"/>
       <button type="submit" class="btn btn-primary">Mark as Paid</button>
     </form>
+    {% endif %}
+    {% if inv.status == 'paid' %}
+    <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-unpaid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-ghost">Mark as Unpaid</button>
+    </form>
+    {% endif %}
   </div>
   {% endif %}
 

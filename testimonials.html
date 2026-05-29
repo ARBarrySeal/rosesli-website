@@ -35,6 +35,7 @@
   .tcard.feature .tquote{color:#fff;}
   .tcard.feature .tmark{color:var(--blue);}
   .tmark{font-family:'Instrument Serif',serif;font-size:72px;line-height:.6;color:var(--blue);font-style:italic;}
+  .tmark-close{text-align:right;}
   .tquote{font-family:'Instrument Serif',serif;font-size:24px;line-height:1.4;color:var(--ink);font-style:italic;letter-spacing:-.005em;}
   .tcard.feature .tquote{font-size:32px;line-height:1.35;}
 
@@ -69,7 +70,15 @@
     <li><a href="request.html" class="nav-cta nav-cta-lg">Request an interpreter <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a></li>
   </ul>
   <div id="nav-auth" style="position:relative;"></div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
 </nav>
+<div class="nav-mobile-menu" id="nav-mobile-menu" role="navigation" aria-label="Mobile menu">
+  <a href="/">Home</a>
+  <a href="about.html">About</a>
+  <a href="testimonials.html" class="active">Testimonials</a>
+  <a href="vri.html">VRI</a>
+  <a href="/login">Login</a>
+</div>
 <script>
 (function () {
   var el = document.getElementById('nav-auth');
@@ -138,6 +147,7 @@
     .then(function (d) { d && d.ok ? showUser(d.user.name) : showForm(); })
     .catch(function () { showForm(); });
 })();
+(function(){var b=document.getElementById('nav-hamburger'),m=document.getElementById('nav-mobile-menu');if(!b||!m)return;b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('open',o);b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');}});})();
 </script>
 
 <div class="crumbs"><a href="/">Home</a><span class="sep">›</span>Testimonials</div>
@@ -150,37 +160,44 @@
 
   <article class="tcard feature">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">If you weren't here, I would not have continued to work as a nurse. This year is 6 years as a nurse!&rdquo;</p>
+    <p class="tquote">If you weren't here, I would not have continued to work as a nurse. This year is 6 years as a nurse!</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">The interpreter was clear, conceptually accurate, professional and personable.&rdquo;</p>
+    <p class="tquote">The interpreter was clear, conceptually accurate, professional and personable.</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">Interpreters knowledgeable in the subject matter is what set them apart.&rdquo;</p>
+    <p class="tquote">Interpreters knowledgeable in the subject matter is what set them apart.</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">After so many years, I was finally able to &lsquo;hear&rsquo; the music again!&rdquo;</p>
+    <p class="tquote">After so many years, I was finally able to &lsquo;hear&rsquo; the music again!</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">I had such a fantastic time at my sister's wedding. The interpreters were flexible and professional enough for me to participate whenever I wanted and they represented me well.&rdquo;</p>
+    <p class="tquote">I had such a fantastic time at my sister's wedding. The interpreters were flexible and professional enough for me to participate whenever I wanted and they represented me well.</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">I had 24/7 in-person interpreting coverage during my hospital stay. I felt valued as a patient and relieved that I could communicate my needs.&rdquo;</p>
+    <p class="tquote">I had 24/7 in-person interpreting coverage during my hospital stay. I felt valued as a patient and relieved that I could communicate my needs.</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
   <article class="tcard">
     <div class="tmark">&ldquo;</div>
-    <p class="tquote">An ER visit is a daunting experience. Having communication access made it a manageable experience.&rdquo;</p>
+    <p class="tquote">An ER visit is a daunting experience. Having communication access made it a manageable experience.</p>
+    <div class="tmark tmark-close">&rdquo;</div>
   </article>
 
 </section>
@@ -201,14 +218,8 @@
     </div>
     <div class="foot-creds">
       <img src="rid-logo.png" alt="RID" class="rid-mark">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" class="nad-mark" role="img" aria-label="National Association of the Deaf (NAD)">
-        <circle cx="80" cy="80" r="80" fill="#f0f4f8"/>
-        <circle cx="80" cy="80" r="72" fill="none" stroke="#1e3a8a" stroke-width="3.5"/>
-        <text x="80" y="72" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="46" font-weight="700" fill="#1e3a8a" letter-spacing="-2">NAD</text>
-        <text x="80" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">NATIONAL ASSOC.</text>
-        <text x="80" y="110" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="9.5" font-weight="700" fill="#1e3a8a" letter-spacing="1.8">OF THE DEAF</text>
-      </svg>
-      <span class="foot-creds-lbl">RID or NAD certified interpreters</span>
+      <img src="nad-logo.png" alt="NAD" class="nad-mark">
+      <span class="foot-creds-lbl">RID and NAD certified interpreters</span>
     </div>
   </div>
   <div class="foot-bottom"><span>© 2026 Rose Sign Language Interpreting</span></div>

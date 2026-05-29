@@ -181,6 +181,11 @@ def _set_session_cookie(resp, token: str, *, max_age: int):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+@auth_bp.route("/login", methods=["GET"])
+def login_page():
+    return render_template("portal_login.html")
+
+
 @auth_bp.route("/login", methods=["POST"])
 @limiter.limit("10 per minute")
 def login():
