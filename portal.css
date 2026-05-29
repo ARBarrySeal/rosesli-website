@@ -245,3 +245,44 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   .stat-cards { grid-template-columns: 1fr 1fr; }
   .stat-card .value { font-size: 1.25rem; }
 }
+
+/* ── Rose SLI cream / navy theme ── */
+body[data-company="rosesli"] {
+  --bg: #faf8f4;
+  --surface: #f4f0e8;
+  --card: #f4f0e8;
+  --border: #d9d0c0;
+  --text: #0d2b52;
+  --muted: #5a7099;
+  --font: 'Times New Roman', Times, serif;
+  --shadow: 0 2px 8px rgba(13, 43, 82, 0.1);
+  font-size: 16px;
+  font-family: 'Times New Roman', Times, serif;
+  color: #0d2b52;
+}
+body[data-company="rosesli"] input,
+body[data-company="rosesli"] select,
+body[data-company="rosesli"] textarea,
+body[data-company="rosesli"] button {
+  font-size: 16px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+body[data-company="rosesli"] .portal-topbar,
+body[data-company="rosesli"] .portal-sidebar {
+  background: var(--surface);
+  border-color: var(--border);
+}
+body[data-company="rosesli"] .portal-sidebar a,
+body[data-company="rosesli"] .portal-sidebar .sidebar-name,
+body[data-company="rosesli"] .portal-sidebar .sidebar-company {
+  color: var(--text);
+}
+body[data-company="rosesli"] .portal-sidebar a:hover,
+body[data-company="rosesli"] .portal-sidebar a.active {
+  background: rgba(13, 43, 82, 0.08);
+  color: var(--text);
+}
+body[data-company="rosesli"] .stat-card {
+  background: var(--card);
+  border-color: var(--border);
+}

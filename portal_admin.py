@@ -86,11 +86,49 @@ def create_invoice():
     if request.method == "GET":
         return render_template("portal_admin_invoice_create.html", interpreters=interpreters)
 
-    amount_raw        = (request.form.get("amount") or "").strip()
-    description       = (request.form.get("description") or "").strip()
-    due_date          = request.form.get("due_date") or None
-    interpreter_rates = (request.form.get("interpreter_rates") or "").strip()
-    notes             = (request.form.get("notes") or "").strip()
+    amount_raw      = (request.form.get("amount") or "").strip()
+    description     = (request.form.get("description") or "").strip()
+    due_date        = request.form.get("due_date") or None
+    notes           = (request.form.get("notes") or "").strip()
+    date_of_service = request.form.get("date_of_service") or None
+    start_time      = (request.form.get("start_time") or "").strip() or None
+    end_time        = (request.form.get("end_time") or "").strip() or None
+    base_rate_raw   = (request.form.get("base_rate") or "").strip()
+    diff_raw        = (request.form.get("differential") or "0").strip()
+    dur_raw         = (request.form.get("duration_hours") or "").strip()
+    try:
+        base_rate = float(base_rate_raw) if base_rate_raw else None
+    except ValueError:
+        base_rate = None
+    try:
+        diff_val = float(diff_raw) if diff_raw else 0.0
+    except ValueError:
+        diff_val = 0.0
+    try:
+        duration_hours = float(dur_raw) if dur_raw else None
+    except ValueError:
+        duration_hours = None
+    rate_applied = (base_rate or 0) + diff_val if base_rate is not None else None
+
+    # Collect dynamic extra lines
+    import json as _json
+    extra_lines = []
+    idx = 0
+    while True:
+        ed = request.form.get(f"extra_differential_{idx}")
+        if ed is None:
+            break
+        try:
+            ea = float(request.form.get(f"extra_amount_{idx}") or 0)
+        except ValueError:
+            ea = 0.0
+        try:
+            edur = float(request.form.get(f"extra_duration_{idx}") or 0)
+        except ValueError:
+            edur = 0.0
+        extra_lines.append({"differential": ed, "duration": edur, "amount": ea})
+        idx += 1
+    interpreter_rates = _json.dumps(extra_lines) if extra_lines else None
 
     if is_admin:
         user_id = request.form.get("user_id") or ""
@@ -117,10 +155,14 @@ def create_invoice():
                                error="Amount must be a positive number.")
 
     portal_db.execute(
-        "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, notes) "
-        "VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, notes, "
+        "  date_of_service, service_start_time, service_end_time, duration_hours, "
+        "  base_rate, differential, rate_applied) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (recipient_id, amount, description or None, due_date or None,
-         interpreter_rates or None, notes or None),
+         interpreter_rates, notes or None,
+         date_of_service or None, start_time, end_time, duration_hours,
+         base_rate, diff_raw or None, rate_applied),
     )
     audit_log(
         "invoice_create",

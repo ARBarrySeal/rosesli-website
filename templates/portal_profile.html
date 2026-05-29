@@ -15,18 +15,15 @@
 {% if is_admin_view %}
 <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;max-width:480px;">
   <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">Role</div>
-  <form method="POST" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <input type="hidden" name="action" value="change_role"/>
-    <input type="hidden" name="view_uid" value="{{ view_uid }}"/>
-    <select name="role"
+  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+    <select id="role-select" data-uid="{{ view_uid }}"
             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                    font-family:var(--font);padding:.45rem .75rem;border-radius:var(--radius);font-size:13px;">
       <option value="employee" {{ 'selected' if user.role == 'employee' else '' }}>Interpreter</option>
       <option value="client"   {{ 'selected' if user.role == 'client'   else '' }}>Client</option>
     </select>
-    <button type="submit" class="btn btn-primary" style="font-size:.78rem;">Save Role</button>
-  </form>
+    <span id="role-save-msg" style="font-size:.72rem;color:var(--success);display:none;">Saved</span>
+  </div>
 </div>
 {% endif %}
 
@@ -84,6 +81,11 @@
     </p>
     {% elif user.role == 'client' %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Base Rate ($/hr)
+      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}" placeholder="0.00"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Point of Contact
       <input type="text" name="point_of_contact" value="{{ user.point_of_contact or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
@@ -101,6 +103,36 @@
     {% endif %}
     <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Save Changes</button>
   </form>
+
+  {% if user.role == 'employee' %}
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">
+    <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">
+      W-9 (<span id="w9-year"></span>)
+    </div>
+    {% if w9_attachment %}
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;font-size:.82rem;">
+      <a href="/portal/profile/w9/download" style="color:var(--accent);">{{ w9_attachment.original_name }}</a>
+      {% if is_admin_view %}
+      <form method="POST" action="/portal/profile/w9/delete" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        {% if is_admin_view %}<input type="hidden" name="view_uid" value="{{ view_uid }}"/>{% endif %}
+        <button type="submit" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;">Remove</button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem;">No W-9 on file.</div>
+    {% endif %}
+    <form method="POST" action="/portal/profile/w9/upload" enctype="multipart/form-data"
+          style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      {% if is_admin_view %}<input type="hidden" name="view_uid" value="{{ view_uid }}"/>{% endif %}
+      <input type="file" name="w9_file" accept=".pdf,.doc,.docx,.png,.jpg" required
+             style="font-size:.78rem;color:var(--muted);"/>
+      <button type="submit" class="btn" style="font-size:.72rem;">Upload W-9</button>
+    </form>
+  </div>
+  {% endif %}
 
   {% if not is_admin_view %}
   <h1 style="font-size:.72rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Change Password</h1>
@@ -127,4 +159,35 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  // Set W-9 year dynamically
+  var yrEl = document.getElementById('w9-year');
+  if (yrEl) yrEl.textContent = new Date().getFullYear();
+
+  // Auto-save role on select change (admin-only)
+  var roleSelect = document.getElementById('role-select');
+  var roleMsg    = document.getElementById('role-save-msg');
+  if (roleSelect) {
+    roleSelect.addEventListener('change', function () {
+      var uid  = roleSelect.dataset.uid;
+      var role = roleSelect.value;
+      var csrf = document.querySelector('meta[name="csrf-token"]').content;
+      fetch('/portal/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf },
+        body: 'action=change_role&view_uid=' + encodeURIComponent(uid) + '&role=' + encodeURIComponent(role) + '&csrf_token=' + encodeURIComponent(csrf)
+      }).then(function () {
+        if (roleMsg) {
+          roleMsg.style.display = 'inline';
+          setTimeout(function () { roleMsg.style.display = 'none'; }, 2000);
+        }
+      });
+    });
+  }
+})();
+</script>
 {% endblock %}

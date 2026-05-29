@@ -73,7 +73,14 @@ def dashboard():
             )["n"],
             "invoices": portal_db.query_one(
                 "SELECT COUNT(*) AS n FROM invoices i "
-                "JOIN portal_users u ON u.id = i.user_id WHERE u.company = %s",
+                "JOIN portal_users u ON u.id = i.user_id "
+                "WHERE u.company = %s AND u.role = 'employee'",
+                (company,),
+            )["n"],
+            "client_invoices": portal_db.query_one(
+                "SELECT COUNT(*) AS n FROM client_invoices ci "
+                "JOIN portal_users u ON u.id = ci.client_id "
+                "WHERE ci.company = %s AND u.role = 'client'",
                 (company,),
             )["n"],
             "pending": portal_db.query_one(
@@ -183,12 +190,18 @@ def profile():
                 poc           = (request.form.get("point_of_contact") or "").strip()[:255]
                 billing_email = (request.form.get("billing_email") or "").strip()[:255]
                 billing_phone = (request.form.get("billing_phone") or "").strip()[:50]
+                rate_raw      = (request.form.get("interpreter_rate") or "").strip()
+                try:
+                    interpreter_rate = float(rate_raw) if rate_raw else None
+                except ValueError:
+                    interpreter_rate = None
                 portal_db.execute(
                     "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
                     "address=%s, zip=%s, point_of_contact=%s, billing_email=%s, "
-                    "billing_phone=%s WHERE id=%s",
+                    "billing_phone=%s, interpreter_rate=%s WHERE id=%s",
                     (full_name, phone, company_name, address, zip_code or None,
-                     poc or None, billing_email or None, billing_phone or None, target_uid),
+                     poc or None, billing_email or None, billing_phone or None,
+                     interpreter_rate, target_uid),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
@@ -240,6 +253,7 @@ def profile():
                     success="Password updated. You'll stay signed in here; other devices will be signed out.",
                     is_admin_view=False,
                     view_uid=None,
+                    w9_attachment=_get_w9(target_uid),
                 ))
                 _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
                 return resp
@@ -251,7 +265,145 @@ def profile():
         success=success,
         is_admin_view=is_admin_view,
         view_uid=target_uid if is_admin_view else None,
+        w9_attachment=_get_w9(target_uid),
     )
+
+
+def _get_w9(user_id: int):
+    try:
+        return portal_db.query_one(
+            "SELECT id, original_name, gcs_key FROM profile_w9 WHERE user_id = %s "
+            "ORDER BY uploaded_at DESC LIMIT 1",
+            (user_id,),
+        )
+    except Exception:
+        return None
+
+
+@pages_bp.route("/portal/profile/w9/upload", methods=["POST"])
+@login_required
+def w9_upload():
+    uid     = g.user["sub"]
+    company = g.user["company"]
+
+    raw = (request.form.get("view_uid") or "").strip()
+    if raw and g.user["role"] == "admin":
+        try:
+            target_uid = int(raw)
+        except ValueError:
+            target_uid = uid
+    else:
+        target_uid = uid
+
+    f = request.files.get("w9_file")
+    if not f or not f.filename:
+        flash("No file selected.", "error")
+        redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
+        return redirect(redir)
+
+    _, ext = os.path.splitext(secure_filename(f.filename))
+    ext = ext.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        flash("File type not allowed.", "error")
+        redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
+        return redirect(redir)
+
+    f.stream.seek(0, 2)
+    size = f.stream.tell()
+    f.stream.seek(0)
+    if size > MAX_UPLOAD_BYTES:
+        flash("File too large (max 25 MB).", "error")
+        redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
+        return redirect(redir)
+
+    stored_name = uuid.uuid4().hex + ext
+    portal_storage.save(company, stored_name, f.stream)
+
+    try:
+        portal_db.execute(
+            "DELETE FROM profile_w9 WHERE user_id = %s AND company = %s",
+            (target_uid, company),
+        )
+        portal_db.execute(
+            "INSERT INTO profile_w9 (user_id, company, year, gcs_key, original_name, uploaded_at) "
+            "VALUES (%s, %s, %s, %s, %s, NOW())",
+            (target_uid, company, datetime.now(timezone.utc).year,
+             stored_name, secure_filename(f.filename)),
+        )
+    except Exception:
+        flash("Could not save W-9 (database not ready).", "error")
+        redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
+        return redirect(redir)
+
+    audit_log("w9_upload", user_id=uid, email=g.user["email"], company=company,
+              detail=f"target_uid={target_uid}")
+    flash("W-9 uploaded.", "success")
+    redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
+    return redirect(redir)
+
+
+@pages_bp.route("/portal/profile/w9/download")
+@login_required
+def w9_download():
+    uid     = g.user["sub"]
+    company = g.user["company"]
+
+    raw = (request.args.get("uid") or "").strip()
+    if raw and g.user["role"] == "admin":
+        try:
+            target_uid = int(raw)
+        except ValueError:
+            target_uid = uid
+    else:
+        target_uid = uid
+
+    try:
+        row = portal_db.query_one(
+            "SELECT gcs_key, original_name FROM profile_w9 "
+            "WHERE user_id = %s AND company = %s ORDER BY uploaded_at DESC LIMIT 1",
+            (target_uid, company),
+        )
+    except Exception:
+        abort(404)
+
+    if not row:
+        abort(404)
+    return portal_storage.download(company, row["gcs_key"], row["original_name"])
+
+
+@pages_bp.route("/portal/profile/w9/delete", methods=["POST"])
+@login_required
+def w9_delete():
+    uid     = g.user["sub"]
+    company = g.user["company"]
+
+    if g.user["role"] != "admin":
+        abort(403)
+
+    raw = (request.form.get("view_uid") or "").strip()
+    try:
+        target_uid = int(raw) if raw else uid
+    except ValueError:
+        target_uid = uid
+
+    try:
+        row = portal_db.query_one(
+            "SELECT gcs_key FROM profile_w9 WHERE user_id = %s AND company = %s",
+            (target_uid, company),
+        )
+        if row:
+            portal_storage.delete(company, row["gcs_key"])
+            portal_db.execute(
+                "DELETE FROM profile_w9 WHERE user_id = %s AND company = %s",
+                (target_uid, company),
+            )
+    except Exception:
+        pass
+
+    audit_log("w9_delete", user_id=uid, email=g.user["email"], company=company,
+              detail=f"target_uid={target_uid}")
+    flash("W-9 removed.", "success")
+    return redirect(f"/portal/profile?uid={target_uid}")
 
 
 @pages_bp.route("/portal/schedule")

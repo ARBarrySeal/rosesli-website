@@ -35,6 +35,23 @@
     {% if inv.paid_date %}<div><div class="field-label">Date Paid</div><div style="font-size:.88rem;">{{ inv.paid_date.strftime('%B %d, %Y') }}</div></div>{% endif %}
   </div>
 
+  {% if inv.line_items %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label" style="margin-bottom:.6rem;">Additional Rate Lines</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
+          <th style="text-align:left;padding:.3rem .5rem;">Differential</th>
+          <th style="text-align:right;padding:.3rem .5rem;">Hrs</th>
+          <th style="text-align:right;padding:.3rem .5rem;">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="ci-extra-body"></tbody>
+    </table>
+  </div>
+  <script id="ci-line-data" type="application/json">{{ inv.line_items | safe }}</script>
+  {% endif %}
+
   {% if inv.notes %}
   <div style="margin-bottom:1.5rem;"><div class="field-label">Notes</div><div style="font-size:.88rem;white-space:pre-wrap;">{{ inv.notes }}</div></div>
   {% endif %}
@@ -57,4 +74,28 @@
 {% endblock %}
 {% block scripts %}
 <style>.field-label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;}</style>
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var dataEl = document.getElementById('ci-line-data');
+  var tbody  = document.getElementById('ci-extra-body');
+  if (!dataEl || !tbody) return;
+  try {
+    var lines = JSON.parse(dataEl.textContent);
+    lines.forEach(function (l) {
+      var tr = document.createElement('tr');
+      function cell(text, align) {
+        var td = document.createElement('td');
+        td.style.padding = '.3rem .5rem';
+        if (align) td.style.textAlign = align;
+        td.textContent = text;
+        return td;
+      }
+      tr.appendChild(cell(l.differential || '—', ''));
+      tr.appendChild(cell(String(l.duration || 0), 'right'));
+      tr.appendChild(cell('$' + parseFloat(l.amount || 0).toFixed(2), 'right'));
+      tbody.appendChild(tr);
+    });
+  } catch (e) {}
+})();
+</script>
 {% endblock %}

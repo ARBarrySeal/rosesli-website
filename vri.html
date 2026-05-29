@@ -139,13 +139,11 @@
     el.textContent = '';
     var wrap = document.createElement('div');
     wrap.className = 'nav-user-info';
-    var span = document.createElement('span');
-    span.textContent = name;
     var aPortal = document.createElement('a');
     aPortal.href = '/portal'; aPortal.textContent = 'Portal';
     var aLogout = document.createElement('a');
     aLogout.href = '/logout'; aLogout.textContent = 'Logout';
-    wrap.appendChild(span); wrap.appendChild(aPortal); wrap.appendChild(aLogout);
+    wrap.appendChild(aPortal); wrap.appendChild(aLogout);
     el.appendChild(wrap);
   }
 

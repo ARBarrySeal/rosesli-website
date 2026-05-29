@@ -146,23 +146,43 @@ def create_client_invoice():
     incidentals     = _float_or_none(request.form.get("incidentals")) or 0.0
     notes           = (request.form.get("notes") or "").strip() or None
 
+    import json as _json
+    extra_lines = []
+    idx = 0
+    while True:
+        ed = request.form.get(f"ci_extra_diff_{idx}")
+        if ed is None:
+            break
+        try:
+            ea = float(request.form.get(f"ci_extra_amt_{idx}") or 0)
+        except ValueError:
+            ea = 0.0
+        try:
+            edur = float(request.form.get(f"ci_extra_dur_{idx}") or 0)
+        except ValueError:
+            edur = 0.0
+        extra_lines.append({"differential": ed, "duration": edur, "amount": ea})
+        idx += 1
+    line_items = _json.dumps(extra_lines) if extra_lines else None
+
     if not rate_per_hour:
         return render_template("portal_client_invoice_create.html",
                                clients=clients, error="Rate per hour is required.")
 
     total = None
     if duration_hours and rate_per_hour:
-        total = round(duration_hours * rate_per_hour + incidentals, 2)
+        extra_total = sum(l["amount"] for l in extra_lines)
+        total = round(duration_hours * rate_per_hour + incidentals + extra_total, 2)
 
     portal_db.execute(
         "INSERT INTO client_invoices "
         "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
         "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
-        "notes, created_by) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "notes, line_items, created_by) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (company, client_id, client_name, poc_email, poc_phone, date_of_service,
          start_time, end_time, duration_hours, rate_per_hour, incidentals, total,
-         notes, int(g.user["sub"])),
+         notes, line_items, int(g.user["sub"])),
     )
     audit_log("client_invoice_create",
               metadata={"client_name": client_name, "total": total})

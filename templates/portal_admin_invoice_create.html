@@ -47,12 +47,6 @@
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
-    <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-      Due Date <span style="text-transform:none;font-size:.65rem;">(optional)</span>
-      <input type="date" name="due_date"
-             style="background:var(--bg);border:1px solid var(--border);color:var(--text);
-                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
-    </label>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
@@ -83,6 +77,7 @@
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
+    {% if g.user.role == 'admin' %}
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Differential
       <select name="differential" id="differential"
@@ -101,6 +96,9 @@
         <option value="xcl">XCL — No charge</option>
       </select>
     </label>
+    {% else %}
+    <input type="hidden" name="differential" value="0"/>
+    {% endif %}
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;align-items:end;">
@@ -118,20 +116,37 @@
     </label>
   </div>
 
+  {# Additional rate lines — each line has its own differential + duration + amount #}
+  <div id="extra-lines"></div>
+  <button type="button" id="add-line-btn"
+          style="align-self:flex-start;background:none;border:1px dashed var(--border);color:var(--muted);
+                 font-family:var(--font);padding:.4rem .85rem;border-radius:var(--radius);cursor:pointer;font-size:.78rem;">
+    + Add Line
+  </button>
+
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Description <span style="text-transform:none;font-size:.65rem;">(optional)</span>
+    Job Notes <span style="text-transform:none;font-size:.65rem;">(optional)</span>
     <textarea name="description" id="description-field" rows="3" maxlength="1000" placeholder="Services rendered…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
                      font-size:13px;resize:vertical;"></textarea>
   </label>
 
+  {% if g.user.role == 'admin' %}
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-    Notes <span style="text-transform:none;font-size:.65rem;">(optional)</span>
+    Notes <span style="text-transform:none;font-size:.65rem;">(admin only)</span>
     <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
                      font-size:13px;resize:vertical;"></textarea>
+  </label>
+  {% endif %}
+
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Due Date
+    <input type="date" name="due_date" id="due-date"
+           style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
   </label>
 
   <div style="display:flex;gap:.75rem;align-items:center;">
@@ -140,7 +155,7 @@
   </div>
 </form>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   var interpSel  = document.getElementById('interp-select');
   var baseRate   = document.getElementById('base-rate');
@@ -151,38 +166,155 @@
   var descField  = document.getElementById('description-field');
   var startTime  = document.getElementById('start-time');
   var endTime    = document.getElementById('end-time');
+  var dueDateIn  = document.getElementById('due-date');
+  var addLineBtn = document.getElementById('add-line-btn');
+  var extraLines = document.getElementById('extra-lines');
+
+  var DIFF_OPTIONS = [
+    { label: 'Daytime Weekday 7a–5p (BR)',          value: 0 },
+    { label: 'Weekend 7a–5p (BR+$5/hr)',             value: 5 },
+    { label: 'Evening Weekday 5p–10p (BR+$5/hr)',    value: 5 },
+    { label: 'Evening Weekend 5p–10p (BR+$10/hr)',   value: 10 },
+    { label: 'Overnight Weekday 10p–7a (BR+$10/hr)', value: 10 },
+    { label: 'Overnight Weekend 10p–7a (BR+$15/hr)', value: 15 },
+    { label: 'Conference (BR+$15/hr)',               value: 15 },
+    { label: 'Holiday (BR+$12/hr)',                  value: 12 },
+    { label: 'LMR ≤24hr notice (BR+$10/hr)',         value: 10 },
+    { label: 'XCL<48 — Cancellation <48hr (BR)',     value: 0 },
+    { label: 'XCL — No charge',                      value: 'xcl' }
+  ];
 
   function fmt2(n) { return n.toFixed(2); }
 
-  function recompute() {
-    var base   = parseFloat(baseRate ? baseRate.value : 0) || 0;
-    var addon  = parseFloat(diffSel ? diffSel.value : 0) || 0;
-    var hrs    = parseFloat(durHrs ? durHrs.value : 0) || 0;
-    // XCL — no charge
-    var isXcl  = diffSel && diffSel.options[diffSel.selectedIndex].text.indexOf('No charge') !== -1;
-    var rate   = isXcl ? 0 : base + addon;
-    // 2-hour minimum
-    var billHrs = (hrs > 0 && hrs < 2) ? 2 : hrs;
-    if (rateDisp) rateDisp.textContent = isXcl ? '$0 (XCL)' : rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
-    if (amountIn && billHrs > 0 && (rate > 0 || isXcl)) amountIn.value = fmt2(billHrs * rate);
+  function isXcl(sel) {
+    if (!sel) return false;
+    return sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text.indexOf('No charge') !== -1;
   }
 
-  // Auto-fill duration from start/end times
+  function getRate() {
+    var base  = parseFloat(baseRate ? baseRate.value : 0) || 0;
+    var addon = parseFloat(diffSel ? diffSel.value : 0) || 0;
+    return isXcl(diffSel) ? 0 : base + addon;
+  }
+
+  function getDur() {
+    var hrs = parseFloat(durHrs ? durHrs.value : 0) || 0;
+    return (hrs > 0 && hrs < 2) ? 2 : hrs;
+  }
+
+  function recompute() {
+    var rate    = getRate();
+    var billHrs = getDur();
+    if (rateDisp) rateDisp.textContent = isXcl(diffSel) ? '$0 (XCL)' : rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
+    if (amountIn && billHrs > 0 && (rate > 0 || isXcl(diffSel))) amountIn.value = fmt2(billHrs * rate);
+    recomputeLines();
+  }
+
+  function recomputeLines() {
+    var total = parseFloat(amountIn ? amountIn.value : 0) || 0;
+    extraLines && extraLines.querySelectorAll('.extra-line').forEach(function (line) {
+      var ls = line.querySelector('.line-diff');
+      var ld = line.querySelector('.line-dur');
+      var la = line.querySelector('.line-amt');
+      if (!ls || !ld || !la) return;
+      var addon = parseFloat(ls.value) || 0;
+      var base  = parseFloat(baseRate ? baseRate.value : 0) || 0;
+      var lrate = isXcl(ls) ? 0 : base + addon;
+      var ldur  = parseFloat(ld.value) || 0;
+      ldur = (ldur > 0 && ldur < 2) ? 2 : ldur;
+      la.value = ldur > 0 ? fmt2(ldur * lrate) : '';
+      total += parseFloat(la.value) || 0;
+    });
+  }
+
   function autoFillDuration() {
     if (!startTime || !endTime || !startTime.value || !endTime.value) return;
     var s = startTime.value.split(':').map(Number);
     var e = endTime.value.split(':').map(Number);
     var diff = (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
-    if (diff > 0 && durHrs) {
-      durHrs.value = fmt2(diff / 60);
-      recompute();
-    }
+    if (diff > 0 && durHrs) { durHrs.value = fmt2(diff / 60); recompute(); }
   }
 
-  // Pre-fill base rate when interpreter is selected
+  function autoFillDueDate() {
+    if (!dueDateIn) return;
+    var now = new Date();
+    var d   = now.getDate();
+    var y   = now.getFullYear();
+    var m   = now.getMonth(); // 0-indexed
+    var due;
+    if (d >= 1 && d <= 15) {
+      // last day of current month
+      due = new Date(y, m + 1, 0);
+    } else {
+      // 15th of next month
+      due = new Date(y, m + 1, 15);
+    }
+    var yy = due.getFullYear();
+    var mm = String(due.getMonth() + 1).padStart(2, '0');
+    var dd = String(due.getDate()).padStart(2, '0');
+    dueDateIn.value = yy + '-' + mm + '-' + dd;
+  }
+
+  function makeDiffSelect(cls) {
+    var sel = document.createElement('select');
+    sel.className = cls;
+    sel.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    DIFF_OPTIONS.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
+
+  if (addLineBtn && extraLines) {
+    addLineBtn.addEventListener('click', function () {
+      var idx = extraLines.querySelectorAll('.extra-line').length;
+      var div = document.createElement('div');
+      div.className = 'extra-line';
+      div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+
+      var diffWrap = document.createElement('label');
+      diffWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      diffWrap.textContent = 'Differential';
+      var diffSel2 = makeDiffSelect('line-diff');
+      diffSel2.name = 'extra_differential_' + idx;
+      diffSel2.addEventListener('change', recomputeLines);
+      diffWrap.appendChild(diffSel2);
+
+      var durWrap = document.createElement('label');
+      durWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      durWrap.textContent = 'Hrs';
+      var durIn = document.createElement('input');
+      durIn.type = 'number'; durIn.step = '0.25'; durIn.min = '0'; durIn.placeholder = '0.00';
+      durIn.name = 'extra_duration_' + idx; durIn.className = 'line-dur';
+      durIn.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+      durIn.addEventListener('input', recomputeLines);
+      durWrap.appendChild(durIn);
+
+      var amtWrap = document.createElement('label');
+      amtWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      amtWrap.textContent = 'Amount';
+      var amtIn = document.createElement('input');
+      amtIn.type = 'number'; amtIn.step = '0.01'; amtIn.readOnly = true;
+      amtIn.name = 'extra_amount_' + idx; amtIn.className = 'line-amt';
+      amtIn.style.cssText = 'background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+      amtWrap.appendChild(amtIn);
+
+      var rmBtn = document.createElement('button');
+      rmBtn.type = 'button'; rmBtn.textContent = '✕';
+      rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
+      rmBtn.addEventListener('click', function () { div.remove(); recomputeLines(); });
+
+      div.appendChild(diffWrap); div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
+      extraLines.appendChild(div);
+    });
+  }
+
   if (interpSel) {
     interpSel.addEventListener('change', function () {
-      var opt = interpSel.options[interpSel.selectedIndex];
+      var opt  = interpSel.options[interpSel.selectedIndex];
       var rate = opt ? opt.getAttribute('data-rate') : '';
       if (rate && baseRate) baseRate.value = rate;
       recompute();
@@ -206,6 +338,9 @@
   if (durHrs)   durHrs.addEventListener('input', recompute);
   if (startTime) startTime.addEventListener('change', autoFillDuration);
   if (endTime)   endTime.addEventListener('change', autoFillDuration);
+
+  // Auto-fill due date on page load
+  autoFillDueDate();
 })();
 </script>
 {% endblock %}

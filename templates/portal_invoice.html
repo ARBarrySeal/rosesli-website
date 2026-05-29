@@ -7,16 +7,35 @@
   <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
 </div>
 
-<div style="max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">
+<div style="max-width:600px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">
 
   {% if g.user.role == 'admin' %}
   <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
-    <div class="field-label">Client</div>
+    <div class="field-label">Interpreter</div>
     <div style="font-size:.88rem;">{{ inv.full_name or '—' }} &lt;{{ inv.email }}&gt;</div>
   </div>
   {% endif %}
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+  {# ── Service Details ── #}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;">
+    {% if inv.date_of_service %}
+    <div><div class="field-label">Date of Service</div><div style="font-size:.88rem;">{{ inv.date_of_service.strftime('%B %d, %Y') }}</div></div>
+    {% endif %}
+    {% if inv.service_start_time or inv.service_end_time %}
+    <div><div class="field-label">Time</div><div style="font-size:.88rem;">{{ inv.service_start_time or '—' }}{% if inv.service_end_time %} – {{ inv.service_end_time }}{% endif %}</div></div>
+    {% endif %}
+    {% if inv.duration_hours %}
+    <div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours }} hrs</div></div>
+    {% endif %}
+    {% if inv.base_rate %}
+    <div><div class="field-label">Base Rate</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.base_rate) }}/hr</div></div>
+    {% endif %}
+    {% if g.user.role == 'admin' and inv.differential %}
+    <div><div class="field-label">Differential</div><div style="font-size:.88rem;">{{ inv.differential }}</div></div>
+    {% endif %}
+    {% if inv.rate_applied %}
+    <div><div class="field-label">Rate Applied</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.rate_applied) }}/hr</div></div>
+    {% endif %}
     <div>
       <div class="field-label">Amount</div>
       <div style="font-size:1.5rem;font-weight:600;">${{ "%.2f"|format(inv.amount) }}</div>
@@ -26,34 +45,44 @@
       <span class="badge badge-{{ inv.status }}" style="font-size:.75rem;padding:.3rem .7rem;">{{ inv.status }}</span>
     </div>
     {% if inv.due_date %}
-    <div>
-      <div class="field-label">Due Date</div>
-      <div style="font-size:.88rem;">{{ inv.due_date.strftime('%B %d, %Y') }}</div>
-    </div>
+    <div><div class="field-label">Due Date</div><div style="font-size:.88rem;">{{ inv.due_date.strftime('%B %d, %Y') }}</div></div>
     {% endif %}
-    <div>
-      <div class="field-label">Created</div>
-      <div style="font-size:.88rem;">{{ inv.created_at.strftime('%B %d, %Y') }}</div>
-    </div>
+    {% if inv.paid_date %}
+    <div><div class="field-label">Date Paid</div><div style="font-size:.88rem;">{{ inv.paid_date.strftime('%B %d, %Y') }}</div></div>
+    {% endif %}
+    <div><div class="field-label">Created</div><div style="font-size:.88rem;">{{ inv.created_at.strftime('%B %d, %Y') }}</div></div>
   </div>
 
+  {# ── Extra rate lines ── #}
+  {% if inv.interpreter_rates %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label" style="margin-bottom:.6rem;">Additional Rate Lines</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
+          <th style="text-align:left;padding:.3rem .5rem;">Differential</th>
+          <th style="text-align:right;padding:.3rem .5rem;">Hrs</th>
+          <th style="text-align:right;padding:.3rem .5rem;">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="extra-lines-body"></tbody>
+    </table>
+  </div>
+  <script id="extra-lines-data" type="application/json">{{ inv.interpreter_rates | safe }}</script>
+  {% endif %}
+
+  {# ── Job Notes ── #}
   {% if inv.description %}
   <div style="margin-bottom:1.5rem;">
-    <div class="field-label">Description</div>
-    <div style="font-size:.88rem;line-height:1.65;color:var(--text);">{{ inv.description }}</div>
+    <div class="field-label">Job Notes</div>
+    <div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">{{ inv.description }}</div>
   </div>
   {% endif %}
 
-  {% if inv.interpreter_rates %}
+  {# ── Notes (admin only) ── #}
+  {% if g.user.role == 'admin' and inv.notes %}
   <div style="margin-bottom:1.5rem;">
-    <div class="field-label">Interpreter Rates</div>
-    <div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">{{ inv.interpreter_rates }}</div>
-  </div>
-  {% endif %}
-
-  {% if inv.notes %}
-  <div style="margin-bottom:1.5rem;">
-    <div class="field-label">Notes</div>
+    <div class="field-label">Notes (Admin Only)</div>
     <div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">{{ inv.notes }}</div>
   </div>
   {% endif %}
@@ -132,4 +161,28 @@
 <style>
   .field-label { font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem; }
 </style>
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var dataEl = document.getElementById('extra-lines-data');
+  var tbody  = document.getElementById('extra-lines-body');
+  if (!dataEl || !tbody) return;
+  try {
+    var lines = JSON.parse(dataEl.textContent);
+    lines.forEach(function (l) {
+      var tr = document.createElement('tr');
+      function cell(text, align) {
+        var td = document.createElement('td');
+        td.style.padding = '.3rem .5rem';
+        if (align) td.style.textAlign = align;
+        td.textContent = text;
+        return td;
+      }
+      tr.appendChild(cell(l.differential || '—', ''));
+      tr.appendChild(cell(String(l.duration || 0), 'right'));
+      tr.appendChild(cell('$' + parseFloat(l.amount || 0).toFixed(2), 'right'));
+      tbody.appendChild(tr);
+    });
+  } catch (e) {}
+})();
+</script>
 {% endblock %}
