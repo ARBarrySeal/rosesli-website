@@ -209,6 +209,19 @@ def blog():
     return send_from_directory(BASE_DIR, "blog.html")
 
 
+@app.route("/blog/<slug>")
+def blog_article(slug):
+    # Serve an individual Journal article from blog/<slug>.html. Sanitize to a
+    # bare slug (alnum + hyphen) so it can't traverse out of blog/, and fall
+    # back to the Journal hub for unknown slugs.
+    safe = "".join(c for c in slug.lower() if c.isalnum() or c == "-")
+    fname = f"{safe}.html"
+    blog_dir = os.path.join(BASE_DIR, "blog")
+    if safe and os.path.isfile(os.path.join(blog_dir, fname)):
+        return send_from_directory(blog_dir, fname)
+    return redirect("/blog", code=301)
+
+
 @app.route("/robots.txt")
 def robots():
     return send_from_directory(BASE_DIR, "robots.txt", mimetype="text/plain")

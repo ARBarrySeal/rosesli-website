@@ -1,0 +1,7 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local generator scratch output
+gen_out.txt
+deploy_blog.log
