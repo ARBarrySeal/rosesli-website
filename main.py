@@ -203,6 +203,12 @@ def accessibility():
     return send_from_directory(BASE_DIR, "accessibility-statement.html")
 
 
+@app.route("/blog.html")
+@app.route("/blog")
+def blog():
+    return send_from_directory(BASE_DIR, "blog.html")
+
+
 @app.route("/robots.txt")
 def robots():
     return send_from_directory(BASE_DIR, "robots.txt", mimetype="text/plain")
