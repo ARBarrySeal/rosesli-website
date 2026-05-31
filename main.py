@@ -254,6 +254,8 @@ def css():
 
 _ALLOWED_IMAGES = frozenset({
     "hand-shaka.png",
+    "hand-shaka.webp",
+    "hand-shaka.jpg",
     "hand-iloveyou.png",
     "nad-logo.png",
     "nic-logo.png",
@@ -268,6 +270,22 @@ def image(filename):
     if name not in _ALLOWED_IMAGES:
         return ("Not found", 404)
     return send_from_directory(BASE_DIR, name, mimetype="image/png")
+
+
+@app.route("/<path:filename>.webp")
+def image_webp(filename):
+    name = f"{filename}.webp"
+    if name not in _ALLOWED_IMAGES:
+        return ("Not found", 404)
+    return send_from_directory(BASE_DIR, name, mimetype="image/webp")
+
+
+@app.route("/<path:filename>.jpg")
+def image_jpg(filename):
+    name = f"{filename}.jpg"
+    if name not in _ALLOWED_IMAGES:
+        return ("Not found", 404)
+    return send_from_directory(BASE_DIR, name, mimetype="image/jpeg")
 
 
 FIELD_LABELS = [
@@ -425,8 +443,15 @@ def _create_job_from_request(form):
 
 
 @app.route("/api/request", methods=["POST"])
+@limiter.limit("12 per hour")
 def api_request():
     form = request.form
+    # Honeypot: the "website" field is hidden from real visitors via CSS, so any
+    # value means a bot filled it. Accept-and-drop (return success, send nothing)
+    # so the bot believes it succeeded and doesn't retry or escalate.
+    if (form.get("website") or "").strip():
+        _structured_log("INFO", message="interpreter_request_honeypot_drop")
+        return jsonify(ok=True, delivered=False)
     if not form.get("name") or not form.get("email"):
         return jsonify(ok=False, error="missing_required"), 400
     body = _build_message(form)

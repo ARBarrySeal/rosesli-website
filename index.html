@@ -33,7 +33,7 @@
   "name": "Rose Sign Language Interpreting",
   "url": "https://rosesli.com/",
   "image": "https://rosesli.com/og-image.png",
-  "logo": "https://rosesli.com/og-image.png",
+  "logo": "https://rosesli.com/logo.svg",
   "telephone": "+1-619-289-7368",
   "email": "info@rosesli.com",
   "description": "Certified ASL interpreters for medical, legal, educational, mental health, and performance settings — on site across San Diego County or via video (VRI) nationwide.",
@@ -485,12 +485,15 @@
     </div>
   </div>
   <div class="hero-visual">
-    <img src="hand-shaka.png" alt="Hand signing in American Sign Language" class="hero-img">
+    <picture>
+      <source srcset="/hand-shaka.webp" type="image/webp">
+      <img src="/hand-shaka.jpg" alt="Hand signing in American Sign Language" class="hero-img" width="1160" height="870" fetchpriority="high" decoding="async">
+    </picture>
     <div class="hero-meta">San Diego, CA<br><b>On-site &amp; VRI<br>nationwide</b></div>
   </div>
 </section>
 
-<div class="run">
+<div class="run" aria-hidden="true">
   <div class="run-inner">
     <span>Medical</span><span>Corporate</span><span>Education</span><span>Theaters</span><span>Concerts</span><span>Private Events</span><span>Community</span><span>Mental Health</span>
     <span>Medical</span><span>Corporate</span><span>Education</span><span>Theaters</span><span>Concerts</span><span>Private Events</span><span>Community</span><span>Mental Health</span>
@@ -644,6 +647,9 @@
     </div>
     <form class="req-form" onsubmit="submitRequest(event)">
       <div class="form-fields">
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
+          <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        </div>
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Your name</span>
@@ -690,6 +696,10 @@
             </select>
           </label>
         </div>
+        <label class="field">
+          <span class="field-lbl">Event ZIP <span class="opt">(for on-site)</span></span>
+          <input type="text" name="zip" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="92101">
+        </label>
         <div class="date-block" id="date-block">
           <div class="field-row field-row-3 date-row" data-slot="0">
             <label class="field">
@@ -815,6 +825,7 @@
   </div>
   <div class="foot-bottom">
     <span>© 2026 Rose Sign Language Interpreting</span>
+    <span style="display:flex;gap:14px;flex-wrap:wrap;"><a href="/about" style="color:#6b7a8c;text-decoration:none;">About</a><a href="/testimonials" style="color:#6b7a8c;text-decoration:none;">Testimonials</a><a href="/vri" style="color:#6b7a8c;text-decoration:none;">VRI</a><a href="/blog" style="color:#6b7a8c;text-decoration:none;">Journal</a><a href="/request" style="color:#6b7a8c;text-decoration:none;">Request</a><a href="/accessibility-statement" style="color:#6b7a8c;text-decoration:none;">Accessibility</a></span>
   </div>
 </footer>
 
