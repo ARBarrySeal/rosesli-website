@@ -332,6 +332,28 @@
     .foot-creds{flex-direction:column;align-items:flex-start;gap:10px;}
     .foot-creds-lbl{text-align:left;}
   }
+  /* JOURNAL TEASER */
+  .journal-teaser{background:var(--paper2);border-top:1px solid var(--rule);}
+  .jt-inner{max-width:1240px;margin:0 auto;padding:88px 28px;}
+  .jt-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:40px;flex-wrap:wrap;}
+  .jt-head h2{font-family:'Times New Roman',Times,serif;font-size:clamp(34px,4.4vw,52px);line-height:1.05;letter-spacing:-.015em;font-weight:400;margin-top:6px;}
+  .jt-head h2 .serif{font-family:'Times New Roman',Times,serif;font-style:italic;font-weight:400;color:var(--blue);}
+  .jt-all{display:inline-flex;align-items:center;gap:6px;font-size:13px;letter-spacing:.06em;font-weight:700;color:var(--blue);text-decoration:none;white-space:nowrap;}
+  .jt-all:hover{text-decoration:underline;}
+  .jt-all .arrow{width:13px;height:13px;}
+  .jt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .jt-card{display:flex;flex-direction:column;gap:13px;padding:30px 28px;background:var(--paper);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:inherit;transition:transform .2s,box-shadow .2s,border-color .2s;}
+  .jt-card:hover{transform:translateY(-3px);box-shadow:0 22px 44px -30px rgba(10,20,32,.4);border-color:var(--ink);}
+  .jt-meta{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;flex-wrap:wrap;}
+  .jt-date{color:var(--mute);font-variant-numeric:tabular-nums;}
+  .jt-cat{color:var(--blue);}
+  .jt-card h3{font-family:'Times New Roman',Times,serif;font-size:24px;line-height:1.15;font-weight:400;letter-spacing:-.01em;color:var(--ink);}
+  .jt-card p{font-size:15px;line-height:1.6;color:var(--ink2);}
+  .jt-more{margin-top:auto;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--blue);}
+  @media(max-width:900px){
+    .jt-grid{grid-template-columns:1fr;}
+    .jt-inner{padding:64px 28px;}
+  }
 </style>
 </head>
 <body>
@@ -574,6 +596,38 @@
     </div>
     <a href="request.html" class="btn">Request VRI <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
   </aside>
+</section>
+
+<section class="journal-teaser">
+  <div class="jt-inner">
+    <div class="jt-head">
+      <div>
+        <div class="eyebrow">From the Journal</div>
+        <h2>Insights on access, <span class="serif">a new piece every month.</span></h2>
+      </div>
+      <a href="/blog" class="jt-all">All articles <svg class="arrow" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3z"/></svg></a>
+    </div>
+    <div class="jt-grid">
+      <a class="jt-card" href="/blog/graduation-asl-access-san-diego">
+        <div class="jt-meta"><span class="jt-date">May 2026</span><span class="jt-cat">Education &amp; Events</span></div>
+        <h3>Graduation Season: Don&rsquo;t Let Commencement Be the Moment Access Fails</h3>
+        <p>Ceremonies are booked a year out, yet the interpreter is too often an afterthought. How San Diego schools get it right.</p>
+        <span class="jt-more">Read &rarr;</span>
+      </a>
+      <a class="jt-card" href="/blog/ai-sign-language-interpreters">
+        <div class="jt-meta"><span class="jt-date">April 2026</span><span class="jt-cat">Technology &amp; ASL</span></div>
+        <h3>AI Sign Language Interpreters Are Going Viral. Here&rsquo;s What Deaf People Actually Think.</h3>
+        <p>The demos look revolutionary to hearing audiences. In Deaf forums, the reaction is very different &mdash; and that gap is the whole story.</p>
+        <span class="jt-more">Read &rarr;</span>
+      </a>
+      <a class="jt-card" href="/blog/deaf-women-who-shaped-asl">
+        <div class="jt-meta"><span class="jt-date">March 2026</span><span class="jt-cat">Deaf Culture &amp; History</span></div>
+        <h3>Women&rsquo;s History Month: The Deaf Women Who Shaped ASL and the Field</h3>
+        <p>From Alice Cogswell to the advocates who built the modern profession, the history of ASL is inseparable from the women who carried it.</p>
+        <span class="jt-more">Read &rarr;</span>
+      </a>
+    </div>
+  </div>
 </section>
 
 <section class="cta" id="request">
