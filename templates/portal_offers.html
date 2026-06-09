@@ -1,0 +1,81 @@
+{% extends "portal_base.html" %}
+{% block title %}Job Offers — Portal{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 .5rem;">Job Offers</h1>
+<p style="color:var(--muted);font-size:.8rem;max-width:46rem;margin-top:0;">
+  Assignments you've been offered. Accept to claim the job, or decline so it can
+  be offered to someone else. Accepting doesn't lock it in until the office confirms.
+</p>
+
+<h2 class="asn-section">Pending offers</h2>
+{% if pending %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>Date</th><th>Time</th><th>Setting</th><th>Location</th><th>Job #</th>
+      <th style="text-align:right;">Respond</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for o in pending %}
+    <tr>
+      <td>{{ o.event_date.strftime('%a %b %d, %Y') if o.event_date else '—' }}</td>
+      <td>
+        {% if o.start_time %}{{ o.start_time }}{% endif %}
+        {% if o.end_time %}– {{ o.end_time }}{% endif %}
+        {% if not o.start_time and not o.end_time %}—{% endif %}
+      </td>
+      <td>{{ o.setting or '—' }}</td>
+      <td>
+        {{ o.event_address or '' }}{% if o.event_zip %} {{ o.event_zip }}{% endif %}
+        {% if not o.event_address and not o.event_zip %}—{% endif %}
+      </td>
+      <td>{{ o.job_number or '—' }}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <form method="post" action="/portal/offers/{{ o.id }}/accept" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" class="btn btn-primary btn-sm">Accept</button>
+        </form>
+        <form method="post" action="/portal/offers/{{ o.id }}/decline" data-confirm="Decline this offer?" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" class="btn btn-ghost btn-sm">Decline</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.85rem;">No pending offers right now.</p>
+{% endif %}
+
+<h2 class="asn-section">Recent history</h2>
+{% if history %}
+<table class="portal-table">
+  <thead>
+    <tr><th>Date</th><th>Setting</th><th>Job #</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for o in history %}
+    <tr>
+      <td>{{ o.event_date.strftime('%a %b %d, %Y') if o.event_date else '—' }}</td>
+      <td>{{ o.setting or '—' }}</td>
+      <td>{{ o.job_number or '—' }}</td>
+      <td>
+        {% if o.status in ('accepted','confirmed') %}
+        <span class="badge badge-confirmed">{{ o.status|capitalize }}</span>
+        {% elif o.status == 'declined' %}
+        <span class="badge badge-cancelled">Declined</span>
+        {% else %}
+        <span class="badge badge-pending">{{ o.status|capitalize }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.85rem;">No history yet.</p>
+{% endif %}
+{% endblock %}

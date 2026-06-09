@@ -42,6 +42,10 @@
 
     {% if g.user.company == 'rosesli' and g.user.role in ['admin', 'employee'] %}
     <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    <a href="/portal/offers" class="{{ 'active' if request.path.startswith('/portal/offers') else '' }}">
+      Job Offers{% if pending_offers %} <span class="badge badge-pending">{{ pending_offers }}</span>{% endif %}
+    </a>
+    <a href="/portal/availability" class="{{ 'active' if request.path.startswith('/portal/availability') else '' }}">Availability</a>
     {% endif %}
     <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
     <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>

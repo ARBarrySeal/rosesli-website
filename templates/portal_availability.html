@@ -1,0 +1,79 @@
+{% extends "portal_base.html" %}
+{% block title %}Availability — Portal{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 .5rem;">Availability</h1>
+
+<p style="color:var(--muted);font-size:.8rem;max-width:46rem;margin-top:0;">
+  Mark the dates you <strong>can't</strong> work. Anything not blocked off counts as
+  available, so the coordinator only offers you jobs on days you're free.
+</p>
+
+{% if is_admin %}
+<form method="get" action="/portal/availability" class="asn-form" style="margin-bottom:1.25rem;">
+  <label class="asn-field"><span>Viewing calendar</span>
+    <select name="user_id" onchange="this.form.submit()">
+      <option value="">— my own —</option>
+      {% for i in interpreters %}
+      <option value="{{ i.id }}" {{ 'selected' if i.id == target_id else '' }}>{{ i.full_name or i.email }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <noscript><button type="submit" class="btn">View</button></noscript>
+</form>
+{% if target_id != g.user.sub|int %}
+<p style="font-size:.8rem;color:var(--accent);margin-top:-.5rem;">
+  Showing unavailability for <strong>{{ target_name }}</strong>.
+</p>
+{% endif %}
+{% endif %}
+
+<h2 class="asn-section">Add unavailability</h2>
+<form method="post" action="/portal/availability/add" class="asn-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  {% if is_admin %}<input type="hidden" name="user_id" value="{{ target_id }}"/>{% endif %}
+  <div class="asn-grid">
+    <label class="asn-field"><span>From</span>
+      <input type="date" name="start_date" required/>
+    </label>
+    <label class="asn-field"><span>To (optional)</span>
+      <input type="date" name="end_date"/>
+    </label>
+    <label class="asn-field"><span>Note (optional)</span>
+      <input type="text" name="note" placeholder="e.g. out of town, medical"/>
+    </label>
+  </div>
+  <p style="font-size:.72rem;color:var(--muted);margin:.4rem 0 .75rem;">
+    Leave “To” empty for a single day. The range includes both dates.
+  </p>
+  <button type="submit" class="btn btn-primary">Block off</button>
+</form>
+
+<h2 class="asn-section">Upcoming blocks</h2>
+{% if blocks %}
+<table class="portal-table">
+  <thead>
+    <tr><th>Dates</th><th>Note</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for b in blocks %}
+    <tr>
+      <td>
+        {{ b.start_date.strftime('%b %d, %Y') if b.start_date else '—' }}
+        {% if b.end_date and b.end_date != b.start_date %} &ndash; {{ b.end_date.strftime('%b %d, %Y') }}{% endif %}
+      </td>
+      <td style="color:var(--muted);">{{ b.note or '—' }}</td>
+      <td style="text-align:right;">
+        <form method="post" action="/portal/availability/{{ b.id }}/delete" data-confirm="Remove this unavailability block?" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No upcoming unavailability — you're open for offers.</p>
+{% endif %}
+{% endblock %}

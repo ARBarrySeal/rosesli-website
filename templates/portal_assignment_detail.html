@@ -75,4 +75,65 @@
   <p style="font-size:.82rem;white-space:pre-wrap;color:var(--text);margin:0;">{{ job.notes }}</p>
   {% endif %}
 </div>
+
+{% if is_admin %}
+<div class="asn-detail" style="margin-top:1.5rem;">
+  <h2 class="asn-section">Staffing &amp; offers</h2>
+
+  {% if offers %}
+  <table class="portal-table" style="margin-bottom:1.25rem;">
+    <thead>
+      <tr><th>Interpreter</th><th>Status</th><th>Offered</th><th style="text-align:right;">Action</th></tr>
+    </thead>
+    <tbody>
+      {% for o in offers %}
+      <tr>
+        <td>{{ o.interpreter_name or o.interpreter_email }}</td>
+        <td>
+          {% if o.status == 'offered' %}<span class="badge badge-pending">Offered</span>
+          {% elif o.status == 'accepted' %}<span class="badge badge-confirmed">Accepted</span>
+          {% elif o.status == 'declined' %}<span class="badge badge-cancelled">Declined</span>
+          {% else %}<span class="badge badge-cancelled">{{ o.status|capitalize }}</span>{% endif %}
+        </td>
+        <td>{{ o.offered_at.strftime('%b %d, %I:%M %p') if o.offered_at else '—' }}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          {% if o.status in ('accepted', 'offered') %}
+          <form method="post" action="/portal/admin/assignments/{{ job.id }}/confirm" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="interpreter_id" value="{{ o.interpreter_id }}"/>
+            <button type="submit" class="btn btn-primary btn-sm">Confirm</button>
+          </form>
+          <form method="post" action="/portal/admin/offers/{{ o.id }}/withdraw" data-confirm="Withdraw this offer?" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-ghost btn-sm">Withdraw</button>
+          </form>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--muted);font-size:.85rem;">No offers sent yet.</p>
+  {% endif %}
+
+  <h3 style="font-size:.8rem;margin:0 0 .5rem;">Offer to interpreters</h3>
+  <form method="post" action="/portal/admin/assignments/{{ job.id }}/offer">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="asn-grid">
+      <label class="asn-field"><span>Interpreters (Ctrl/Cmd-click for several)</span>
+        <select name="interpreter_id" multiple size="6">
+          {% for i in interpreters %}
+          <option value="{{ i.id }}">{{ i.full_name or i.email }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="asn-field"><span>Note to interpreter (optional)</span>
+        <input type="text" name="note" placeholder="e.g. parking on 5th, arrive 15 min early"/>
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:.75rem;">Send offer</button>
+  </form>
+</div>
+{% endif %}
 {% endblock %}

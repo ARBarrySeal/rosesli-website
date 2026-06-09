@@ -35,6 +35,12 @@
     <div class="label">Upcoming Bookings</div>
     <div class="value">{{ stats.bookings }}</div>
   </div>
+  {% if g.user.company == 'rosesli' %}
+  <a href="/portal/offers" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">Pending Offers</div>
+    <div class="value" style="{{ 'color:#ffaa33' if pending_offers else 'color:var(--success)' }}">{{ pending_offers or 0 }}</div>
+  </a>
+  {% endif %}
 {% endif %}
 </div>
 

@@ -85,3 +85,64 @@ def send_test_email(to_email: str, company_name: str) -> tuple[bool, str]:
         f"and password-reset emails will deliver to client accounts.\n"
     )
     return _send_with_detail(to_email, subject, body)
+
+
+# ── Scheduler: job offers ─────────────────────────────────────────────────────
+
+def _job_when(job: dict) -> str:
+    """One-line date/time/location summary for offer/confirm emails."""
+    bits = []
+    d = job.get("event_date")
+    if d:
+        bits.append(d.strftime("%A, %B %d, %Y") if hasattr(d, "strftime") else str(d))
+    times = " – ".join(t for t in (job.get("start_time"), job.get("end_time")) if t)
+    if times:
+        bits.append(times)
+    where = job.get("event_address") or job.get("event_zip")
+    if where:
+        bits.append(where)
+    return " · ".join(bits) if bits else "details in the portal"
+
+
+def send_offer_email(to_email: str, to_name: str, job: dict, offers_url: str,
+                     company_name: str) -> bool:
+    subject = f"New assignment offer — {_job_when(job)}"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"You've been offered an assignment:\n\n"
+        f"  {_job_when(job)}\n"
+        f"  Setting: {job.get('setting') or '—'}\n\n"
+        f"Please accept or decline in the portal:\n\n"
+        f"{offers_url}\n\n"
+        f"— {company_name}\n"
+    )
+    return _send(to_email, subject, body)
+
+
+def send_confirm_email(to_email: str, to_name: str, job: dict, offers_url: str,
+                       company_name: str) -> bool:
+    subject = f"You're confirmed — {_job_when(job)}"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"You're confirmed for this assignment:\n\n"
+        f"  {_job_when(job)}\n"
+        f"  Setting: {job.get('setting') or '—'}\n\n"
+        f"Details are in your portal:\n\n"
+        f"{offers_url}\n\n"
+        f"— {company_name}\n"
+    )
+    return _send(to_email, subject, body)
+
+
+def send_offer_response_email(to_email: str, interpreter_name: str, decision: str,
+                              job: dict, link_url: str, company_name: str) -> bool:
+    """Notify the coordinator that an interpreter accepted/declined an offer."""
+    subject = f"{interpreter_name} {decision} — {_job_when(job)}"
+    body = (
+        f"{interpreter_name} {decision} the assignment offer:\n\n"
+        f"  {_job_when(job)}\n\n"
+        f"Review and confirm in the portal:\n\n"
+        f"{link_url}\n\n"
+        f"— {company_name}\n"
+    )
+    return _send(to_email, subject, body)

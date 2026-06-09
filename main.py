@@ -51,12 +51,16 @@ from portal_admin import admin_bp
 from portal_pages import pages_bp
 from portal_jobs import jobs_bp
 from portal_client_invoices import client_inv_bp
+from portal_availability import availability_bp
+from portal_offers import offers_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(pages_bp)
 app.register_blueprint(jobs_bp)
 app.register_blueprint(client_inv_bp)
+app.register_blueprint(availability_bp)
+app.register_blueprint(offers_bp)
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 
@@ -79,6 +83,19 @@ def _csp_nonce():
     return g.csp_nonce
 
 app.jinja_env.globals["csp_nonce"] = _csp_nonce
+
+
+@app.context_processor
+def _inject_offer_badge():
+    """Pending-offer count for the nav badge (interpreters/admins only)."""
+    user = getattr(g, "user", None)
+    if not user or user.get("role") not in ("admin", "employee"):
+        return {}
+    try:
+        from portal_offers import pending_offer_count
+        return {"pending_offers": pending_offer_count(int(user["sub"]), user["company"])}
+    except Exception:
+        return {"pending_offers": 0}
 
 
 _CSRF_EXEMPT = {"/api/request"}

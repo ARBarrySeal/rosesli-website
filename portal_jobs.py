@@ -194,7 +194,18 @@ def assignment_detail(job_id):
         abort(403)
     if role == "client":
         abort(403)
-    return render_template("portal_assignment_detail.html", job=job, is_admin=(role == "admin"))
+
+    offers = interpreters = None
+    if role == "admin":
+        from portal_offers import offers_for_job
+        offers = offers_for_job(job_id, company)
+        interpreters = _interpreters(company)
+
+    return render_template(
+        "portal_assignment_detail.html",
+        job=job, is_admin=(role == "admin"),
+        offers=offers, interpreters=interpreters,
+    )
 
 
 # ── Admin create / edit / delete ──────────────────────────────────────────────
