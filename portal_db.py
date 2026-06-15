@@ -1,5 +1,6 @@
 import os
 import threading
+from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.pool
@@ -64,6 +65,24 @@ def execute(sql, params=()):
                     cols = [d[0] for d in cur.description]
                     return dict(zip(cols, row))
             return None
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        pool.putconn(conn)
+
+
+@contextmanager
+def transaction():
+    """Run several statements as ONE atomic unit. Yields a cursor; the whole
+    block commits on clean exit and rolls back entirely on any exception, so a
+    multi-row write can never be left half-applied."""
+    pool = _get_pool()
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            yield cur
+        conn.commit()
     except Exception:
         conn.rollback()
         raise

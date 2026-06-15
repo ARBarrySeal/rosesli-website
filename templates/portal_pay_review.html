@@ -62,15 +62,19 @@
 (function () {
   var selectAll = document.getElementById('selectAll');
   var totalEl   = document.getElementById('selectedTotal');
+  var form      = document.getElementById('payForm');
+  var submitBtn = document.getElementById('submitBtn');
   var boxes     = Array.prototype.slice.call(document.querySelectorAll('.job-cb'));
   if (!totalEl) return;
 
   function recalc() {
-    var sum = 0;
+    var sum = 0, anyChecked = false;
     boxes.forEach(function (b) {
-      if (b.checked) sum += parseFloat(b.getAttribute('data-amount')) || 0;
+      if (b.checked) { sum += parseFloat(b.getAttribute('data-amount')) || 0; anyChecked = true; }
     });
     totalEl.textContent = '$' + sum.toFixed(2);
+    // Nothing to submit until at least one assignment is selected.
+    if (submitBtn) submitBtn.disabled = !anyChecked;
   }
 
   boxes.forEach(function (b) { b.addEventListener('change', function () {
@@ -81,6 +85,14 @@
   if (selectAll) selectAll.addEventListener('change', function () {
     boxes.forEach(function (b) { b.checked = selectAll.checked; });
     recalc();
+  });
+
+  // Guard against a double-click / double-submit billing the same work twice.
+  if (form) form.addEventListener('submit', function () {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+    }
   });
 
   recalc();

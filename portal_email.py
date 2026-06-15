@@ -3,6 +3,8 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
+import portal_db
+
 
 def _smtp_config() -> dict | None:
     host = os.environ.get("SMTP_HOST")
@@ -59,6 +61,24 @@ def _route_recipient(to_email: str, body: str) -> tuple[str, str]:
         body = f"[TEST MODE] Original recipient: {to_email}\n\n{body}"
         return test_to, body
     return to_email, body
+
+
+def coordinator_recipients(company: str) -> list[str]:
+    """Who receives coordinator/admin notifications for a company.
+
+    When PORTAL_ADMIN_NOTIFY_EMAIL is set, every admin notification goes to that
+    single inbox — this is how Rose SLI routes all coordinator alerts to Amanda
+    without editing individual user records. Otherwise it falls back to the
+    company's active admin users."""
+    override = os.environ.get("PORTAL_ADMIN_NOTIFY_EMAIL", "").strip()
+    if override:
+        return [override]
+    rows = portal_db.query_all(
+        "SELECT email FROM portal_users "
+        "WHERE company = %s AND role = 'admin' AND active = TRUE AND email IS NOT NULL",
+        (company,),
+    )
+    return [r["email"] for r in rows]
 
 
 def send_invite_email(to_email: str, to_name: str, setup_url: str, company_name: str) -> bool:
@@ -194,6 +214,22 @@ def send_master_invoice_email(to_email: str, interpreter_name: str, invoice_id: 
         f"{line_text}\n\n"
         f"  Total: ${total:.2f}\n\n"
         f"Review it in the portal:\n\n"
+        f"{link_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
+def send_invoice_paid_email(to_email: str, interpreter_name: str, invoice_id: int,
+                            amount: float, link_url: str, company_name: str) -> bool:
+    """Close the loop: tell the interpreter their submitted invoice was paid."""
+    subject = f"Your invoice was paid — ${amount:.2f}"
+    body = (
+        f"Hi {interpreter_name},\n\n"
+        f"Good news — your invoice #{invoice_id} for ${amount:.2f} has been "
+        f"marked paid.\n\n"
+        f"View it in the portal:\n\n"
         f"{link_url}\n\n"
         f"— {company_name}\n"
     )

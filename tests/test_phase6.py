@@ -16,6 +16,7 @@ import os
 import secrets
 import datetime as dt
 
+import psycopg2
 import pytest
 
 import portal_db
@@ -189,6 +190,49 @@ def test_create_master_invoice_returns_none_when_nothing_valid(world):
     theirs = _mk_job(status="confirmed", interpreter_1_id=world["other"], duration="5")
     assert create_master_invoice(COMPANY, world["int"], [theirs]) is None
     assert create_master_invoice(COMPANY, world["int"], []) is None
+
+
+# ── 2b. Double-billing protection (migration 012 unique index + atomic write) ────
+
+def test_invoice_jobs_unique_index_rejects_duplicate_job(world):
+    """The DB itself must refuse billing the same assignment on a second invoice."""
+    from portal_interpreter_invoices import create_master_invoice
+    job = _mk_job(status="confirmed", interpreter_1_id=world["int"], duration="2")
+    assert create_master_invoice(COMPANY, world["int"], [job]) is not None
+    # A second, independent invoice trying to bill the same job must be rejected.
+    inv2 = portal_db.execute(
+        "INSERT INTO invoices (user_id, amount, status, submitted) "
+        "VALUES (%s, 0, 'submitted_for_payment', TRUE) RETURNING id",
+        (world["int"],),
+    )["id"]
+    with pytest.raises(psycopg2.Error):
+        portal_db.execute(
+            "INSERT INTO invoice_jobs (invoice_id, job_id, company, line_amount) "
+            "VALUES (%s, %s, %s, %s)",
+            (inv2, job, COMPANY, 160.0),
+        )
+
+
+def test_create_master_invoice_rolls_back_on_conflict(world, monkeypatch):
+    """If an assignment is billed concurrently, the whole invoice rolls back —
+    no orphaned header with missing lines is left behind."""
+    import portal_interpreter_invoices as pii
+    job = _mk_job(status="confirmed", interpreter_1_id=world["int"], duration="2")
+    assert pii.create_master_invoice(COMPANY, world["int"], [job]) is not None
+
+    before = portal_db.query_one(
+        "SELECT COUNT(*) AS n FROM invoices WHERE user_id = %s", (world["int"],),
+    )["n"]
+
+    # Simulate a race: pretend the just-billed job is still billable.
+    stale = [{"id": job, "line_amount": 160.0}]
+    monkeypatch.setattr(pii, "billable_jobs_for_interpreter", lambda c, u: stale)
+    assert pii.create_master_invoice(COMPANY, world["int"], [job]) is None
+
+    after = portal_db.query_one(
+        "SELECT COUNT(*) AS n FROM invoices WHERE user_id = %s", (world["int"],),
+    )["n"]
+    assert after == before  # rolled back cleanly, no orphan invoice
 
 
 # ── 3. /portal/pay routes ────────────────────────────────────────────────────────

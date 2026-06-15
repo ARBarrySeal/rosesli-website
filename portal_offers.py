@@ -288,16 +288,11 @@ def _respond(offer_id: int, decision: str):
     # Notify the coordinator(s) so they can confirm.
     job = _job(offer["job_id"], company)
     verb = "accepted" if decision == "accepted" else "declined"
-    admins = portal_db.query_all(
-        "SELECT email FROM portal_users "
-        "WHERE company = %s AND role = 'admin' AND active = TRUE AND email IS NOT NULL",
-        (company,),
-    )
     me = _name_for(uid, company) or "An interpreter"
     link = _abs_url(f"/portal/admin/assignments/{offer['job_id']}")
-    for a in admins:
+    for email in portal_email.coordinator_recipients(company):
         portal_email.send_offer_response_email(
-            a["email"], me, verb, job or {}, link, _company_name(company)
+            email, me, verb, job or {}, link, _company_name(company)
         )
 
     flash(f"Offer {verb}.", "success")

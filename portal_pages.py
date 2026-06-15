@@ -11,6 +11,7 @@ from flask import (
 from werkzeug.utils import secure_filename
 
 import portal_db
+import portal_email
 import portal_mfa
 import portal_storage
 from portal_audit import log as audit_log
@@ -997,7 +998,8 @@ def mark_invoice_unpaid(invoice_id):
 def mark_invoice_paid(invoice_id):
     company = g.user["company"]
     inv = portal_db.query_one(
-        "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "SELECT i.id, i.amount, u.email, u.full_name "
+        "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
         "WHERE i.id = %s AND u.company = %s",
         (invoice_id, company),
     )
@@ -1008,6 +1010,20 @@ def mark_invoice_paid(invoice_id):
         "UPDATE invoices SET status='paid', paid_date=%s WHERE id=%s", (paid_date, invoice_id)
     )
     audit_log("invoice_mark_paid", target=f"invoice:{invoice_id}", metadata={"paid_date": paid_date})
+    # Close the loop with the interpreter; a send failure must not block the action.
+    if inv.get("email"):
+        try:
+            company_name = {
+                "rosesli": "Rose Sign Language Interpreting",
+                "dod": "DOD Cyber Consulting",
+            }.get(company, company)
+            link = request.url_root.rstrip("/") + f"/portal/invoices/{invoice_id}"
+            portal_email.send_invoice_paid_email(
+                inv["email"], inv.get("full_name") or "there", invoice_id,
+                float(inv["amount"] or 0), link, company_name,
+            )
+        except Exception:
+            pass
     flash("Invoice marked as paid.", "success")
     return redirect(f"/portal/invoices/{invoice_id}")
 
