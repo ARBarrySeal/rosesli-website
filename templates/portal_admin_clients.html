@@ -1,0 +1,49 @@
+{% extends "portal_base.html" %}
+{% block title %}Client Profiles — Portal Admin{% endblock %}
+
+{% block content %}
+<h1>Client Profiles</h1>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <span style="color:var(--muted);font-size:.78rem;">{{ users|length }} client{{ 's' if users|length != 1 else '' }}</span>
+  <a href="/portal/admin/invite" class="btn btn-primary">+ Invite User</a>
+</div>
+
+{% if users %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Organization</th>
+      <th>Point of Contact</th>
+      <th>Base Rate</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.full_name or '—' }}</td>
+      <td style="color:var(--muted);">{{ u.company_name or '—' }}</td>
+      <td>{{ u.point_of_contact or '—' }}</td>
+      <td>{% if u.interpreter_rate is not none %}${{ '%.2f'|format(u.interpreter_rate) }}/hr{% else %}—{% endif %}</td>
+      <td>
+        {% if u.active %}
+          <span class="badge badge-paid">active</span>
+        {% else %}
+          <span class="badge badge-unpaid">inactive</span>
+        {% endif %}
+      </td>
+      <td>
+        <a href="/portal/profile?uid={{ u.id }}" class="btn btn-ghost"
+           style="font-size:.6rem;padding:.2rem .55rem;text-decoration:none;">Profile</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.85rem;">No clients yet. Use <a href="/portal/admin/invite" style="color:var(--accent);">Invite User</a> to add one.</p>
+{% endif %}
+{% endblock %}

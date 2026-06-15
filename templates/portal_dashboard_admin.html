@@ -2,10 +2,9 @@
 {% block title %}Dashboard — Portal{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<h1>Admin Dashboard</h1>
 
 <div class="stat-cards">
-{% if g.user.role == 'admin' %}
   <a href="/portal/admin/users" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Active Users</div>
     <div class="value">{{ stats.users }}</div>
@@ -22,26 +21,6 @@
     <div class="label">Unpaid</div>
     <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
   </a>
-{% else %}
-  <div class="stat-card">
-    <div class="label">My Invoices</div>
-    <div class="value">{{ stats.invoices }}</div>
-  </div>
-  <a href="/portal/unpaid-invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
-    <div class="label">Unpaid</div>
-    <div class="value" style="{{ 'color:#ffaa33' if stats.pending > 0 else 'color:var(--success)' }}">{{ stats.pending }}</div>
-  </a>
-  <div class="stat-card">
-    <div class="label">Upcoming Bookings</div>
-    <div class="value">{{ stats.bookings }}</div>
-  </div>
-  {% if g.user.company == 'rosesli' %}
-  <a href="/portal/offers" class="stat-card" style="text-decoration:none;cursor:pointer;">
-    <div class="label">Pending Offers</div>
-    <div class="value" style="{{ 'color:#ffaa33' if pending_offers else 'color:var(--success)' }}">{{ pending_offers or 0 }}</div>
-  </a>
-  {% endif %}
-{% endif %}
 </div>
 
 <h1 style="font-size:.72rem;margin-bottom:1rem;">Recent Invoices</h1>
@@ -49,7 +28,7 @@
 <table class="portal-table">
   <thead>
     <tr>
-      {% if g.user.role == 'admin' %}<th>Client</th>{% endif %}
+      <th>Interpreter</th>
       <th>Amount</th>
       <th>Status</th>
       <th>Due</th>
@@ -58,9 +37,7 @@
   <tbody>
     {% for inv in invoices %}
     <tr style="cursor:pointer;" data-href="/portal/invoices/{{ inv.id }}">
-      {% if g.user.role == 'admin' %}
       <td>{{ inv.full_name or inv.email or '—' }}</td>
-      {% endif %}
       <td>${{ "%.2f"|format(inv.amount) }}</td>
       <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
       <td>{{ inv.due_date.strftime('%b %d, %Y') if inv.due_date else '—' }}</td>
@@ -73,10 +50,6 @@
 {% endif %}
 
 <div style="margin-top:2rem;">
-{% if g.user.role == 'admin' %}
   <a href="/portal/admin/invite" class="btn btn-primary">Invite New User</a>
-{% else %}
-  <a href="/portal/schedule" class="btn btn-primary">Book a Meeting</a>
-{% endif %}
 </div>
 {% endblock %}

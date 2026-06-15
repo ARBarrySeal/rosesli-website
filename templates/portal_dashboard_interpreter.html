@@ -1,0 +1,79 @@
+{% extends "portal_base.html" %}
+{% block title %}Dashboard — Portal{% endblock %}
+
+{% block content %}
+<h1>Interpreter Dashboard</h1>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="label">Upcoming Assignments</div>
+    <div class="value">{{ upcoming|length }}</div>
+  </div>
+  {% if g.user.company == 'rosesli' %}
+  <a href="/portal/offers" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">Pending Offers</div>
+    <div class="value" style="{{ 'color:#ffaa33' if pending_offers else 'color:var(--success)' }}">{{ pending_offers or 0 }}</div>
+  </a>
+  {% endif %}
+  <a href="/portal/invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">My Invoices</div>
+    <div class="value">{{ invoice_count }}</div>
+  </a>
+  <a href="/portal/unpaid-invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">Unpaid</div>
+    <div class="value" style="{{ 'color:#ffaa33' if unpaid_count > 0 else 'color:var(--success)' }}">{{ unpaid_count }}</div>
+  </a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;">
+  <h2 style="font-size:.9rem;margin:0;">Upcoming Assignments</h2>
+  <a href="/portal/calendar" class="btn btn-ghost btn-sm">View calendar &rarr;</a>
+</div>
+{% if upcoming %}
+<table class="portal-table">
+  <thead><tr><th>Job #</th><th>Date</th><th>Time</th><th>Setting</th><th>Location</th></tr></thead>
+  <tbody>
+    {% for j in upcoming %}
+    <tr style="cursor:pointer;" data-href="/portal/assignments/{{ j.id }}">
+      <td>{{ j.job_number or '—' }}</td>
+      <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
+      <td>{{ j.start_time or '' }}{% if j.end_time %}&ndash;{{ j.end_time }}{% endif %}</td>
+      <td>{{ j.setting or '—' }}</td>
+      <td>{{ j.event_address or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No upcoming assignments.</p>
+{% endif %}
+
+{% if g.user.company == 'rosesli' %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;">
+  <h2 style="font-size:.9rem;margin:0;">Job Offers</h2>
+  <a href="/portal/offers" class="btn btn-ghost btn-sm">All offers &rarr;</a>
+</div>
+{% if offers %}
+<table class="portal-table">
+  <thead><tr><th>Job #</th><th>Date</th><th>Time</th><th>Setting</th><th>Location</th></tr></thead>
+  <tbody>
+    {% for o in offers %}
+    <tr style="cursor:pointer;" data-href="/portal/offers">
+      <td>{{ o.job_number or '—' }}</td>
+      <td>{{ o.event_date.strftime('%b %d, %Y') if o.event_date else '—' }}</td>
+      <td>{{ o.start_time or '' }}{% if o.end_time %}&ndash;{{ o.end_time }}{% endif %}</td>
+      <td>{{ o.setting or '—' }}</td>
+      <td>{{ o.event_address or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No pending offers.</p>
+{% endif %}
+{% endif %}
+
+<div style="margin-top:2rem;">
+  <a href="/portal/invoices" class="btn btn-primary">Go to Interpreter Invoices</a>
+</div>
+{% endblock %}

@@ -124,7 +124,7 @@
       <label class="asn-field"><span>Interpreters (Ctrl/Cmd-click for several)</span>
         <select name="interpreter_id" multiple size="6">
           {% for i in interpreters %}
-          <option value="{{ i.id }}">{{ i.full_name or i.email }}</option>
+          <option value="{{ i.id }}">{{ i.full_name or i.email }}{% if i.specialty_match %} ★ {{ job.assignment_type }}{% elif i.specialty %} ({{ i.specialty }}){% endif %}</option>
           {% endfor %}
         </select>
       </label>

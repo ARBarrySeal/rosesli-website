@@ -50,6 +50,17 @@ def _send(to_email: str, subject: str, body: str) -> bool:
     return ok
 
 
+def _route_recipient(to_email: str, body: str) -> tuple[str, str]:
+    """While testing, PORTAL_TEST_EMAIL diverts a message away from the real
+    recipient so live interpreters/clients aren't emailed. Returns the address
+    to actually send to plus a body that notes the original recipient."""
+    test_to = os.environ.get("PORTAL_TEST_EMAIL")
+    if test_to and test_to != to_email:
+        body = f"[TEST MODE] Original recipient: {to_email}\n\n{body}"
+        return test_to, body
+    return to_email, body
+
+
 def send_invite_email(to_email: str, to_name: str, setup_url: str, company_name: str) -> bool:
     subject = f"You're invited to the {company_name} client portal"
     body = (
@@ -116,6 +127,7 @@ def send_offer_email(to_email: str, to_name: str, job: dict, offers_url: str,
         f"{offers_url}\n\n"
         f"— {company_name}\n"
     )
+    to_email, body = _route_recipient(to_email, body)
     return _send(to_email, subject, body)
 
 
@@ -131,6 +143,24 @@ def send_confirm_email(to_email: str, to_name: str, job: dict, offers_url: str,
         f"{offers_url}\n\n"
         f"— {company_name}\n"
     )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
+def send_withdraw_email(to_email: str, to_name: str, job: dict, offers_url: str,
+                        company_name: str) -> bool:
+    """Notify an interpreter that a pending offer was withdrawn by the coordinator."""
+    subject = f"Assignment offer withdrawn — {_job_when(job)}"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"An assignment offer has been withdrawn:\n\n"
+        f"  {_job_when(job)}\n"
+        f"  Setting: {job.get('setting') or '—'}\n\n"
+        f"No action is needed. You can view your current offers here:\n\n"
+        f"{offers_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
     return _send(to_email, subject, body)
 
 
@@ -145,4 +175,27 @@ def send_offer_response_email(to_email: str, interpreter_name: str, decision: st
         f"{link_url}\n\n"
         f"— {company_name}\n"
     )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
+# ── Interpreter master invoice ────────────────────────────────────────────────
+
+def send_master_invoice_email(to_email: str, interpreter_name: str, invoice_id: int,
+                              total: float, lines: list[str], link_url: str,
+                              company_name: str) -> bool:
+    """Notify the coordinator that an interpreter bundled assignments into a
+    master invoice and submitted it for payment."""
+    subject = f"Invoice submitted for payment — {interpreter_name} (${total:.2f})"
+    line_text = "\n".join(f"  {ln}" for ln in lines) if lines else "  (no line detail)"
+    body = (
+        f"{interpreter_name} submitted a master invoice for payment:\n\n"
+        f"  Invoice #{invoice_id}\n"
+        f"{line_text}\n\n"
+        f"  Total: ${total:.2f}\n\n"
+        f"Review it in the portal:\n\n"
+        f"{link_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
     return _send(to_email, subject, body)

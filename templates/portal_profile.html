@@ -72,6 +72,11 @@
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Specialty
+      <input type="text" name="specialty" value="{{ user.specialty or '' }}" placeholder="e.g. Legal, Medical"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
       <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or 80 }}" placeholder="80.00"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
@@ -133,6 +138,25 @@
     </form>
   </div>
   {% endif %}
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+      <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Documents</div>
+      <a href="/portal/documents" style="font-size:.72rem;color:var(--accent);text-decoration:none;">Manage →</a>
+    </div>
+    {% if documents %}
+    <div style="display:flex;flex-direction:column;gap:.5rem;">
+      {% for doc in documents %}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.82rem;">
+        <a href="/portal/documents/{{ doc.id }}/download" style="color:var(--accent);">{{ doc.original_name }}</a>
+        <span style="font-size:.72rem;color:var(--muted);white-space:nowrap;">{{ doc.created_at.strftime('%b %d, %Y') if doc.created_at else '' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="font-size:.82rem;color:var(--muted);">No documents on file.</div>
+    {% endif %}
+  </div>
 
   {% if not is_admin_view %}
   <h1 style="font-size:.72rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Change Password</h1>

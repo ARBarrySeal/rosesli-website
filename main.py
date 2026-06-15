@@ -53,6 +53,7 @@ from portal_jobs import jobs_bp
 from portal_client_invoices import client_inv_bp
 from portal_availability import availability_bp
 from portal_offers import offers_bp
+from portal_interpreter_invoices import interp_inv_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(admin_bp)
@@ -61,6 +62,7 @@ app.register_blueprint(jobs_bp)
 app.register_blueprint(client_inv_bp)
 app.register_blueprint(availability_bp)
 app.register_blueprint(offers_bp)
+app.register_blueprint(interp_inv_bp)
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 

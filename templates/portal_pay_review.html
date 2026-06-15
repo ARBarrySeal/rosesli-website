@@ -1,0 +1,89 @@
+{% extends "portal_base.html" %}
+{% block title %}Submit for Payment — Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+  <h1>Submit for Payment</h1>
+</div>
+<p style="color:var(--muted);font-size:.82rem;max-width:640px;margin-bottom:2rem;">
+  These are your confirmed and completed assignments that haven&rsquo;t been billed yet.
+  Select the ones you&rsquo;re ready to bill and submit them together as one invoice.
+</p>
+
+{% if jobs %}
+<form method="POST" action="/portal/pay/submit" id="payForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <table class="portal-table">
+    <thead>
+      <tr>
+        <th style="width:2.5rem;"><input type="checkbox" id="selectAll" aria-label="Select all"/></th>
+        <th>Date</th>
+        <th>Assignment</th>
+        <th style="text-align:right;">Hours</th>
+        <th style="text-align:right;">Rate</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td>
+          <input type="checkbox" name="job_ids" value="{{ j.id }}" class="job-cb"
+                 data-amount="{{ '%.2f'|format(j.line_amount or 0) }}"
+                 aria-label="Select assignment {{ j.job_number or j.id }}"/>
+        </td>
+        <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
+        <td>
+          {{ j.setting or 'Assignment' }}
+          {% if j.event_address %}<div style="color:var(--muted);font-size:.72rem;">{{ j.event_address }}</div>{% endif %}
+        </td>
+        <td style="text-align:right;">{{ j.duration if j.duration is not none else '—' }}</td>
+        <td style="text-align:right;">{{ '$%.2f'|format(j.rate) if j.rate is not none else '—' }}</td>
+        <td style="text-align:right;">{{ '$%.2f'|format(j.line_amount) if j.line_amount is not none else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;flex-wrap:wrap;gap:1rem;">
+    <div style="font-size:.95rem;">
+      Selected total: <strong id="selectedTotal">$0.00</strong>
+    </div>
+    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Selected for Payment</button>
+  </div>
+</form>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No assignments are waiting to be billed.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var selectAll = document.getElementById('selectAll');
+  var totalEl   = document.getElementById('selectedTotal');
+  var boxes     = Array.prototype.slice.call(document.querySelectorAll('.job-cb'));
+  if (!totalEl) return;
+
+  function recalc() {
+    var sum = 0;
+    boxes.forEach(function (b) {
+      if (b.checked) sum += parseFloat(b.getAttribute('data-amount')) || 0;
+    });
+    totalEl.textContent = '$' + sum.toFixed(2);
+  }
+
+  boxes.forEach(function (b) { b.addEventListener('change', function () {
+    if (!b.checked && selectAll) selectAll.checked = false;
+    recalc();
+  }); });
+
+  if (selectAll) selectAll.addEventListener('change', function () {
+    boxes.forEach(function (b) { b.checked = selectAll.checked; });
+    recalc();
+  });
+
+  recalc();
+})();
+</script>
+{% endblock %}

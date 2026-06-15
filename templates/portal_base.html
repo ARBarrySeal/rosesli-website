@@ -30,17 +30,34 @@
 
     <a href="/portal"           class="{{ 'active' if request.path == '/portal' else '' }}">Dashboard</a>
 
-    {# Interpreter Invoices — employees and admins #}
-    {% if g.user.role in ['admin', 'employee'] %}
-    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
-    {% endif %}
-
-    {# Client Invoices — admin and clients #}
-    {% if g.user.role in ['admin', 'client'] %}
+    {% if g.user.role == 'client' %}
+    {# ---- Client menu: Dashboard · Requests · Client Invoices · Documents · Profile ---- #}
+    <a href="/portal/requests" class="{{ 'active' if request.path.startswith('/portal/requests') else '' }}">Requests</a>
     <a href="/portal/client-invoices" class="{{ 'active' if request.path.startswith('/portal/client-invoices') else '' }}">Client Invoices</a>
-    {% endif %}
+    <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Client Profile</a>
 
-    {% if g.user.company == 'rosesli' and g.user.role in ['admin', 'employee'] %}
+    {% elif g.user.role == 'employee' %}
+    {# ---- Employee menu: Dashboard · Job Offers · Assignments · Interpreter Invoices · Availability · Documents · Profile ---- #}
+    {% if g.user.company == 'rosesli' %}
+    <a href="/portal/offers" class="{{ 'active' if request.path.startswith('/portal/offers') else '' }}">
+      Job Offers{% if pending_offers %} <span class="badge badge-pending">{{ pending_offers }}</span>{% endif %}
+    </a>
+    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    {% endif %}
+    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
+    {% if g.user.company == 'rosesli' %}
+    <a href="/portal/pay/review" class="{{ 'active' if request.path.startswith('/portal/pay') else '' }}">Submit for Payment</a>
+    <a href="/portal/availability" class="{{ 'active' if request.path.startswith('/portal/availability') else '' }}">Availability</a>
+    {% endif %}
+    <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
+    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Interpreter Profile</a>
+
+    {% elif g.user.role == 'admin' %}
+    {# ---- Admin menu: full access ---- #}
+    <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
+    <a href="/portal/client-invoices" class="{{ 'active' if request.path.startswith('/portal/client-invoices') else '' }}">Client Invoices</a>
+    {% if g.user.company == 'rosesli' %}
     <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
     <a href="/portal/offers" class="{{ 'active' if request.path.startswith('/portal/offers') else '' }}">
       Job Offers{% if pending_offers %} <span class="badge badge-pending">{{ pending_offers }}</span>{% endif %}
@@ -48,20 +65,13 @@
     <a href="/portal/availability" class="{{ 'active' if request.path.startswith('/portal/availability') else '' }}">Availability</a>
     {% endif %}
     <a href="/portal/documents" class="{{ 'active' if request.path.startswith('/portal/documents') else '' }}">Documents</a>
-    <a href="/portal/schedule"  class="{{ 'active' if request.path == '/portal/schedule' else '' }}">Schedule</a>
-
-    {# Profile — role-aware label #}
-    {% if g.user.role == 'employee' %}
-    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Interpreter Profile</a>
-    {% elif g.user.role == 'client' %}
-    <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Client Profile</a>
-    {% else %}
     <a href="/portal/profile" class="{{ 'active' if request.path == '/portal/profile' else '' }}">Profile</a>
-    {% endif %}
 
-    {% if g.user.role == 'admin' %}
     <div class="sidebar-label">Admin</div>
+    <a href="/portal/requests"              class="{{ 'active' if request.path.startswith('/portal/requests') else '' }}">Incoming Requests</a>
     <a href="/portal/admin/users"           class="{{ 'active' if request.path == '/portal/admin/users' else '' }}">Users</a>
+    <a href="/portal/admin/interpreters"    class="{{ 'active' if request.path == '/portal/admin/interpreters' else '' }}">Interpreter Profiles</a>
+    <a href="/portal/admin/clients"         class="{{ 'active' if request.path == '/portal/admin/clients' else '' }}">Client Profiles</a>
     <a href="/portal/admin/invite"          class="{{ 'active' if request.path == '/portal/admin/invite' else '' }}">Invite User</a>
     <a href="/portal/admin/invoices/create" class="{{ 'active' if request.path == '/portal/admin/invoices/create' else '' }}">Create Interpreter Invoice</a>
     <a href="/portal/admin/client-invoices/create" class="{{ 'active' if request.path == '/portal/admin/client-invoices/create' else '' }}">Create Client Invoice</a>
@@ -125,6 +135,21 @@
     });
   });
 </script>
+
+{% if g.user.role in ['client', 'employee'] %}
+<script nonce="{{ csp_nonce() }}">
+  /* Auto-logout clients & interpreters after 30 min idle */
+  (function () {
+    var IDLE_MS = 30 * 60 * 1000, timer;
+    function logout() { window.location.href = '/logout'; }
+    function reset() { clearTimeout(timer); timer = setTimeout(logout, IDLE_MS); }
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(function (ev) {
+      document.addEventListener(ev, reset, { passive: true });
+    });
+    reset();
+  })();
+</script>
+{% endif %}
 
 {% block scripts %}{% endblock %}
 </body>

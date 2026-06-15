@@ -1,30 +1,33 @@
 {% extends "portal_base.html" %}
 {% block title %}Create Client Invoice — Portal{% endblock %}
 {% block content %}
+{% set pf = prefill or {} %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
   <h1>Create Client Invoice</h1>
   <a href="/portal/client-invoices" style="font-size:.78rem;color:var(--muted);">← Client Invoices</a>
 </div>
 {% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
+{% if pf.job_id %}<p style="font-size:.72rem;color:var(--muted);margin-bottom:1rem;">Prefilled from request #{{ pf.job_id }}. Review before creating.</p>{% endif %}
 <form method="POST" style="max-width:520px;display:flex;flex-direction:column;gap:1rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  {% if pf.job_id %}<input type="hidden" name="job_id" value="{{ pf.job_id }}"/>{% endif %}
   <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Client (account)
     <select name="client_id" id="client-select"
             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
       <option value="">— select client —</option>
       {% for c in clients %}
-      <option value="{{ c.id }}" data-rate="{{ c.interpreter_rate or '' }}">{{ c.full_name or c.email }}</option>
+      <option value="{{ c.id }}" data-rate="{{ c.interpreter_rate or '' }}"{% if pf.client_id and c.id == pf.client_id %} selected{% endif %}>{{ c.full_name or c.email }}</option>
       {% endfor %}
     </select>
   </label>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Email<input type="email" name="poc_email" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Phone<input type="tel" name="poc_phone" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Date of Service<input type="date" name="date_of_service" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Email<input type="email" name="poc_email" value="{{ pf.poc_email or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Phone<input type="tel" name="poc_phone" value="{{ pf.poc_phone or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Date of Service<input type="date" name="date_of_service" value="{{ pf.date_of_service or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Start Time<input type="time" name="start_time" id="ci-start" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">End Time<input type="time" name="end_time" id="ci-end" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Duration (hrs)<input type="number" name="duration_hours" id="ci-dur" step="0.25" min="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Rate/hr ($) <span style="color:#e55;">*</span><input type="number" name="rate_per_hour" id="ci-rate" step="0.01" min="0" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Duration (hrs)<input type="number" name="duration_hours" id="ci-dur" step="0.25" min="0" value="{{ pf.duration_hours or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Rate/hr ($) <span style="color:#e55;">*</span><input type="number" name="rate_per_hour" id="ci-rate" step="0.01" min="0" value="{{ pf.rate_per_hour or '' }}" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Incidentals ($)<input type="number" name="incidentals" step="0.01" min="0" value="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
   </div>
 

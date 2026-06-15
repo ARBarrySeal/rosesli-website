@@ -42,7 +42,7 @@
     </div>
     <div>
       <div class="field-label">Status</div>
-      <span class="badge badge-{{ inv.status }}" style="font-size:.75rem;padding:.3rem .7rem;">{{ inv.status }}</span>
+      <span class="badge badge-{{ inv.status }}" style="font-size:.75rem;padding:.3rem .7rem;">{{ inv.status.replace('_', ' ') }}</span>
     </div>
     {% if inv.due_date %}
     <div><div class="field-label">Due Date</div><div style="font-size:.88rem;">{{ inv.due_date.strftime('%B %d, %Y') }}</div></div>
@@ -69,6 +69,31 @@
     </table>
   </div>
   <script id="extra-lines-data" type="application/json">{{ inv.interpreter_rates | safe }}</script>
+  {% endif %}
+
+  {# ── Bundled assignments (master invoice) ── #}
+  {% if lines %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label" style="margin-bottom:.6rem;">Assignments on This Invoice</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
+          <th style="text-align:left;padding:.3rem .5rem;">Date</th>
+          <th style="text-align:left;padding:.3rem .5rem;">Assignment</th>
+          <th style="text-align:right;padding:.3rem .5rem;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lines %}
+        <tr>
+          <td style="padding:.3rem .5rem;">{{ l.event_date.strftime('%b %d, %Y') if l.event_date else '—' }}</td>
+          <td style="padding:.3rem .5rem;">{{ l.setting or l.job_number or 'Assignment' }}</td>
+          <td style="padding:.3rem .5rem;text-align:right;">{{ '$%.2f'|format(l.line_amount) if l.line_amount is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% endif %}
 
   {# ── Job Notes ── #}

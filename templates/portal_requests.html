@@ -1,0 +1,53 @@
+{% extends "portal_base.html" %}
+{% block title %}Requests — Portal{% endblock %}
+
+{% block content %}
+<h1>{{ 'Incoming Requests' if is_admin else 'My Requests' }}</h1>
+<p style="color:var(--muted);font-size:.8rem;margin-bottom:1.5rem;">
+  {% if is_admin %}
+  Interpreter requests submitted through the public website. Confirm one as an assignment, or bill it directly.
+  {% else %}
+  Every interpreter request you've submitted, with its current status.
+  {% endif %}
+</p>
+
+{% if requests %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      {% if is_admin %}<th>Requester</th>{% else %}<th>Request #</th>{% endif %}
+      <th>Date</th>
+      <th>Setting</th>
+      <th>Location</th>
+      <th>Status</th>
+      {% if is_admin %}<th></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in requests %}
+    <tr>
+      {% if is_admin %}
+      <td>{{ r.requester_name or r.client_name or '—' }}</td>
+      {% else %}
+      <td>{{ r.job_number or '—' }}</td>
+      {% endif %}
+      <td>{{ r.event_date.strftime('%b %d, %Y') if r.event_date else '—' }}</td>
+      <td>{{ r.setting or r.assignment_type or '—' }}</td>
+      <td>{{ r.event_address or r.event_zip or '—' }}</td>
+      <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+      {% if is_admin %}
+      <td style="text-align:right;white-space:nowrap;">
+        <a href="/portal/assignments/{{ r.id }}" class="btn btn-ghost btn-sm">View</a>
+        <a href="/portal/admin/client-invoices/create?job={{ r.id }}" class="btn btn-ghost btn-sm">Invoice</a>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">
+  {{ 'No incoming requests yet.' if is_admin else "You haven't submitted any requests yet." }}
+</p>
+{% endif %}
+{% endblock %}

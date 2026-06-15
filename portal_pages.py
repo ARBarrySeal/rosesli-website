@@ -63,8 +63,11 @@ CALENDLY_URLS = {
 def dashboard():
     company = g.user["company"]
     role    = g.user["role"]
-    uid     = g.user["sub"]
+    uid     = int(g.user["sub"])
+    from datetime import date
+    today = date.today()
 
+    # ── Admin dashboard ───────────────────────────────────────────────────────
     if role == "admin":
         stats = {
             "users": portal_db.query_one(
@@ -96,27 +99,69 @@ def dashboard():
             "WHERE u.company = %s ORDER BY i.created_at DESC LIMIT 10",
             (company,),
         )
-    else:
-        stats = {
-            "invoices": portal_db.query_one(
-                "SELECT COUNT(*) AS n FROM invoices WHERE user_id = %s", (uid,),
-            )["n"],
-            "pending": portal_db.query_one(
-                "SELECT COUNT(*) AS n FROM invoices WHERE user_id = %s AND status = 'unpaid'",
-                (uid,),
-            )["n"],
-            "bookings": portal_db.query_one(
-                "SELECT COUNT(*) AS n FROM bookings WHERE user_id = %s AND datetime > NOW()",
-                (uid,),
-            )["n"],
-        }
-        invoices = portal_db.query_all(
-            "SELECT id, amount, status, due_date FROM invoices "
-            "WHERE user_id = %s ORDER BY created_at DESC LIMIT 5",
+        return render_template("portal_dashboard_admin.html", stats=stats, invoices=invoices)
+
+    # ── Interpreter (employee) dashboard ──────────────────────────────────────
+    if role == "employee":
+        upcoming = portal_db.query_all(
+            "SELECT id, job_number, event_date, start_time, end_time, setting, "
+            "       event_address, status, client_name "
+            "FROM jobs WHERE company = %s AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+            "AND event_date >= %s AND status IN ('confirmed', 'completed') "
+            "ORDER BY event_date, start_time LIMIT 6",
+            (company, uid, uid, today),
+        )
+        offers = portal_db.query_all(
+            "SELECT o.id, j.id AS job_id, j.job_number, j.event_date, j.start_time, "
+            "       j.end_time, j.setting, j.event_address "
+            "FROM job_offers o JOIN jobs j ON j.id = o.job_id "
+            "WHERE o.interpreter_id = %s AND o.company = %s AND o.status = 'offered' "
+            "ORDER BY j.event_date NULLS LAST, o.offered_at LIMIT 6",
+            (uid, company),
+        )
+        inv = portal_db.query_one(
+            "SELECT COUNT(*) AS n, "
+            "COALESCE(SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END), 0) AS unpaid "
+            "FROM invoices WHERE user_id = %s",
             (uid,),
         )
+        return render_template(
+            "portal_dashboard_interpreter.html",
+            upcoming=upcoming, offers=offers,
+            invoice_count=inv["n"], unpaid_count=inv["unpaid"],
+        )
 
-    return render_template("portal_dashboard.html", stats=stats, invoices=invoices)
+    # ── Client dashboard ──────────────────────────────────────────────────────
+    if role == "client":
+        requests_ = portal_db.query_all(
+            "SELECT id, job_number, event_date, start_time, setting, event_address, status "
+            "FROM jobs WHERE company = %s AND client_id = %s AND status = 'pending' "
+            "ORDER BY event_date NULLS LAST, created_at DESC LIMIT 6",
+            (company, uid),
+        )
+        upcoming = portal_db.query_all(
+            "SELECT id, job_number, event_date, start_time, end_time, setting, event_address, status "
+            "FROM jobs WHERE company = %s AND client_id = %s AND status = 'confirmed' "
+            "AND event_date >= %s ORDER BY event_date, start_time LIMIT 6",
+            (company, uid, today),
+        )
+        invoices = portal_db.query_all(
+            "SELECT id, date_of_service, total, status FROM client_invoices "
+            "WHERE company = %s AND client_id = %s "
+            "ORDER BY date_of_service DESC NULLS LAST, id DESC LIMIT 6",
+            (company, uid),
+        )
+        unpaid = portal_db.query_one(
+            "SELECT COUNT(*) AS n FROM client_invoices "
+            "WHERE company = %s AND client_id = %s AND status = 'unpaid'",
+            (company, uid),
+        )["n"]
+        return render_template(
+            "portal_dashboard_client.html",
+            requests=requests_, upcoming=upcoming, invoices=invoices, unpaid_count=unpaid,
+        )
+
+    abort(403)
 
 
 @pages_bp.route("/portal/profile", methods=["GET", "POST"])
@@ -142,9 +187,10 @@ def profile():
             except ValueError:
                 pass
 
-    user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
-    error   = None
-    success = None
+    user      = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
+    documents = _get_user_documents(target_uid)
+    error     = None
+    success   = None
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -173,6 +219,7 @@ def profile():
                 error = "Full name is required."
             elif role == "employee":
                 certification = (request.form.get("certification") or "").strip()[:255]
+                specialty     = (request.form.get("specialty")     or "").strip()[:255]
                 rate_raw      = (request.form.get("interpreter_rate") or "").strip()
                 try:
                     interpreter_rate = float(rate_raw) if rate_raw else None
@@ -180,9 +227,10 @@ def profile():
                     interpreter_rate = None
                 portal_db.execute(
                     "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
-                    "address=%s, zip=%s, certification=%s, interpreter_rate=%s WHERE id=%s",
+                    "address=%s, zip=%s, certification=%s, specialty=%s, interpreter_rate=%s "
+                    "WHERE id=%s",
                     (full_name, phone, company_name, address, zip_code or None,
-                     certification or None, interpreter_rate, target_uid),
+                     certification or None, specialty or None, interpreter_rate, target_uid),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
@@ -254,6 +302,7 @@ def profile():
                     is_admin_view=False,
                     view_uid=None,
                     w9_attachment=_get_w9(target_uid),
+                    documents=documents,
                 ))
                 _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
                 return resp
@@ -266,6 +315,7 @@ def profile():
         is_admin_view=is_admin_view,
         view_uid=target_uid if is_admin_view else None,
         w9_attachment=_get_w9(target_uid),
+        documents=documents,
     )
 
 
@@ -278,6 +328,18 @@ def _get_w9(user_id: int):
         )
     except Exception:
         return None
+
+
+def _get_user_documents(user_id: int):
+    """Files attached to a user's profile (reuses the portal_documents store)."""
+    try:
+        return portal_db.query_all(
+            "SELECT id, original_name, size_bytes, created_at FROM portal_documents "
+            "WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,),
+        )
+    except Exception:
+        return []
 
 
 @pages_bp.route("/portal/profile/w9/upload", methods=["POST"])
@@ -406,16 +468,6 @@ def w9_delete():
     return redirect(f"/portal/profile?uid={target_uid}")
 
 
-@pages_bp.route("/portal/schedule")
-@login_required
-def schedule():
-    company      = g.user["company"]
-    calendly_url = CALENDLY_URLS.get(company, "https://calendly.com/rosecharlesrose")
-    n8n_base     = os.environ.get("N8N_BASE", "http://localhost:5678")
-    n8n_webhook  = f"{n8n_base}/webhook/leads"
-    return render_template("portal_schedule.html", calendly_url=calendly_url, n8n_webhook=n8n_webhook)
-
-
 @pages_bp.route("/portal/admin/users")
 @admin_required
 def admin_users():
@@ -427,6 +479,35 @@ def admin_users():
         (company,),
     )
     return render_template("portal_admin_users.html", users=users)
+
+
+@pages_bp.route("/portal/admin/interpreters")
+@admin_required
+def admin_interpreters():
+    company = g.user["company"]
+    users   = portal_db.query_all(
+        "SELECT id, email, full_name, certification, interpreter_rate, active, created_at "
+        "FROM portal_users WHERE company = %s AND role = 'employee' "
+        "AND (archived IS NULL OR archived = FALSE) "
+        "ORDER BY full_name NULLS LAST, created_at DESC",
+        (company,),
+    )
+    return render_template("portal_admin_interpreters.html", users=users)
+
+
+@pages_bp.route("/portal/admin/clients")
+@admin_required
+def admin_clients():
+    company = g.user["company"]
+    users   = portal_db.query_all(
+        "SELECT id, email, full_name, company_name, point_of_contact, interpreter_rate, "
+        "       active, created_at "
+        "FROM portal_users WHERE company = %s AND role = 'client' "
+        "AND (archived IS NULL OR archived = FALSE) "
+        "ORDER BY full_name NULLS LAST, created_at DESC",
+        (company,),
+    )
+    return render_template("portal_admin_clients.html", users=users)
 
 
 @pages_bp.route("/portal/admin/users/<int:user_id>/archive", methods=["POST"])
@@ -730,7 +811,16 @@ def invoice_detail(invoice_id):
         "WHERE invoice_id = %s ORDER BY created_at",
         (invoice_id,),
     )
-    return render_template("portal_invoice.html", inv=inv, attachments=attachments)
+    # Master invoices (Phase 6) bundle multiple assignments; show the breakdown.
+    # LEFT JOIN so a since-deleted assignment still shows its recorded amount.
+    lines = portal_db.query_all(
+        "SELECT ij.line_amount, j.event_date, j.setting, j.job_number "
+        "FROM invoice_jobs ij LEFT JOIN jobs j ON j.id = ij.job_id "
+        "WHERE ij.invoice_id = %s ORDER BY j.event_date NULLS LAST, ij.id",
+        (invoice_id,),
+    )
+    return render_template("portal_invoice.html", inv=inv, attachments=attachments,
+                           lines=lines)
 
 
 @pages_bp.route("/portal/invoices/<int:invoice_id>/attachments", methods=["POST"])
@@ -951,37 +1041,44 @@ def documents():
     return render_template("portal_documents.html", docs=docs, users=users)
 
 
+def _doc_redirect():
+    """Safe same-site redirect target for document actions (defaults to Documents)."""
+    dest = (request.form.get("redirect_to") or request.args.get("redirect_to") or "").strip()
+    return dest if dest.startswith("/portal/") else "/portal/documents"
+
+
 @pages_bp.route("/portal/documents/upload", methods=["POST"])
 @login_required
 def upload_document():
     uid     = g.user["sub"]
     company = g.user["company"]
     role    = g.user["role"]
+    dest    = _doc_redirect()
 
     if "file" not in request.files:
         flash("No file selected.", "error")
-        return redirect("/portal/documents")
+        return redirect(dest)
 
     f = request.files["file"]
     if not f.filename:
         flash("No file selected.", "error")
-        return redirect("/portal/documents")
+        return redirect(dest)
 
     _, ext = os.path.splitext(secure_filename(f.filename))
     if ext.lower() not in ALLOWED_EXTENSIONS:
         flash("File type not allowed.", "error")
-        return redirect("/portal/documents")
+        return redirect(dest)
 
     if not _magic_ok(f, ext):
         flash("File content does not match its extension.", "error")
-        return redirect("/portal/documents")
+        return redirect(dest)
 
     f.seek(0, 2)
     size = f.tell()
     f.seek(0)
     if size > MAX_UPLOAD_BYTES:
         flash("File too large (25 MB max).", "error")
-        return redirect("/portal/documents")
+        return redirect(dest)
 
     target_uid = uid
     if role == "admin":
@@ -1013,7 +1110,7 @@ def upload_document():
         metadata={"original_name": secure_filename(f.filename), "size": size, "mime": mime},
     )
     flash("File uploaded.", "success")
-    return redirect("/portal/documents")
+    return redirect(dest)
 
 
 @pages_bp.route("/portal/documents/<int:doc_id>/download")
@@ -1051,6 +1148,7 @@ def delete_document(doc_id):
     company = g.user["company"]
     role    = g.user["role"]
     uid     = g.user["sub"]
+    dest    = _doc_redirect()
 
     if role == "admin":
         doc = portal_db.query_one(
@@ -1075,4 +1173,4 @@ def delete_document(doc_id):
         metadata={"original_name": doc["original_name"], "user_id": doc["user_id"]},
     )
     flash("File deleted.", "success")
-    return redirect("/portal/documents")
+    return redirect(dest)

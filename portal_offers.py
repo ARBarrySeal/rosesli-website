@@ -139,7 +139,7 @@ def offer_job(job_id):
     if offered:
         flash(f"Offered to {len(offered)} interpreter(s).", "success")
     if skipped:
-        names = ", ".join(f"#{i} ({why})" for i, why in skipped)
+        names = ", ".join(f"{_name_for(i, company) or f'#{i}'} ({why})" for i, why in skipped)
         flash(f"Skipped {len(skipped)}: {names}.", "error")
     return redirect(f"/portal/admin/assignments/{job_id}")
 

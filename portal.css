@@ -145,6 +145,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .badge-confirmed { background: #0a1a2a; color: #6bb4ff; }
 .badge-completed { background: #0a2018; color: #00cc88; }
 .badge-cancelled { background: #221015; color: #ff7a8a; }
+.badge-submitted_for_payment { background: #0a1a2a; color: #6bb4ff; }
 
 /* ── Buttons ── */
 .btn { display: inline-block; padding: .45rem .95rem; border-radius: var(--radius); font-family: var(--font); font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; cursor: pointer; border: 1px solid transparent; background: var(--surface); color: var(--muted); transition: opacity .15s, border-color .15s; min-height: 36px; }

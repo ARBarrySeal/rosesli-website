@@ -29,7 +29,7 @@
 {% endif %}
 
 <h2 class="asn-section">Add unavailability</h2>
-<form method="post" action="/portal/availability/add" class="asn-form">
+<form method="post" action="/portal/availability/add" class="asn-form" id="availForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   {% if is_admin %}<input type="hidden" name="user_id" value="{{ target_id }}"/>{% endif %}
   <div class="asn-grid">
@@ -76,4 +76,9 @@
 {% else %}
 <p style="color:var(--muted);font-size:.8rem;">No upcoming unavailability — you're open for offers.</p>
 {% endif %}
+
+<div class="asn-actions" style="display:flex;gap:.75rem;margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule,rgba(255,255,255,.12));">
+  <button type="submit" form="availForm" class="btn btn-primary">Save</button>
+  <a href="/portal" class="btn btn-ghost">Cancel</a>
+</div>
 {% endblock %}

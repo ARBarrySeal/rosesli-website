@@ -1,0 +1,82 @@
+{% extends "portal_base.html" %}
+{% block title %}Dashboard — Portal{% endblock %}
+
+{% block content %}
+<h1>Client Dashboard</h1>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="label">Open Requests</div>
+    <div class="value">{{ requests|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Upcoming Events</div>
+    <div class="value">{{ upcoming|length }}</div>
+  </div>
+  <a href="/portal/client-invoices" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">Unpaid Invoices</div>
+    <div class="value" style="{{ 'color:#ffaa33' if unpaid_count > 0 else 'color:var(--success)' }}">{{ unpaid_count }}</div>
+  </a>
+</div>
+
+<h2 style="font-size:.9rem;margin:2rem 0 1rem;">Current Requests</h2>
+{% if requests %}
+<table class="portal-table">
+  <thead><tr><th>Request #</th><th>Date</th><th>Setting</th><th>Location</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for r in requests %}
+    <tr>
+      <td>{{ r.job_number or '—' }}</td>
+      <td>{{ r.event_date.strftime('%b %d, %Y') if r.event_date else '—' }}</td>
+      <td>{{ r.setting or '—' }}</td>
+      <td>{{ r.event_address or '—' }}</td>
+      <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No open requests.</p>
+{% endif %}
+
+<h2 style="font-size:.9rem;margin:2rem 0 1rem;">Upcoming Events</h2>
+{% if upcoming %}
+<table class="portal-table">
+  <thead><tr><th>Job #</th><th>Date</th><th>Time</th><th>Setting</th><th>Location</th></tr></thead>
+  <tbody>
+    {% for j in upcoming %}
+    <tr>
+      <td>{{ j.job_number or '—' }}</td>
+      <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
+      <td>{{ j.start_time or '' }}{% if j.end_time %}&ndash;{{ j.end_time }}{% endif %}</td>
+      <td>{{ j.setting or '—' }}</td>
+      <td>{{ j.event_address or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No upcoming events.</p>
+{% endif %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;">
+  <h2 style="font-size:.9rem;margin:0;">Client Invoices</h2>
+  <a href="/portal/client-invoices" class="btn btn-ghost btn-sm">All invoices &rarr;</a>
+</div>
+{% if invoices %}
+<table class="portal-table">
+  <thead><tr><th>Date of Service</th><th>Total</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for inv in invoices %}
+    <tr style="cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">
+      <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>
+      <td>{{ "$%.2f"|format(inv.total) if inv.total is not none else '—' }}</td>
+      <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--muted);font-size:.8rem;">No invoices yet.</p>
+{% endif %}
+{% endblock %}

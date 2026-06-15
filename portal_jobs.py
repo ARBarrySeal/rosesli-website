@@ -24,16 +24,16 @@ ASSIGNMENT_TYPES = (
 
 def _clients(company):
     return portal_db.query_all(
-        "SELECT id, full_name, email FROM portal_users "
+        "SELECT id, full_name, email, interpreter_rate FROM portal_users "
         "WHERE company = %s AND role = 'client' AND active = TRUE ORDER BY full_name",
         (company,),
     )
 
 
 def _interpreters(company):
-    """Return active interpreters sorted by last name, including interpreter_rate."""
+    """Return active interpreters sorted by last name, including rate + specialty."""
     rows = portal_db.query_all(
-        "SELECT id, full_name, email, interpreter_rate FROM portal_users "
+        "SELECT id, full_name, email, interpreter_rate, specialty FROM portal_users "
         "WHERE company = %s AND role = 'employee' AND active = TRUE",
         (company,),
     )
@@ -41,6 +41,23 @@ def _interpreters(company):
         parts = (r["full_name"] or "").split()
         return parts[-1].lower() if parts else ""
     return sorted(rows, key=_last)
+
+
+def _specialties(raw):
+    """Split a stored specialty string ('Legal, Medical') into a set of categories."""
+    return {s.strip() for s in (raw or "").split(",") if s.strip()}
+
+
+def interpreters_for_category(company, category):
+    """Active interpreters, those whose specialty matches `category` first.
+
+    Each row gains a `specialty_match` bool so callers/templates can flag matches.
+    """
+    rows = _interpreters(company)
+    for r in rows:
+        r["specialty_match"] = bool(category) and category in _specialties(r.get("specialty"))
+    rows.sort(key=lambda r: (not r["specialty_match"],))
+    return rows
 
 
 def _name_for(user_id, company):
@@ -83,6 +100,44 @@ def _date_or_none(raw):
         return None
 
 
+def _parse_clock(raw):
+    """Minutes since midnight for a clock string, or None. Accepts '9:00 AM',
+    '9 AM', '2:30 PM', '14:30', '9'."""
+    import re
+    raw = (raw or "").strip().upper()
+    if not raw:
+        return None
+    m = re.match(r"^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$", raw)
+    if not m:
+        return None
+    hour = int(m.group(1))
+    minute = int(m.group(2) or 0)
+    meridiem = m.group(3)
+    if minute > 59:
+        return None
+    if meridiem:
+        if hour < 1 or hour > 12:
+            return None
+        if meridiem == "AM":
+            hour = 0 if hour == 12 else hour
+        else:
+            hour = 12 if hour == 12 else hour + 12
+    elif hour > 23:
+        return None
+    return hour * 60 + minute
+
+
+def _compute_duration(start, end):
+    """Decimal-hours string ('2', '2.5', '0.75') between two clock strings, or
+    None if either is unparseable or end is not after start (no overnight guess)."""
+    s, e = _parse_clock(start), _parse_clock(end)
+    if s is None or e is None or e <= s:
+        return None
+    hours = (e - s) / 60
+    # Trim trailing zeros: 2.0 -> "2", 2.50 -> "2.5".
+    return f"{hours:.2f}".rstrip("0").rstrip(".")
+
+
 def _next_job_number(company):
     row = portal_db.query_one(
         "SELECT COALESCE(MAX(job_number), 0) AS n FROM jobs WHERE company = %s",
@@ -104,6 +159,20 @@ def _parse_job_form(form, company):
 
     client_name = (form.get("client_name") or "").strip() or _name_for(client_id, company)
 
+    start_time = (form.get("start_time") or "").strip() or None
+    end_time   = (form.get("end_time") or "").strip() or None
+    duration   = (form.get("duration") or "").strip() or _compute_duration(start_time, end_time)
+
+    # Blank Client rate falls back to the client account's stored base rate.
+    client_rate = _float_or_none(form.get("client_rate"))
+    if client_rate is None and client_id:
+        crow = portal_db.query_one(
+            "SELECT interpreter_rate FROM portal_users WHERE id = %s AND company = %s",
+            (client_id, company),
+        )
+        if crow and crow["interpreter_rate"] is not None:
+            client_rate = float(crow["interpreter_rate"])
+
     return {
         "status":             status,
         "assignment_type":    atype,
@@ -120,15 +189,15 @@ def _parse_job_form(form, company):
         "poc_email":          (form.get("poc_email") or "").strip() or None,
         "poc_phone":          (form.get("poc_phone") or "").strip() or None,
         "event_date":         _date_or_none(form.get("event_date")),
-        "start_time":         (form.get("start_time") or "").strip() or None,
-        "end_time":           (form.get("end_time") or "").strip() or None,
-        "duration":           (form.get("duration") or "").strip() or None,
+        "start_time":         start_time,
+        "end_time":           end_time,
+        "duration":           duration,
         "num_interpreters":   _int_or_none(form.get("num_interpreters")),
         "interpreter_1_id":   interp1,
         "interpreter_2_id":   interp2,
         "interpreter_1_name": _name_for(interp1, company),
         "interpreter_2_name": _name_for(interp2, company),
-        "client_rate":        _float_or_none(form.get("client_rate")),
+        "client_rate":        client_rate,
         "rate_type":          rate_type,
         "notes":              (form.get("notes") or "").strip() or None,
     }
@@ -199,12 +268,41 @@ def assignment_detail(job_id):
     if role == "admin":
         from portal_offers import offers_for_job
         offers = offers_for_job(job_id, company)
-        interpreters = _interpreters(company)
+        interpreters = interpreters_for_category(company, job.get("assignment_type"))
 
     return render_template(
         "portal_assignment_detail.html",
         job=job, is_admin=(role == "admin"),
         offers=offers, interpreters=interpreters,
+    )
+
+
+# ── Requests (client view of own jobs; admin public-request inbox) ────────────
+
+@jobs_bp.route("/portal/requests")
+@login_required
+def requests_list():
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = int(g.user["sub"])
+
+    if role == "client":
+        rows = portal_db.query_all(
+            "SELECT * FROM jobs WHERE company = %s AND client_id = %s "
+            "ORDER BY event_date IS NULL, event_date DESC, created_at DESC",
+            (company, uid),
+        )
+    elif role == "admin":
+        rows = portal_db.query_all(
+            "SELECT * FROM jobs WHERE company = %s AND source = 'public_request' "
+            "ORDER BY created_at DESC",
+            (company,),
+        )
+    else:
+        abort(403)
+
+    return render_template(
+        "portal_requests.html", requests=rows, is_admin=(role == "admin"),
     )
 
 
@@ -237,6 +335,9 @@ def create_assignment():
     )
     new_id = row["id"] if row else None
     audit_log("job_create", target=f"job:{new_id}", metadata={"status": data["status"]})
+    if new_id and data["status"] == "confirmed":
+        from portal_client_invoices import ensure_invoice_for_job
+        ensure_invoice_for_job(company, new_id, int(g.user["sub"]))
     flash("Assignment created.", "success")
     return redirect(f"/portal/assignments/{new_id}" if new_id else "/portal/assignments")
 
@@ -269,6 +370,9 @@ def edit_assignment(job_id):
         tuple(data.values()) + (job_id, company),
     )
     audit_log("job_update", target=f"job:{job_id}", metadata={"status": data["status"]})
+    if data["status"] == "confirmed":
+        from portal_client_invoices import ensure_invoice_for_job
+        ensure_invoice_for_job(company, job_id, int(g.user["sub"]))
     flash("Assignment updated.", "success")
     return redirect(f"/portal/assignments/{job_id}")
 
@@ -291,9 +395,13 @@ def delete_assignment(job_id):
 # ── Calendar (admin only) ─────────────────────────────────────────────────────
 
 @jobs_bp.route("/portal/calendar")
-@admin_required
+@login_required
 def calendar_view():
     company = g.user["company"]
+    role    = g.user["role"]
+    uid     = int(g.user["sub"])
+    if role not in ("admin", "employee"):
+        abort(403)
     import calendar as cal
     from datetime import date
 
@@ -308,14 +416,27 @@ def calendar_view():
     _, num_days = cal.monthrange(year, month)
     last_day    = date(year, month, num_days)
 
-    jobs = portal_db.query_all(
-        "SELECT id, job_number, event_date, start_time, end_time, "
-        "       organization, client_name, requester_name, status "
-        "FROM jobs "
-        "WHERE company = %s AND event_date >= %s AND event_date <= %s "
-        "ORDER BY event_date, start_time",
-        (company, first_day.isoformat(), last_day.isoformat()),
-    )
+    if role == "admin":
+        jobs = portal_db.query_all(
+            "SELECT id, job_number, event_date, start_time, end_time, "
+            "       organization, client_name, requester_name, status "
+            "FROM jobs "
+            "WHERE company = %s AND event_date >= %s AND event_date <= %s "
+            "ORDER BY event_date, start_time",
+            (company, first_day.isoformat(), last_day.isoformat()),
+        )
+    else:
+        # Interpreters see only their own confirmed assignments.
+        jobs = portal_db.query_all(
+            "SELECT id, job_number, event_date, start_time, end_time, "
+            "       organization, client_name, requester_name, status "
+            "FROM jobs "
+            "WHERE company = %s AND status = 'confirmed' "
+            "AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+            "AND event_date >= %s AND event_date <= %s "
+            "ORDER BY event_date, start_time",
+            (company, uid, uid, first_day.isoformat(), last_day.isoformat()),
+        )
 
     # Build a dict: {day_number: [job, ...]}
     by_day: dict = {}
@@ -351,6 +472,22 @@ def calendar_view():
 def interpreters_json():
     company = g.user["company"]
     rows = _interpreters(company)
+    return jsonify([
+        {
+            "id":   r["id"],
+            "name": r["full_name"] or r["email"],
+            "rate": float(r["interpreter_rate"]) if r["interpreter_rate"] else None,
+        }
+        for r in rows
+    ])
+
+
+@jobs_bp.route("/api/clients")
+@admin_required
+def clients_json():
+    """Client accounts + base rate, for auto-filling Client rate on the form."""
+    company = g.user["company"]
+    rows = _clients(company)
     return jsonify([
         {
             "id":   r["id"],

@@ -55,6 +55,74 @@ def _date_or_none(raw):
         return None
 
 
+def ensure_invoice_for_job(company, job_id, created_by=None):
+    """Auto-create an unpaid client invoice for a *confirmed* billable job.
+
+    Best-effort and idempotent: fires only when the job is confirmed and has
+    both a client account and a client rate, and dedups on job_id so re-saving
+    a confirmed assignment never spawns duplicates. Any failure is swallowed so
+    auto-billing can never break the assignment save itself. Returns the invoice
+    id (existing or new), or None when nothing was created.
+    """
+    try:
+        job = portal_db.query_one(
+            "SELECT * FROM jobs WHERE id = %s AND company = %s", (job_id, company),
+        )
+        if not job or job.get("status") != "confirmed":
+            return None
+        if not job.get("client_id") or job.get("client_rate") is None:
+            return None
+
+        existing = portal_db.query_one(
+            "SELECT id FROM client_invoices WHERE job_id = %s AND company = %s",
+            (job_id, company),
+        )
+        if existing:
+            return existing["id"]
+
+        rate = float(job["client_rate"])
+        dur_h = _float_or_none(str(job.get("duration") or ""))
+        total = round(dur_h * rate, 2) if dur_h else None
+
+        row = portal_db.execute(
+            "INSERT INTO client_invoices "
+            "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
+            "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
+            "notes, job_id, created_by) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            (company, job["client_id"], job.get("client_name"), job.get("poc_email"),
+             job.get("poc_phone"), job.get("event_date"), job.get("start_time"),
+             job.get("end_time"), dur_h, rate, 0.0, total, None, job_id, created_by),
+        )
+        return row["id"] if row else None
+    except Exception:
+        return None
+
+
+def _prefill_from_job(company, raw_job_id):
+    """Build a prefill dict for the create form from a request/assignment job."""
+    try:
+        job_id = int(raw_job_id)
+    except (TypeError, ValueError):
+        return {}
+    job = portal_db.query_one(
+        "SELECT * FROM jobs WHERE id = %s AND company = %s", (job_id, company),
+    )
+    if not job:
+        return {}
+    event_date = job.get("event_date")
+    return {
+        "job_id":          job["id"],
+        "client_id":       job.get("client_id"),
+        "client_name":     job.get("client_name") or job.get("requester_name"),
+        "poc_email":       job.get("poc_email") or job.get("requester_email"),
+        "poc_phone":       job.get("poc_phone") or job.get("requester_phone"),
+        "date_of_service": event_date.isoformat() if event_date else "",
+        "duration_hours":  _float_or_none(str(job.get("duration") or "")) or "",
+        "rate_per_hour":   job.get("client_rate") or "",
+    }
+
+
 @client_inv_bp.route("/portal/client-invoices")
 @login_required
 def client_invoices_list():
@@ -118,8 +186,9 @@ def create_client_invoice():
     clients = _clients(company)
 
     if request.method == "GET":
+        prefill = _prefill_from_job(company, request.args.get("job"))
         return render_template("portal_client_invoice_create.html",
-                               clients=clients)
+                               clients=clients, prefill=prefill)
 
     client_id = request.form.get("client_id") or None
     if client_id:
@@ -145,6 +214,12 @@ def create_client_invoice():
     rate_per_hour   = _float_or_none(request.form.get("rate_per_hour"))
     incidentals     = _float_or_none(request.form.get("incidentals")) or 0.0
     notes           = (request.form.get("notes") or "").strip() or None
+
+    job_id = request.form.get("job_id")
+    try:
+        job_id = int(job_id) if job_id else None
+    except (TypeError, ValueError):
+        job_id = None
 
     import json as _json
     extra_lines = []
@@ -178,11 +253,11 @@ def create_client_invoice():
         "INSERT INTO client_invoices "
         "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
         "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
-        "notes, line_items, created_by) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "notes, line_items, job_id, created_by) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (company, client_id, client_name, poc_email, poc_phone, date_of_service,
          start_time, end_time, duration_hours, rate_per_hour, incidentals, total,
-         notes, line_items, int(g.user["sub"])),
+         notes, line_items, job_id, int(g.user["sub"])),
     )
     audit_log("client_invoice_create",
               metadata={"client_name": client_name, "total": total})
