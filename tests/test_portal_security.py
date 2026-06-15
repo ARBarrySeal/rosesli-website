@@ -330,6 +330,21 @@ def test_csp_marketing_route_allows_unsafe_inline(client):
     assert "nonce-" not in script_src
 
 
+@pytest.mark.parametrize("path", ["/", "/portal"])
+def test_csp_allows_google_fonts(client, path):
+    """Both the marketing and portal CSPs must whitelist Google Fonts: the
+    stylesheet host in style-src and the font-file host in font-src. Without
+    these the @font-face stylesheet is blocked and the brand typography
+    silently falls back to system fonts (regression caught 2026-06-15)."""
+    r = client.get(path, follow_redirects=False)
+    csp = r.headers.get("Content-Security-Policy", "")
+    assert csp, f"no CSP header on {path}"
+    style_src = next(d for d in csp.split(";") if d.strip().startswith("style-src"))
+    assert "https://fonts.googleapis.com" in style_src
+    font_src = next((d for d in csp.split(";") if d.strip().startswith("font-src")), "")
+    assert "https://fonts.gstatic.com" in font_src
+
+
 def test_csp_nonce_fresh_per_request_context(app):
     """Each portal response must carry a fresh nonce. A static nonce would
     defeat the protection — an attacker who learns one nonce could inject

@@ -109,7 +109,7 @@
   .brand-banner{background:var(--ink);color:#fff;padding:36px 28px;text-align:center;border-top:1px solid rgba(255,255,255,.08);}
   .brand-banner-inner{max-width:1320px;margin:0 auto;}
   .brand-banner-title{font-family:'Times New Roman',Times,serif;font-size:clamp(36px,5vw,64px);line-height:1.05;letter-spacing:-.01em;font-weight:400;margin:0;}
-  .brand-banner-title em{font-style:italic;color:var(--blue);}
+  .brand-banner-title em{font-style:italic;color:#4f86f7;}
   .brand-banner-sub{margin-top:10px;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.65);font-weight:600;}
 
   /* HERO */
@@ -275,8 +275,8 @@
   .foot-contact a{color:#9ba9bb;text-decoration:none;}
   .foot-contact a:hover{color:#fff;}
   .foot-creds{display:flex;align-items:center;gap:14px;flex-shrink:0;}
-  .rid-mark{width:48px;height:48px;border-radius:50%;background:#fff;padding:4px;flex-shrink:0;}
-  .nad-mark{width:48px;height:48px;border-radius:50%;flex-shrink:0;}
+  .rid-mark{height:48px;width:auto;border-radius:50%;background:#fff;padding:4px;flex-shrink:0;}
+  .nad-mark{height:40px;width:auto;flex-shrink:0;}
   .nic-mark{width:48px;height:48px;border-radius:50%;background:#fff;padding:6px;object-fit:contain;flex-shrink:0;}
   .foot-creds-lbl{font-size:15px;letter-spacing:.06em;color:#9ba9bb;line-height:1.4;text-transform:uppercase;font-weight:600;}
   .foot-bottom{max-width:1320px;margin:16px auto 0;display:flex;justify-content:space-between;font-size:15px;color:#9ba9bb;}
@@ -482,6 +482,7 @@
 (function(){var b=document.getElementById('nav-hamburger'),m=document.getElementById('nav-mobile-menu');if(!b||!m)return;b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('open',o);b.setAttribute('aria-expanded',o?'true':'false');});document.addEventListener('click',function(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');}});})();
 </script>
 
+<main>
 <section class="brand-banner">
   <div class="brand-banner-inner">
     <h2 class="brand-banner-title">Rose <em>Sign Language Interpreting</em></h2>
@@ -667,21 +668,21 @@
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Your name</span>
-            <input type="text" name="name" required placeholder="Jane Smith">
+            <input type="text" name="name" required placeholder="Jane Smith" autocomplete="name">
           </label>
           <label class="field">
             <span class="field-lbl">Organization</span>
-            <input type="text" name="org" placeholder="Hospital, agency, firm&hellip;">
+            <input type="text" name="org" placeholder="Hospital, agency, firm&hellip;" autocomplete="organization">
           </label>
         </div>
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Email</span>
-            <input type="email" name="email" required placeholder="you@org.com">
+            <input type="email" name="email" required placeholder="you@org.com" autocomplete="email">
           </label>
           <label class="field">
             <span class="field-lbl">Phone</span>
-            <input type="tel" name="phone" placeholder="(619) 555–0100">
+            <input type="tel" name="phone" placeholder="(619) 555–0100" autocomplete="tel">
           </label>
         </div>
         <div class="field-row">
@@ -821,6 +822,8 @@
     </script>
   </div>
 </section>
+
+</main>
 
 <footer>
   <div class="foot-grid">
