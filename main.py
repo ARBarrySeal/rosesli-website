@@ -282,6 +282,7 @@ _ALLOWED_IMAGES = frozenset({
     "nic-logo.png",
     "rid-logo.png",
     "og-image.png",
+    "amanda-rose.jpg",
 })
 
 
