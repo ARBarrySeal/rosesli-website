@@ -11,7 +11,7 @@ from flask import Blueprint, abort, flash, g, redirect, render_template, request
 import portal_db
 import portal_email
 from portal_audit import log as audit_log
-from portal_auth import login_required
+from portal_auth import admin_required, login_required
 
 interp_inv_bp = Blueprint("interpreter_invoices", __name__)
 
@@ -142,6 +142,26 @@ def _notify_admins(company, interpreter_name, invoice_id, total, selected):
             email, interpreter_name, invoice_id, total, lines, link,
             _company_name(company),
         )
+
+
+@interp_inv_bp.route("/portal/admin/interpreter-review")
+@admin_required
+def interpreter_review():
+    """Coordinator review of everything interpreters have submitted: every master
+    invoice they've sent for payment, newest first, with assignment count and
+    total. Each row links to the full breakdown (lines + attachments)."""
+    company = g.user["company"]
+    invoices = portal_db.query_all(
+        "SELECT i.id, i.amount, i.description, i.status, i.submitted_at, i.created_at, "
+        "       u.full_name, u.email, "
+        "       (SELECT COUNT(*) FROM invoice_jobs ij WHERE ij.invoice_id = i.id) "
+        "         AS assignment_count "
+        "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+        "WHERE u.company = %s AND u.role = 'employee' AND i.submitted = TRUE "
+        "ORDER BY i.submitted_at DESC NULLS LAST, i.created_at DESC",
+        (company,),
+    )
+    return render_template("portal_interpreter_review.html", invoices=invoices)
 
 
 @interp_inv_bp.route("/portal/pay/review")

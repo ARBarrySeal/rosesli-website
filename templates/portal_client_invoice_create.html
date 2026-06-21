@@ -73,6 +73,24 @@
 
   function fmt2(n) { return n.toFixed(2); }
 
+  var dateIn = document.querySelector('[name="date_of_service"]');
+
+  // Auto-pick the differential that matches the assignment's day + start time.
+  // Returns the DIFF_OPTIONS index, or 0 (daytime weekday) when it can't tell.
+  // Holiday / Conference / LMR can't be inferred from date+time, so a coordinator
+  // still picks those manually.
+  function suggestedDiffIndex() {
+    if (!dateIn || !dateIn.value || !startIn || !startIn.value) return 0;
+    var d = new Date(dateIn.value + 'T00:00:00');
+    if (isNaN(d.getTime())) return 0;
+    var weekend = (d.getDay() === 0 || d.getDay() === 6);
+    var h = parseInt(startIn.value.split(':')[0], 10);
+    if (isNaN(h)) return 0;
+    var band = (h >= 7 && h < 17) ? 'day' : (h >= 17 && h < 22) ? 'evening' : 'overnight';
+    if (weekend) return band === 'day' ? 1 : band === 'evening' ? 3 : 5;
+    return band === 'day' ? 0 : band === 'evening' ? 2 : 4;
+  }
+
   if (clientSel && rateIn) {
     clientSel.addEventListener('change', function () {
       var opt  = clientSel.options[clientSel.selectedIndex];
@@ -92,13 +110,14 @@
   if (startIn) startIn.addEventListener('change', autoFillDur);
   if (endIn)   endIn.addEventListener('change', autoFillDur);
 
-  function makeDiffSel(cls, name) {
+  function makeDiffSel(cls, name, preselect) {
     var sel = document.createElement('select');
     sel.className = cls; sel.name = name;
     sel.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-    DIFF_OPTIONS.forEach(function (o) {
+    DIFF_OPTIONS.forEach(function (o, i) {
       var opt = document.createElement('option');
       opt.value = o.value; opt.textContent = o.label;
+      if (i === preselect) opt.selected = true;
       sel.appendChild(opt);
     });
     return sel;
@@ -127,7 +146,7 @@
       var dw = document.createElement('label');
       dw.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
       dw.textContent = 'Differential';
-      var ds = makeDiffSel('ci-line-diff', 'ci_extra_diff_' + idx);
+      var ds = makeDiffSel('ci-line-diff', 'ci_extra_diff_' + idx, suggestedDiffIndex());
       ds.addEventListener('change', function () { recomputeLine(div); });
       dw.appendChild(ds);
 

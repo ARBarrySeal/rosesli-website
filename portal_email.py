@@ -169,14 +169,14 @@ def send_confirm_email(to_email: str, to_name: str, job: dict, offers_url: str,
 
 def send_withdraw_email(to_email: str, to_name: str, job: dict, offers_url: str,
                         company_name: str) -> bool:
-    """Notify an interpreter that a pending offer was withdrawn by the coordinator."""
-    subject = f"Assignment offer withdrawn — {_job_when(job)}"
+    """Notify an interpreter that they've been unassigned/withdrawn from a job."""
+    subject = f"Assignment update — {_job_when(job)}"
     body = (
         f"Hi {to_name},\n\n"
-        f"An assignment offer has been withdrawn:\n\n"
+        f"You have been unassigned from this job.  Thank you.\n\n"
         f"  {_job_when(job)}\n"
         f"  Setting: {job.get('setting') or '—'}\n\n"
-        f"No action is needed. You can view your current offers here:\n\n"
+        f"You can view your current offers here:\n\n"
         f"{offers_url}\n\n"
         f"— {company_name}\n"
     )

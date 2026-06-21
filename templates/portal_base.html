@@ -56,6 +56,9 @@
     {% elif g.user.role == 'admin' %}
     {# ---- Admin menu: full access ---- #}
     <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
+    {% if g.user.company == 'rosesli' %}
+    <a href="/portal/admin/interpreter-review" class="{{ 'active' if request.path.startswith('/portal/admin/interpreter-review') else '' }}">Interpreter Review</a>
+    {% endif %}
     <a href="/portal/client-invoices" class="{{ 'active' if request.path.startswith('/portal/client-invoices') else '' }}">Client Invoices</a>
     {% if g.user.company == 'rosesli' %}
     <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>

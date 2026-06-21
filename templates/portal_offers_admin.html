@@ -1,0 +1,55 @@
+{% extends "portal_base.html" %}
+{% block title %}Job Offers — Portal{% endblock %}
+
+{% macro offer_table(rows) %}
+<table class="portal-table">
+  <thead>
+    <tr>
+      <th>Job #</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Client</th>
+      <th>Location</th>
+      <th>Interpreters</th>
+      <th style="text-align:right;">Open offers</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for j in rows %}
+    <tr style="cursor:pointer;" data-href="/portal/admin/assignments/{{ j.id }}">
+      <td style="color:var(--muted);font-variant-numeric:tabular-nums;">{{ '%03d'|format(j.job_number) if j.job_number else '—' }}</td>
+      <td>{{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }}</td>
+      <td style="color:var(--muted);">{{ j.start_time or '—' }}{% if j.end_time %}–{{ j.end_time }}{% endif %}</td>
+      <td>{{ j.client_name or j.requester_name or '—' }}</td>
+      <td>{{ j.event_address or (j.event_zip and 'ZIP ' ~ j.event_zip) or '—' }}</td>
+      <td>{{ j.interpreter_1_name or '—' }}{% if j.interpreter_2_name %}, {{ j.interpreter_2_name }}{% endif %}</td>
+      <td style="text-align:right;">
+        {% if j.open_offers %}<span class="badge badge-pending">{{ j.open_offers }}</span>{% else %}<span style="color:var(--muted);">—</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% block content %}
+<h1 style="margin:0 0 .5rem;">Job Offers</h1>
+<p style="color:var(--muted);font-size:.8rem;max-width:46rem;margin-top:0;">
+  Every assignment, grouped by status. <strong>Open offers</strong> is how many
+  interpreters still have a pending offer out for that job. Click a row to staff,
+  confirm, or withdraw.
+</p>
+
+{% if total == 0 %}
+<p style="color:var(--muted);font-size:.78rem;">No assignments yet.</p>
+{% endif %}
+
+{% for grp in groups %}
+{% if grp.rows %}
+<h2 style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2rem 0 .8rem;">
+  {{ grp.label }} <span style="color:var(--muted);">({{ grp.rows|length }})</span>
+</h2>
+{{ offer_table(grp.rows) }}
+{% endif %}
+{% endfor %}
+{% endblock %}

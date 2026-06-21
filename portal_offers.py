@@ -26,6 +26,15 @@ offers_bp = Blueprint("offers", __name__)
 
 _COMPANY_NAMES = {"rosesli": "Rose Sign Language Interpreting", "dod": "DOD Cyber Consulting"}
 
+# Admin Job Offers page groups every assignment by its status. Ordered + labelled
+# here so the page reads coordinator-first (needs staffing → booked → done).
+_OFFER_CATEGORIES = (
+    ("pending",   "Needs staffing"),
+    ("confirmed", "Confirmed"),
+    ("completed", "Completed"),
+    ("cancelled", "Cancelled"),
+)
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -149,7 +158,7 @@ def offer_job(job_id):
 def withdraw_offer(offer_id):
     company = g.user["company"]
     offer = portal_db.query_one(
-        "SELECT id, job_id FROM job_offers WHERE id = %s AND company = %s",
+        "SELECT id, job_id, interpreter_id FROM job_offers WHERE id = %s AND company = %s",
         (offer_id, company),
     )
     if not offer:
@@ -160,6 +169,19 @@ def withdraw_offer(offer_id):
         (offer_id, company),
     )
     audit_log("job_offer_withdraw", target=f"offer:{offer_id}")
+
+    # Notify the interpreter they've been unassigned.
+    job = _job(offer["job_id"], company)
+    person = portal_db.query_one(
+        "SELECT full_name, email FROM portal_users WHERE id = %s AND company = %s",
+        (offer["interpreter_id"], company),
+    )
+    if job and person and person.get("email"):
+        portal_email.send_withdraw_email(
+            person["email"], person["full_name"] or "there", job,
+            _abs_url("/portal/offers"), _company_name(company),
+        )
+
     flash("Offer withdrawn.", "success")
     return redirect(f"/portal/admin/assignments/{offer['job_id']}")
 
@@ -227,6 +249,35 @@ def confirm_interpreter(job_id):
 
 # ── Interpreter side (employee) ───────────────────────────────────────────────
 
+def _admin_offers_view(company: str):
+    """Coordinator Job Offers page: every assignment, grouped by status, with the
+    count of still-open offers per job so the office sees what needs action."""
+    rows = portal_db.query_all(
+        "SELECT j.id, j.job_number, j.event_date, j.start_time, j.end_time, "
+        "       j.setting, j.event_address, j.event_zip, j.client_name, "
+        "       j.requester_name, j.interpreter_1_name, j.interpreter_2_name, j.status, "
+        "       (SELECT COUNT(*) FROM job_offers o "
+        "          WHERE o.job_id = j.id AND o.company = j.company "
+        "            AND o.status = 'offered') AS open_offers "
+        "FROM jobs j WHERE j.company = %s "
+        "ORDER BY j.event_date NULLS LAST, j.start_time",
+        (company,),
+    )
+    by_status: dict[str, list] = {}
+    for r in rows:
+        by_status.setdefault(r["status"], []).append(r)
+
+    groups = [
+        {"status": s, "label": label, "rows": by_status.pop(s, [])}
+        for s, label in _OFFER_CATEGORIES
+    ]
+    # Surface any status not in our known list rather than silently dropping it.
+    for s, leftover in by_status.items():
+        groups.append({"status": s, "label": (s or "Other").capitalize(), "rows": leftover})
+
+    return render_template("portal_offers_admin.html", groups=groups, total=len(rows))
+
+
 @offers_bp.route("/portal/offers")
 @login_required
 def my_offers():
@@ -234,6 +285,8 @@ def my_offers():
     role    = g.user["role"]
     if role not in ("admin", "employee"):
         abort(403)
+    if role == "admin":
+        return _admin_offers_view(company)
     uid = int(g.user["sub"])
 
     pending = portal_db.query_all(
