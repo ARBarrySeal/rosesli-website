@@ -24,7 +24,7 @@
   <tbody>
     {% for u in users %}
     <tr>
-      <td>{{ u.full_name or '—' }}</td>
+      <td>{{ list_name(u) }}</td>
       <td style="color:var(--muted);">{{ u.email }}</td>
       <td>{{ u.certification or '—' }}</td>
       <td>{% if u.interpreter_rate is not none %}${{ '%.2f'|format(u.interpreter_rate) }}/hr{% else %}—{% endif %}</td>

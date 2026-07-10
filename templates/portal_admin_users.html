@@ -27,7 +27,7 @@
   <tbody>
     {% for u in users %}
     <tr>
-      <td>{{ u.full_name or '—' }}</td>
+      <td>{{ list_name(u) }}</td>
       <td style="color:var(--muted);">{{ u.email }}</td>
       <td><span class="badge" style="background:#0a1a2a;color:#6bb4ff;">{{ u.role }}</span></td>
       <td>

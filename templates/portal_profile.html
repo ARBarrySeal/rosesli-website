@@ -2,11 +2,23 @@
 {% block title %}Profile — Portal{% endblock %}
 
 {% block content %}
+{% set rosesli = user.company == 'rosesli' %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
   <h1 style="margin:0;">{% if user.role == 'employee' %}Interpreter Profile{% elif user.role == 'client' %}Client Profile{% else %}Profile{% endif %}</h1>
-  {% if is_admin_view %}
-  <a href="/portal/admin/users" style="font-size:.78rem;color:var(--muted);">← Back to Users</a>
-  {% endif %}
+  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+    {% if rosesli and user.role == 'employee' and not is_admin_view %}
+    <a href="/portal/invoices" class="btn">View Invoice</a>
+    {% endif %}
+    {% if rosesli and user.role == 'client' %}
+    <div style="text-align:right;">
+      <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Base Rate</div>
+      <div style="font-size:.95rem;">{% if user.interpreter_rate is not none %}${{ '%.2f'|format(user.interpreter_rate) }}/hr{% else %}—{% endif %}</div>
+    </div>
+    {% endif %}
+    {% if is_admin_view %}
+    <a href="/portal/admin/users" style="font-size:.78rem;color:var(--muted);">← Back to Users</a>
+    {% endif %}
+  </div>
 </div>
 
 {% if error %}<p class="error" style="margin-bottom:1rem;font-size:.78rem;">{{ error }}</p>{% endif %}
@@ -47,11 +59,31 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="action" value="update"/>
     {% if is_admin_view %}<input type="hidden" name="view_uid" value="{{ view_uid }}"/>{% endif %}
+    {% if rosesli %}
+    <div style="display:flex;gap:.6rem;">
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:2;">
+        First Name
+        <input type="text" name="first_name" value="{{ user.first_name or '' }}" required
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);width:4.5rem;">
+        M.I.
+        <input type="text" name="middle_initial" value="{{ user.middle_initial or '' }}" maxlength="1"
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:2;">
+        Last Name
+        <input type="text" name="last_name" value="{{ user.last_name or '' }}"
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+      </label>
+    </div>
+    {% else %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Full Name
       <input type="text" name="full_name" value="{{ user.full_name or '' }}" required
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% endif %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Email and Log In (read-only)
       <input type="email" value="{{ user.email }}" disabled
@@ -62,16 +94,50 @@
       <input type="tel" name="phone" value="{{ user.phone or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% if not rosesli or user.role != 'employee' %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Company / Organization
       <input type="text" name="company_name" value="{{ user.company_name or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% endif %}
+    {% if rosesli %}
+    {% if user.address and not (user.address_street or user.address_city or user.address_state) %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Address on file (legacy)
+      <input type="text" value="{{ user.address }}" disabled
+             style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);"/>
+    </label>
+    {% endif %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Street Address
+      <input type="text" name="address_street" value="{{ user.address_street or '' }}"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    <div style="display:flex;gap:.6rem;">
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:2;">
+        City
+        <input type="text" name="address_city" value="{{ user.address_city or '' }}"
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:1;">
+        State
+        <select name="address_state"
+                style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;">
+          <option value=""></option>
+          {% for s in us_states %}
+          <option value="{{ s }}" {{ 'selected' if user.address_state == s else '' }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    {% else %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Address
       <input type="text" name="address" value="{{ user.address or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% endif %}
     {% if user.role in ['employee', 'client'] %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       ZIP Code
@@ -80,6 +146,34 @@
     </label>
     {% endif %}
     {% if user.role == 'employee' %}
+    {% if rosesli %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Certification
+      <select name="certification"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;">
+        <option value=""></option>
+        {% for c in cert_options %}
+        <option value="{{ c }}" {{ 'selected' if user.certification == c else '' }}>{{ c }}</option>
+        {% endfor %}
+        {% if user.certification and user.certification not in cert_options %}
+        <option value="{{ user.certification }}" selected>{{ user.certification }}</option>
+        {% endif %}
+      </select>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Specialty
+      <select name="specialty"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;">
+        <option value=""></option>
+        {% for s in specialty_options %}
+        <option value="{{ s }}" {{ 'selected' if user.specialty == s else '' }}>{{ s }}</option>
+        {% endfor %}
+        {% if user.specialty and user.specialty not in specialty_options %}
+        <option value="{{ user.specialty }}" selected>{{ user.specialty }}</option>
+        {% endif %}
+      </select>
+    </label>
+    {% else %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Certification
       <input type="text" name="certification" value="{{ user.certification or '' }}" placeholder="e.g. RID NIC, NAD IV"
@@ -90,37 +184,59 @@
       <input type="text" name="specialty" value="{{ user.specialty or '' }}" placeholder="e.g. Legal, Medical"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% endif %}
+    {% if rosesli and not is_admin_view %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Current Base Rate (set by admin)
+      <input type="text" value="{% if user.interpreter_rate is not none %}${{ '%.2f'|format(user.interpreter_rate) }}/hr{% else %}—{% endif %}" disabled
+             style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);"/>
+    </label>
+    {% else %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
       <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or 80 }}" placeholder="80.00"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% endif %}
     <p style="font-size:.72rem;color:var(--muted);margin:-.4rem 0 0;">
       <a href="/portal/invoices" style="color:var(--accent);text-decoration:none;">View your invoices →</a>
     </p>
     {% elif user.role == 'client' %}
+    {% if not rosesli %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
       <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}" placeholder="0.00"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% elif is_admin_view %}
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+      Base Rate ($/hr)
+      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}" placeholder="0.00"
+             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+    </label>
+    {% endif %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Point of Contact
       <input type="text" name="point_of_contact" value="{{ user.point_of_contact or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-      Billing Email
+      {{ 'POC Email' if rosesli else 'Billing Email' }}
       <input type="email" name="billing_email" value="{{ user.billing_email or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-      Billing Phone
+      {{ 'POC Phone' if rosesli else 'Billing Phone' }}
       <input type="tel" name="billing_phone" value="{{ user.billing_phone or '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     {% endif %}
-    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Save Changes</button>
+    <div style="display:flex;gap:.75rem;align-items:center;">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      {% if rosesli and user.role == 'client' and not is_admin_view %}
+      <a href="/portal" style="font-size:.78rem;color:#b3261e;text-decoration:none;">Exit without Saving</a>
+      {% endif %}
+    </div>
   </form>
 
   {% if user.role == 'employee' %}
@@ -170,7 +286,22 @@
     {% else %}
     <div style="font-size:.82rem;color:var(--muted);">No documents on file.</div>
     {% endif %}
+    {% if rosesli %}
+    <form method="POST" action="/portal/documents/upload" enctype="multipart/form-data"
+          style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.75rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="redirect_to" value="/portal/profile{% if is_admin_view %}?uid={{ view_uid }}{% endif %}"/>
+      {% if is_admin_view %}<input type="hidden" name="target_user_id" value="{{ view_uid }}"/>{% endif %}
+      <input type="file" name="file" required style="font-size:.78rem;color:var(--muted);"/>
+      <button type="submit" class="btn" style="font-size:.72rem;">Upload Documents</button>
+    </form>
+    {% endif %}
   </div>
+  {% if rosesli and user.role == 'employee' and not is_admin_view %}
+  <p style="margin:-.5rem 0 1.5rem;">
+    <a href="/portal" style="font-size:.78rem;color:#b3261e;text-decoration:none;">Exit without saving changes</a>
+  </p>
+  {% endif %}
 
   {% if not is_admin_view %}
   <h1 style="font-size:.72rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.5rem;">Change Password</h1>

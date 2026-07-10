@@ -21,6 +21,22 @@ from portal_auth import (
     generate_temp_password, hash_password, login_required, rotate_csrf_token,
 )
 
+# All 50 states, alphabetical by code — shared by profile and assignment forms
+# (exposed to templates as the `us_states` Jinja global in main.py).
+US_STATES = [
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD",
+    "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH",
+    "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY",
+]
+
+# Rose SLI profile dropdowns. Columns stay TEXT — off-list values already in
+# the DB render as an extra selected option so nothing is lost.
+CERT_OPTIONS = ["RID", "NAD Master", "NIC Master", "CDI", "Other"]
+SPECIALTY_OPTIONS = ["K-12", "Higher Ed", "Conference", "Performance",
+                     "Deafblind", "Government", "Other"]
+
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {
     ".pdf", ".doc", ".docx", ".xls", ".xlsx",
@@ -165,6 +181,13 @@ def dashboard():
     abort(403)
 
 
+def _compose_full_name(first, mi, last):
+    """'First M. Last' — full_name stays authoritative for the dozens of
+    existing call sites (emails, job snapshots, offers, autocomplete)."""
+    mid = f"{mi}." if mi else ""
+    return " ".join(p for p in (first, mid, last) if p)
+
+
 @pages_bp.route("/portal/profile", methods=["GET", "POST"])
 @login_required
 def profile():
@@ -240,28 +263,59 @@ def profile():
             )
 
         elif action == "update":
-            full_name    = (request.form.get("full_name")    or "").strip()[:255]
+            rosesli      = user["company"] == "rosesli"
             phone        = (request.form.get("phone")        or "").strip()[:50]
             company_name = (request.form.get("company_name") or "").strip()[:255]
             address      = (request.form.get("address")      or "").strip()[:500]
             zip_code     = (request.form.get("zip")          or "").strip()[:20]
             role         = user["role"]
+
+            if rosesli:
+                first = (request.form.get("first_name")     or "").strip()[:100]
+                last  = (request.form.get("last_name")      or "").strip()[:100]
+                mi    = (request.form.get("middle_initial") or "").strip().rstrip(".")[:1].upper()
+                street = (request.form.get("address_street") or "").strip()[:255]
+                city   = (request.form.get("address_city")   or "").strip()[:100]
+                state  = (request.form.get("address_state")  or "").strip().upper()[:2]
+                if state not in US_STATES:
+                    state = ""
+                full_name = _compose_full_name(first, mi, last)
+            else:
+                full_name = (request.form.get("full_name") or "").strip()[:255]
+
+            # Base rate is admin-set only — a non-admin POST silently keeps the
+            # stored value (closes the old unrestricted self-edit).
+            rate_raw = (request.form.get("interpreter_rate") or "").strip()
+            try:
+                interpreter_rate = float(rate_raw) if rate_raw else None
+            except ValueError:
+                interpreter_rate = None
+            rate_sql, rate_vals = ("", [])
+            if is_admin_view:
+                rate_sql, rate_vals = (", interpreter_rate=%s", [interpreter_rate])
+
+            name_sql, name_vals = ("full_name=%s", [full_name])
+            if rosesli:
+                name_sql = ("full_name=%s, first_name=%s, last_name=%s, middle_initial=%s, "
+                            "address_street=%s, address_city=%s, address_state=%s")
+                name_vals = [full_name, first or None, last or None, mi or None,
+                             street or None, city or None, state or None]
+
             if not full_name:
-                error = "Full name is required."
+                error = ("First name is required." if rosesli else "Full name is required.")
             elif role == "employee":
                 certification = (request.form.get("certification") or "").strip()[:255]
                 specialty     = (request.form.get("specialty")     or "").strip()[:255]
-                rate_raw      = (request.form.get("interpreter_rate") or "").strip()
-                try:
-                    interpreter_rate = float(rate_raw) if rate_raw else None
-                except ValueError:
-                    interpreter_rate = None
+                # rosesli interpreter form has no Company/Organization or free-text
+                # address fields — leave those columns untouched.
+                extra_sql  = ", zip=%s, certification=%s, specialty=%s"
+                extra_vals = [zip_code or None, certification or None, specialty or None]
+                if not rosesli:
+                    extra_sql  = ", company_name=%s, address=%s" + extra_sql
+                    extra_vals = [company_name, address] + extra_vals
                 portal_db.execute(
-                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
-                    "address=%s, zip=%s, certification=%s, specialty=%s, interpreter_rate=%s "
-                    "WHERE id=%s",
-                    (full_name, phone, company_name, address, zip_code or None,
-                     certification or None, specialty or None, interpreter_rate, target_uid),
+                    f"UPDATE portal_users SET {name_sql}, phone=%s{extra_sql}{rate_sql} WHERE id=%s",
+                    tuple(name_vals + [phone] + extra_vals + rate_vals + [target_uid]),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
@@ -269,26 +323,29 @@ def profile():
                 poc           = (request.form.get("point_of_contact") or "").strip()[:255]
                 billing_email = (request.form.get("billing_email") or "").strip()[:255]
                 billing_phone = (request.form.get("billing_phone") or "").strip()[:50]
-                rate_raw      = (request.form.get("interpreter_rate") or "").strip()
-                try:
-                    interpreter_rate = float(rate_raw) if rate_raw else None
-                except ValueError:
-                    interpreter_rate = None
+                extra_sql  = ", zip=%s, point_of_contact=%s, billing_email=%s, billing_phone=%s"
+                extra_vals = [zip_code or None, poc or None, billing_email or None,
+                              billing_phone or None]
+                if not rosesli:
+                    extra_sql  = ", address=%s" + extra_sql
+                    extra_vals = [address] + extra_vals
                 portal_db.execute(
-                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
-                    "address=%s, zip=%s, point_of_contact=%s, billing_email=%s, "
-                    "billing_phone=%s, interpreter_rate=%s WHERE id=%s",
-                    (full_name, phone, company_name, address, zip_code or None,
-                     poc or None, billing_email or None, billing_phone or None,
-                     interpreter_rate, target_uid),
+                    f"UPDATE portal_users SET {name_sql}, phone=%s, company_name=%s"
+                    f"{extra_sql}{rate_sql} WHERE id=%s",
+                    tuple(name_vals + [phone, company_name] + extra_vals + rate_vals + [target_uid]),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
             else:
+                # rosesli forms have no free-text address field — leave the
+                # legacy column untouched (split fields are in name_sql).
+                extra_sql  = ", zip=%s" if rosesli else ", address=%s, zip=%s"
+                extra_vals = ([zip_code or None] if rosesli
+                              else [address, zip_code or None])
                 portal_db.execute(
-                    "UPDATE portal_users SET full_name=%s, phone=%s, company_name=%s, "
-                    "address=%s, zip=%s WHERE id=%s",
-                    (full_name, phone, company_name, address, zip_code or None, target_uid),
+                    f"UPDATE portal_users SET {name_sql}, phone=%s, company_name=%s"
+                    f"{extra_sql} WHERE id=%s",
+                    tuple(name_vals + [phone, company_name] + extra_vals + [target_uid]),
                 )
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = "Profile updated."
@@ -504,7 +561,7 @@ def w9_delete():
 def admin_users():
     company = g.user["company"]
     users   = portal_db.query_all(
-        "SELECT id, email, full_name, role, active, created_at "
+        "SELECT id, email, full_name, first_name, last_name, role, active, created_at "
         "FROM portal_users WHERE company = %s AND (archived IS NULL OR archived = FALSE) "
         "ORDER BY created_at DESC",
         (company,),
@@ -517,7 +574,8 @@ def admin_users():
 def admin_interpreters():
     company = g.user["company"]
     users   = portal_db.query_all(
-        "SELECT id, email, full_name, certification, interpreter_rate, active, created_at "
+        "SELECT id, email, full_name, first_name, last_name, certification, "
+        "       interpreter_rate, active, created_at "
         "FROM portal_users WHERE company = %s AND role = 'employee' "
         "AND (archived IS NULL OR archived = FALSE) "
         "ORDER BY full_name NULLS LAST, created_at DESC",
@@ -531,8 +589,8 @@ def admin_interpreters():
 def admin_clients():
     company = g.user["company"]
     users   = portal_db.query_all(
-        "SELECT id, email, full_name, company_name, point_of_contact, interpreter_rate, "
-        "       active, created_at "
+        "SELECT id, email, full_name, first_name, last_name, company_name, "
+        "       point_of_contact, interpreter_rate, active, created_at "
         "FROM portal_users WHERE company = %s AND role = 'client' "
         "AND (archived IS NULL OR archived = FALSE) "
         "ORDER BY full_name NULLS LAST, created_at DESC",

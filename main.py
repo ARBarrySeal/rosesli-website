@@ -93,6 +93,22 @@ def _inject_company():
     return {"company_id": os.environ.get("COMPANY_ID", "dod")}
 
 
+from portal_pages import CERT_OPTIONS, SPECIALTY_OPTIONS, US_STATES  # noqa: E402
+app.jinja_env.globals["us_states"] = US_STATES
+app.jinja_env.globals["cert_options"] = CERT_OPTIONS
+app.jinja_env.globals["specialty_options"] = SPECIALTY_OPTIONS
+
+
+def _list_name(u):
+    """'Last, First' for lists when the split columns exist (rosesli saves and
+    backfill populate them); falls back to full_name so dod rows are unchanged."""
+    if u.get("last_name") and u.get("first_name"):
+        return f"{u['last_name']}, {u['first_name']}"
+    return u.get("full_name") or "—"
+
+app.jinja_env.globals["list_name"] = _list_name
+
+
 @app.context_processor
 def _inject_offer_badge():
     """Pending-offer count for the nav badge (interpreters/admins only)."""
