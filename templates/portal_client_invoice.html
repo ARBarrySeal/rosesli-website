@@ -3,7 +3,15 @@
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
   <h1>Client Invoice #{{ inv.id }}</h1>
+  {% if g.user.company == 'rosesli' and g.user.role == 'client' %}
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    <a href="/portal/client-invoices" class="btn">See Invoices</a>
+    <a href="/portal/requests" class="btn">See Requests</a>
+    <a href="/portal" class="btn">Back to Dashboard</a>
+  </div>
+  {% else %}
   <a href="/portal/client-invoices" style="font-size:.78rem;color:var(--muted);">← Client Invoices</a>
+  {% endif %}
 </div>
 
 <div style="max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;">

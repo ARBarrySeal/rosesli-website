@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-company="{{ g.user.company }}">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -98,6 +98,11 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
+    {% if g.user.company == 'rosesli' and g.user.role == 'admin' and request.path != '/portal' %}
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+      <a href="/portal" class="btn">Exit to Dashboard</a>
+    </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </div>

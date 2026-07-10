@@ -88,6 +88,12 @@ app.jinja_env.globals["csp_nonce"] = _csp_nonce
 
 
 @app.context_processor
+def _inject_company():
+    """Tenant id for standalone (pre-auth) templates that can't read g.user."""
+    return {"company_id": os.environ.get("COMPANY_ID", "dod")}
+
+
+@app.context_processor
 def _inject_offer_badge():
     """Pending-offer count for the nav badge (interpreters/admins only)."""
     user = getattr(g, "user", None)

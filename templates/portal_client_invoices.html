@@ -3,9 +3,15 @@
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
   <h1>Client Invoices</h1>
-  {% if g.user.role == 'admin' %}
-  <a href="/portal/admin/client-invoices/create" class="btn btn-primary">+ New Client Invoice</a>
-  {% endif %}
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    {% if g.user.company == 'rosesli' and g.user.role == 'client' %}
+    <a href="/portal/requests" class="btn">See Requests</a>
+    <a href="/portal" class="btn">Back to Dashboard</a>
+    {% endif %}
+    {% if g.user.role == 'admin' %}
+    <a href="/portal/admin/client-invoices/create" class="btn btn-primary">+ New Client Invoice</a>
+    {% endif %}
+  </div>
 </div>
 {% if invoices %}
 <table class="portal-table">

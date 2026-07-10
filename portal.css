@@ -248,26 +248,38 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 }
 
 /* ── Rose SLI cream / navy theme ── */
+/* 18pt typography: every size in this sheet (and inline template styles) is
+   rem-based, so scaling the ROOT font-size to 24px (= 18pt) rescales the whole
+   portal proportionally — body text lands at 18pt, labels/buttons/badges stay
+   proportionally smaller. */
+html[data-company="rosesli"] { font-size: 24px; }
+
 body[data-company="rosesli"] {
   --bg: #faf8f4;
   --surface: #f4f0e8;
   --card: #f4f0e8;
   --border: #d9d0c0;
-  --text: #0d2b52;
+  --text: #000000;
   --muted: #5a7099;
   --font: 'Times New Roman', Times, serif;
   --shadow: 0 2px 8px rgba(13, 43, 82, 0.1);
-  font-size: 16px;
+  font-size: 1rem;
   font-family: 'Times New Roman', Times, serif;
-  color: #0d2b52;
+  color: #000000;
 }
 body[data-company="rosesli"] input,
 body[data-company="rosesli"] select,
 body[data-company="rosesli"] textarea,
 body[data-company="rosesli"] button {
-  font-size: 16px !important;
+  font-size: 1rem !important;
   font-family: 'Times New Roman', Times, serif !important;
 }
+/* Main content at full 18pt; headings keep the navy brand color. */
+body[data-company="rosesli"] .portal-table { font-size: 1rem; }
+body[data-company="rosesli"] .asn-row { font-size: 1rem; }
+body[data-company="rosesli"] .portal-main h1,
+body[data-company="rosesli"] .auth-box h1,
+body[data-company="rosesli"] .asn-section { color: #0d2b52; }
 body[data-company="rosesli"] .portal-topbar,
 body[data-company="rosesli"] .portal-sidebar {
   background: var(--surface);
