@@ -5,8 +5,12 @@ from flask import Blueprint, abort, g, jsonify, render_template, request
 
 import portal_db
 from portal_audit import log as audit_log
-from portal_auth import admin_required, login_required, make_token
-from portal_email import send_invite_email, send_test_email
+from portal_auth import (
+    DEFAULT_PASSWORD, admin_required, hash_password, login_required, make_token,
+)
+from portal_email import (
+    send_default_password_email, send_invite_email, send_test_email,
+)
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -41,6 +45,32 @@ def invite():
         return render_template("portal_admin_invite.html",
                                error="That email already has an account.")
 
+    app_url = os.environ.get("APP_URL", "http://localhost:8080")
+
+    if company == "rosesli":
+        # Rose SLI flow: account is created live with the default password;
+        # first sign-in forces the user to create their own password.
+        portal_db.execute(
+            "INSERT INTO portal_users (email, full_name, role, company, "
+            "                          password_hash, must_change_password, active) "
+            "VALUES (%s, %s, %s, %s, %s, TRUE, TRUE)",
+            (email, full_name, role, company, hash_password(DEFAULT_PASSWORD)),
+        )
+        new_user = portal_db.query_one(
+            "SELECT id FROM portal_users WHERE email = %s AND company = %s",
+            (email, company),
+        )
+        audit_log(
+            "invite_send",
+            target=f"user:{new_user['id']}" if new_user else None,
+            metadata={"email": email, "role": role, "full_name": full_name,
+                      "flow": "default_password"},
+        )
+        send_default_password_email(email, full_name, f"{app_url}/login",
+                                    COMPANY_NAMES.get(company, company))
+        return render_template("portal_admin_invite.html", sent=True, email=email,
+                               home_url="/", default_pw_flow=True)
+
     token   = make_token()
     expires = datetime.now(timezone.utc) + timedelta(hours=48)
 
@@ -60,7 +90,6 @@ def invite():
         metadata={"email": email, "role": role, "full_name": full_name},
     )
 
-    app_url   = os.environ.get("APP_URL", "http://localhost:8080")
     setup_url = f"{app_url}/setup-account/{token}"
     send_invite_email(email, full_name, setup_url, COMPANY_NAMES.get(company, company))
 

@@ -107,6 +107,39 @@ def send_reset_email(to_email: str, reset_url: str, company_name: str) -> bool:
     return _send(to_email, subject, body)
 
 
+def send_default_password_email(to_email: str, to_name: str, login_url: str,
+                                company_name: str) -> bool:
+    subject = f"Your {company_name} portal account is ready"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"Your {company_name} portal account has been created.\n\n"
+        f"Sign in with your email address and the temporary password below —\n"
+        f"you'll be asked to create your own password right away.\n\n"
+        f"  Temporary password: password\n\n"
+        f"{login_url}\n\n"
+        f"If you didn't expect this email, please ignore it.\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
+def send_temp_password_email(to_email: str, temp_password: str, login_url: str,
+                             company_name: str) -> bool:
+    subject = f"{company_name} — Your temporary password"
+    body = (
+        f"Hi,\n\n"
+        f"A temporary password was issued for your {company_name} portal account.\n\n"
+        f"  Temporary password: {temp_password}\n\n"
+        f"Sign in here and you'll be asked to create a new password right away:\n\n"
+        f"{login_url}\n\n"
+        f"If you didn't request this, contact us before signing in.\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
 def send_test_email(to_email: str, company_name: str) -> tuple[bool, str]:
     """Admin-triggered SMTP sanity check. Returns (ok, detail) for UI."""
     subject = f"{company_name} portal — SMTP test"

@@ -16,9 +16,9 @@ import portal_mfa
 import portal_storage
 from portal_audit import log as audit_log
 from portal_auth import (
-    SESSION_HOURS, _password_too_weak, _set_session_cookie,
+    COMPANY_NAMES, SESSION_HOURS, _password_too_weak, _set_session_cookie,
     admin_required, check_password, decode_jwt, encode_jwt,
-    hash_password, login_required, rotate_csrf_token,
+    generate_temp_password, hash_password, login_required, rotate_csrf_token,
 )
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
@@ -205,9 +205,39 @@ def profile():
                 )
                 audit_log("role_change", user_id=uid, email=g.user["email"],
                           company=g.user["company"],
-                          detail=f"uid={target_uid} role->{new_role}")
+                          target=f"user:{target_uid}",
+                          metadata={"new_role": new_role})
                 user    = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
                 success = f"Role updated to {'Interpreter' if new_role == 'employee' else 'Client'}."
+
+        elif action == "set_temp_password" and is_admin_view:
+            # Admin-issued temporary password: emailed to the user and shown
+            # once here; the user must replace it at next sign-in.
+            temp_pw = generate_temp_password()
+            portal_db.execute(
+                "UPDATE portal_users "
+                "SET password_hash = %s, must_change_password = TRUE, "
+                "    pw_changed_at = NOW(), failed_login_count = 0, locked_until = NULL, "
+                "    reset_token = NULL, reset_expires = NULL "
+                "WHERE id = %s",
+                (hash_password(temp_pw), target_uid),
+            )
+            audit_log("pw_temp_issued", user_id=uid, email=g.user["email"],
+                      company=g.user["company"],
+                      target=f"user:{target_uid}",
+                      metadata={"via": "admin_profile"})
+            app_url = os.environ.get("APP_URL", "http://localhost:8080")
+            from portal_email import send_temp_password_email
+            emailed = send_temp_password_email(
+                user["email"], temp_pw, f"{app_url}/login",
+                COMPANY_NAMES.get(g.user["company"], g.user["company"]),
+            )
+            success = (
+                f"Temporary password issued: {temp_pw} — "
+                + ("it was also emailed to the user. " if emailed
+                   else "email could not be sent, so share it with the user directly. ")
+                + "They'll be asked to create a new password at next sign-in."
+            )
 
         elif action == "update":
             full_name    = (request.form.get("full_name")    or "").strip()[:255]
@@ -399,7 +429,7 @@ def w9_upload():
         return redirect(redir)
 
     audit_log("w9_upload", user_id=uid, email=g.user["email"], company=company,
-              detail=f"target_uid={target_uid}")
+              target=f"user:{target_uid}")
     flash("W-9 uploaded.", "success")
     redir = f"/portal/profile?uid={target_uid}" if target_uid != uid else "/portal/profile"
     return redirect(redir)
@@ -464,7 +494,7 @@ def w9_delete():
         pass
 
     audit_log("w9_delete", user_id=uid, email=g.user["email"], company=company,
-              detail=f"target_uid={target_uid}")
+              target=f"user:{target_uid}")
     flash("W-9 removed.", "success")
     return redirect(f"/portal/profile?uid={target_uid}")
 

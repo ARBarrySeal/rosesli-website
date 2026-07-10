@@ -46,21 +46,55 @@ _PASSWORD_SUFFIX = re.compile(r"[\d!@#$%^&*_.?-]+$")
 
 
 def _password_too_weak(pw: str) -> str | None:
-    if len(pw) < 12:
-        return "Password must be at least 12 characters."
-    classes = sum([
-        any(c.islower() for c in pw),
-        any(c.isupper() for c in pw),
-        any(c.isdigit() for c in pw),
-        any(not c.isalnum() for c in pw),
-    ])
-    if classes < 3:
-        return "Password must include 3 of: lowercase, uppercase, digit, symbol."
+    company = os.environ.get("COMPANY_ID", "dod")
+    if company == "rosesli":
+        # Rose SLI policy (owner-specified): 7+ chars, 1 capital, 1 number,
+        # 1 special character.
+        if len(pw) < 7:
+            return "Password must be at least 7 characters."
+        if not any(c.isupper() for c in pw):
+            return "Password must include at least one capital letter."
+        if not any(c.isdigit() for c in pw):
+            return "Password must include at least one number."
+        if not any(not c.isalnum() for c in pw):
+            return "Password must include at least one special character."
+    else:
+        if len(pw) < 12:
+            return "Password must be at least 12 characters."
+        classes = sum([
+            any(c.islower() for c in pw),
+            any(c.isupper() for c in pw),
+            any(c.isdigit() for c in pw),
+            any(not c.isalnum() for c in pw),
+        ])
+        if classes < 3:
+            return "Password must include 3 of: lowercase, uppercase, digit, symbol."
     lowered = pw.lower()
     base = _PASSWORD_SUFFIX.sub("", lowered)
     if lowered in COMMON_PASSWORDS or (base and base in COMMON_PASSWORDS):
         return "Password is too common — please choose something more unique."
     return None
+
+
+# The default credential new rosesli accounts are created with. Anyone who
+# authenticates with it is forced through /portal/change-password before
+# reaching the portal, so it never survives a first sign-in.
+DEFAULT_PASSWORD = "password"
+
+_TEMP_ALPHABET = "abcdefghjkmnpqrstuvwxyz"  # no i/l/o — avoids misreading
+
+
+def generate_temp_password() -> str:
+    """Random temporary password that satisfies both tenants' policies
+    (12 chars: upper + lower + digit + special)."""
+    body = "".join(secrets.choice(_TEMP_ALPHABET + _TEMP_ALPHABET.upper() + "23456789")
+                   for _ in range(9))
+    return (
+        secrets.choice(_TEMP_ALPHABET.upper())
+        + body
+        + secrets.choice("23456789")
+        + secrets.choice("!@#$%&*")
+    )
 
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
@@ -94,7 +128,7 @@ def _load_user_for_token(payload: dict) -> dict | None:
         return None
     user = portal_db.query_one(
         "SELECT id, email, role, company, full_name, active, pw_changed_at, "
-        "       locked_until, mfa_secret "
+        "       locked_until, mfa_secret, must_change_password "
         "FROM portal_users WHERE id = %s",
         (uid,),
     )
@@ -126,6 +160,12 @@ def login_required(f):
             resp = make_response(redirect("/"))
             resp.delete_cookie("portal_token")
             return resp
+        # Forced password change: until the user replaces a default/temporary
+        # password, the only portal page they can reach is the change form.
+        if user.get("must_change_password") and \
+                not request.path.startswith("/portal/change-password") and \
+                request.path != "/logout":
+            return redirect("/portal/change-password")
         g.user = payload | {"db": user}
         return f(*args, **kwargs)
     return decorated
@@ -198,7 +238,7 @@ def login():
 
     user = portal_db.query_one(
         "SELECT id, email, password_hash, role, company, full_name, active, "
-        "       failed_login_count, locked_until, mfa_secret "
+        "       failed_login_count, locked_until, mfa_secret, must_change_password "
         "FROM portal_users WHERE email = %s AND company = %s",
         (email, company),
     )
@@ -250,6 +290,18 @@ def login():
         (user["id"],),
     )
 
+    # Forced password change: flag set (temp/default password issued), or the
+    # user signed in with the literal default password even if the flag was
+    # somehow never set (defense in depth).
+    force_change = bool(user.get("must_change_password"))
+    if password == DEFAULT_PASSWORD:
+        force_change = True
+        if not user.get("must_change_password"):
+            portal_db.execute(
+                "UPDATE portal_users SET must_change_password = TRUE WHERE id = %s",
+                (user["id"],),
+            )
+
     # MFA disabled — every authenticated user gets a full session straight to the portal.
     token = encode_jwt({
         "sub":     str(user["id"]),
@@ -260,7 +312,10 @@ def login():
         "mfa":     "n/a",
     })
     audit_log("login_ok", email=email, company=company, user_id=user["id"])
-    resp = make_response(jsonify(ok=True, redirect="/portal"))
+    resp = make_response(jsonify(
+        ok=True,
+        redirect="/portal/change-password" if force_change else "/portal",
+    ))
     _set_session_cookie(resp, token, max_age=SESSION_HOURS * 3600)
     return resp
 
@@ -355,19 +410,41 @@ def forgot_password():
         (email, company),
     )
     if user:
-        token   = make_token()
-        expires = datetime.now(timezone.utc) + timedelta(hours=1)
-        portal_db.execute(
-            "UPDATE portal_users SET reset_token = %s, reset_expires = %s WHERE id = %s",
-            (token, expires, user["id"]),
-        )
-        app_url   = os.environ.get("APP_URL", "http://localhost:8080")
-        reset_url = f"{app_url}/reset-password/{token}"
-        from portal_email import send_reset_email
-        send_reset_email(user["email"], reset_url, COMPANY_NAMES.get(company, company))
-        audit_log("pw_reset_request", user_id=user["id"], email=user["email"], company=company)
+        if company == "rosesli":
+            # Rose SLI flow: email a temporary password; the user is forced to
+            # replace it at next sign-in (must_change_password gate).
+            temp_pw = generate_temp_password()
+            portal_db.execute(
+                "UPDATE portal_users "
+                "SET password_hash = %s, must_change_password = TRUE, "
+                "    pw_changed_at = NOW(), failed_login_count = 0, locked_until = NULL, "
+                "    reset_token = NULL, reset_expires = NULL "
+                "WHERE id = %s",
+                (hash_password(temp_pw), user["id"]),
+            )
+            app_url = os.environ.get("APP_URL", "http://localhost:8080")
+            from portal_email import send_temp_password_email
+            send_temp_password_email(
+                user["email"], temp_pw, f"{app_url}/login",
+                COMPANY_NAMES.get(company, company),
+            )
+            audit_log("pw_temp_issued", user_id=user["id"], email=user["email"],
+                      company=company, metadata={"via": "forgot_password"})
+        else:
+            token   = make_token()
+            expires = datetime.now(timezone.utc) + timedelta(hours=1)
+            portal_db.execute(
+                "UPDATE portal_users SET reset_token = %s, reset_expires = %s WHERE id = %s",
+                (token, expires, user["id"]),
+            )
+            app_url   = os.environ.get("APP_URL", "http://localhost:8080")
+            reset_url = f"{app_url}/reset-password/{token}"
+            from portal_email import send_reset_email
+            send_reset_email(user["email"], reset_url, COMPANY_NAMES.get(company, company))
+            audit_log("pw_reset_request", user_id=user["id"], email=user["email"], company=company)
 
-    return render_template("portal_forgot_password.html", sent=True)
+    return render_template("portal_forgot_password.html", sent=True,
+                           temp_flow=(company == "rosesli"))
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -461,4 +538,55 @@ def setup_account(token):
     })
     resp = make_response(redirect("/portal"))
     _set_session_cookie(resp, jwt_token, max_age=SESSION_HOURS * 3600)
+    return resp
+
+
+@auth_bp.route("/portal/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Forced password change — the only page reachable while
+    must_change_password is set (login_required redirects everything else
+    here). The user just authenticated with the temp/default password, so the
+    form asks only for the new password, twice."""
+    uid = int(g.user["sub"])
+    if not g.user["db"].get("must_change_password"):
+        return redirect("/portal")
+
+    if request.method == "GET":
+        return render_template("portal_change_password.html")
+
+    new_pw  = request.form.get("new_password")     or ""
+    confirm = request.form.get("confirm_password") or ""
+
+    weak = _password_too_weak(new_pw)
+    if new_pw == DEFAULT_PASSWORD:
+        weak = "Please choose a password other than the default one."
+    if weak:
+        return render_template("portal_change_password.html", error=weak)
+    if new_pw != confirm:
+        return render_template("portal_change_password.html",
+                               error="Passwords do not match.")
+
+    portal_db.execute(
+        "UPDATE portal_users "
+        "SET password_hash = %s, must_change_password = FALSE, pw_changed_at = NOW(), "
+        "    failed_login_count = 0, locked_until = NULL "
+        "WHERE id = %s",
+        (hash_password(new_pw), uid),
+    )
+    audit_log("pw_change_forced", user_id=uid, email=g.user["email"],
+              company=g.user["company"])
+
+    # Reissue the JWT — pw_changed_at just advanced past this token's iat, so
+    # without a fresh cookie the very next request would bounce to login.
+    fresh_token = encode_jwt({
+        "sub":     str(uid),
+        "email":   g.user["email"],
+        "role":    g.user["role"],
+        "company": g.user["company"],
+        "name":    g.user.get("name") or g.user["email"],
+        "mfa":     g.user.get("mfa", "n/a"),
+    })
+    resp = make_response(redirect("/portal"))
+    _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
     return resp

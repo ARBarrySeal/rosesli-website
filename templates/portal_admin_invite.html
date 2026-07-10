@@ -10,7 +10,13 @@
 <div class="auth-box">
   <h1>Invite a new user</h1>
   {% if sent %}
+    {% if default_pw_flow %}
+    <p class="success">Account created for {{ email }}. They can sign in now with the
+       temporary password <strong>password</strong> (also emailed to them) and will be
+       asked to create their own password on first sign-in.</p>
+    {% else %}
     <p class="success">Invitation sent to {{ email }}.</p>
+    {% endif %}
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.8rem;">
       <a href="/portal/admin/invite" class="btn-link">Invite another</a>
       <a href="/portal" class="btn-link">Return to Dashboard</a>

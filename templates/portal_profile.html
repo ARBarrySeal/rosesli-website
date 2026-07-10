@@ -25,6 +25,20 @@
     <span id="role-save-msg" style="font-size:.72rem;color:var(--success);display:none;">Saved</span>
   </div>
 </div>
+
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;max-width:480px;">
+  <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">Login</div>
+  <form method="POST" style="margin:0;"
+        onsubmit="return confirm('Issue a new temporary password? Their current password will stop working immediately.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="action" value="set_temp_password"/>
+    <input type="hidden" name="view_uid" value="{{ view_uid }}"/>
+    <button type="submit" class="btn" style="font-size:.72rem;">Issue temporary password</button>
+  </form>
+  <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem;">
+    Emails the user a temporary password. They'll be required to create a new one at next sign-in.
+  </div>
+</div>
 {% endif %}
 
 <div style="max-width:480px;">
@@ -170,14 +184,17 @@
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       New Password
-      <input type="password" name="new_password" required minlength="8"
+      <input type="password" name="new_password" required minlength="{{ 7 if g.user.company == 'rosesli' else 12 }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Confirm New Password
-      <input type="password" name="confirm_password" required minlength="8"
+      <input type="password" name="confirm_password" required minlength="{{ 7 if g.user.company == 'rosesli' else 12 }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
+    {% if g.user.company == 'rosesli' %}
+    <div style="font-size:.72rem;color:var(--muted);">At least 7 characters, with one capital letter, one number, and one special character.</div>
+    {% endif %}
     <button type="submit" class="btn btn-ghost" style="align-self:flex-start;">Update Password</button>
   </form>
   {% endif %}
