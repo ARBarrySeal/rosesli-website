@@ -23,7 +23,9 @@
       <td>{{ j.client_name or j.requester_name or '—' }}</td>
       <td>{{ j.event_address or (j.event_zip and 'ZIP ' ~ j.event_zip) or '—' }}</td>
       <td>
-        {{ j.interpreter_1_name or '—' }}{% if j.interpreter_2_name %}, {{ j.interpreter_2_name }}{% endif %}
+        {% if j.interpreter_names %}{{ j.interpreter_names }}
+        {% else %}{{ j.interpreter_1_name or '—' }}{% if j.interpreter_2_name %}, {{ j.interpreter_2_name }}{% endif %}
+        {% endif %}
       </td>
       <td><span class="badge badge-{{ j.status }}">{{ j.status }}</span></td>
     </tr>

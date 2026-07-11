@@ -31,13 +31,24 @@ def _clients(company):
 
 
 def _interpreters(company):
-    """Return active interpreters sorted by last name, including rate + specialty."""
+    """Return active interpreters sorted by last name, including rate + specialty.
+
+    Each row gains display_name ("Last, First" when the Phase-3 name fields are
+    set, falling back to full_name/email) for the assignment-form dropdowns."""
     rows = portal_db.query_all(
-        "SELECT id, full_name, email, interpreter_rate, specialty FROM portal_users "
+        "SELECT id, full_name, first_name, last_name, email, interpreter_rate, specialty "
+        "FROM portal_users "
         "WHERE company = %s AND role = 'employee' AND active = TRUE",
         (company,),
     )
+    for r in rows:
+        if r.get("last_name"):
+            r["display_name"] = f"{r['last_name']}, {r.get('first_name') or ''}".rstrip(", ")
+        else:
+            r["display_name"] = r["full_name"] or r["email"]
     def _last(r):
+        if r.get("last_name"):
+            return r["last_name"].lower()
         parts = (r["full_name"] or "").split()
         return parts[-1].lower() if parts else ""
     return sorted(rows, key=_last)
@@ -146,11 +157,99 @@ def _next_job_number(company):
     return (row["n"] or 0) + 1
 
 
+def job_interpreter_rows(job_id):
+    """Staffed interpreters for a job from the join table, slot order."""
+    return portal_db.query_all(
+        "SELECT interpreter_id, interpreter_name, slot FROM job_interpreters "
+        "WHERE job_id = %s ORDER BY slot, id",
+        (job_id,),
+    )
+
+
+def is_staffed_on(job_id, interpreter_id):
+    """True if the interpreter holds a slot on this job (join table or legacy mirror)."""
+    row = portal_db.query_one(
+        "SELECT 1 FROM jobs WHERE id = %s "
+        "AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+        "     OR EXISTS (SELECT 1 FROM job_interpreters ji "
+        "                WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) LIMIT 1",
+        (job_id, interpreter_id, interpreter_id, interpreter_id),
+    )
+    return row is not None
+
+
+def _mirror_slots(cur, job_id, company):
+    """Write-through: keep jobs.interpreter_1_*/2_* synced to join-table slots
+    1-2 so untouched read paths (dashboards, invoice pickers, dod) keep working."""
+    cur.execute(
+        "SELECT interpreter_id, interpreter_name FROM job_interpreters "
+        "WHERE job_id = %s ORDER BY slot, id LIMIT 2",
+        (job_id,),
+    )
+    rows = cur.fetchall()
+    i1 = rows[0] if len(rows) > 0 else (None, None)
+    i2 = rows[1] if len(rows) > 1 else (None, None)
+    cur.execute(
+        "UPDATE jobs SET interpreter_1_id = %s, interpreter_1_name = %s, "
+        "interpreter_2_id = %s, interpreter_2_name = %s "
+        "WHERE id = %s AND company = %s",
+        (i1[0], i1[1], i2[0], i2[1], job_id, company),
+    )
+
+
+def set_job_interpreters(company, job_id, interpreter_ids):
+    """Replace a job's staffing with the given ordered id list (edit form is
+    authoritative), then mirror slots 1-2 into the legacy columns."""
+    with portal_db.transaction() as cur:
+        cur.execute("DELETE FROM job_interpreters WHERE job_id = %s", (job_id,))
+        for slot, iid in enumerate(interpreter_ids, start=1):
+            cur.execute(
+                "INSERT INTO job_interpreters (job_id, interpreter_id, interpreter_name, slot) "
+                "VALUES (%s, %s, %s, %s) ON CONFLICT (job_id, interpreter_id) DO NOTHING",
+                (job_id, iid, _name_for(iid, company), slot),
+            )
+        _mirror_slots(cur, job_id, company)
+
+
+def add_job_interpreter(company, job_id, interpreter_id):
+    """Staff one interpreter at the next open slot (offer-confirm path — never
+    overwrites an existing slot). Returns the number of filled slots."""
+    with portal_db.transaction() as cur:
+        cur.execute(
+            "INSERT INTO job_interpreters (job_id, interpreter_id, interpreter_name, slot) "
+            "SELECT %s, %s, %s, COALESCE(MAX(slot), 0) + 1 "
+            "FROM job_interpreters WHERE job_id = %s "
+            "ON CONFLICT (job_id, interpreter_id) DO NOTHING",
+            (job_id, interpreter_id, _name_for(interpreter_id, company), job_id),
+        )
+        _mirror_slots(cur, job_id, company)
+        cur.execute("SELECT COUNT(*) FROM job_interpreters WHERE job_id = %s", (job_id,))
+        return cur.fetchone()[0]
+
+
 def _parse_job_form(form, company):
-    """Map the admin job form to the jobs column set, snapshotting interpreter/client names."""
+    """Map the admin job form to the jobs column set, snapshotting interpreter/client names.
+
+    Returns (data, interpreter_ids): interpreter_ids is the full ordered
+    staffing list for the join table; data mirrors slots 1-2 into the legacy
+    columns (write-through compatibility)."""
     client_id = _int_or_none(form.get("client_id"))
-    interp1   = _int_or_none(form.get("interpreter_1_id"))
-    interp2   = _int_or_none(form.get("interpreter_2_id"))
+    # New multi-row form posts repeated interpreter_ids; fall back to the
+    # legacy two-select field names so old form posts keep working.
+    ids, seen = [], set()
+    for raw in form.getlist("interpreter_ids"):
+        iid = _int_or_none(raw)
+        if iid and iid not in seen:
+            ids.append(iid)
+            seen.add(iid)
+    if not ids:
+        for f in ("interpreter_1_id", "interpreter_2_id"):
+            iid = _int_or_none(form.get(f))
+            if iid and iid not in seen:
+                ids.append(iid)
+                seen.add(iid)
+    interp1 = ids[0] if len(ids) > 0 else None
+    interp2 = ids[1] if len(ids) > 1 else None
     status    = form.get("status") if form.get("status") in STATUSES else "pending"
     rate_type = form.get("rate_type") if form.get("rate_type") in RATE_TYPES else "hourly"
     atype     = form.get("assignment_type")
@@ -191,6 +290,7 @@ def _parse_job_form(form, company):
         "end_time":           end_time,
         "duration":           duration,
         "num_interpreters":   _int_or_none(form.get("num_interpreters")),
+        "num_required":       _int_or_none(form.get("num_required")),
         "interpreter_1_id":   interp1,
         "interpreter_2_id":   interp2,
         "interpreter_1_name": _name_for(interp1, company),
@@ -198,7 +298,7 @@ def _parse_job_form(form, company):
         "client_rate":        client_rate,
         "rate_type":          rate_type,
         "notes":              (form.get("notes") or "").strip() or None,
-    }
+    }, ids
 
 
 # ── Assignments list (admin + interpreters) ───────────────────────────────────
@@ -210,18 +310,26 @@ def assignments():
     role    = g.user["role"]
     uid     = int(g.user["sub"])
 
+    # interpreter_names aggregates every staffed slot (join table), so jobs
+    # with 3+ interpreters list everyone, not just the mirrored slots 1-2.
+    _names_agg = (
+        "(SELECT string_agg(ji.interpreter_name, ', ' ORDER BY ji.slot, ji.id) "
+        " FROM job_interpreters ji WHERE ji.job_id = jobs.id) AS interpreter_names"
+    )
     if role == "admin":
         rows = portal_db.query_all(
-            "SELECT * FROM jobs WHERE company = %s "
+            f"SELECT jobs.*, {_names_agg} FROM jobs WHERE company = %s "
             "ORDER BY event_date IS NULL, event_date DESC, created_at DESC",
             (company,),
         )
     elif role == "employee":
         rows = portal_db.query_all(
-            "SELECT * FROM jobs WHERE company = %s "
-            "AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+            f"SELECT jobs.*, {_names_agg} FROM jobs WHERE company = %s "
+            "AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+            "     OR EXISTS (SELECT 1 FROM job_interpreters ji "
+            "                WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
             "ORDER BY event_date IS NULL, event_date DESC, created_at DESC",
-            (company, uid, uid),
+            (company, uid, uid, uid),
         )
     else:
         abort(403)
@@ -257,7 +365,7 @@ def assignment_detail(job_id):
     )
     if not job:
         abort(404)
-    if role == "employee" and uid not in (job.get("interpreter_1_id"), job.get("interpreter_2_id")):
+    if role == "employee" and not is_staffed_on(job_id, uid):
         abort(403)
     if role == "client":
         abort(403)
@@ -271,6 +379,7 @@ def assignment_detail(job_id):
     return render_template(
         "portal_assignment_detail.html",
         job=job, is_admin=(role == "admin"),
+        staffed=job_interpreter_rows(job_id),
         offers=offers, interpreters=interpreters,
     )
 
@@ -315,6 +424,7 @@ def create_assignment():
         return render_template(
             "portal_assignment_edit.html",
             job=None,
+            staffed=[],
             clients=_clients(company),
             interpreters=_interpreters(company),
             statuses=STATUSES,
@@ -322,7 +432,7 @@ def create_assignment():
             assignment_types=ASSIGNMENT_TYPES,
         )
 
-    data   = _parse_job_form(request.form, company)
+    data, interp_ids = _parse_job_form(request.form, company)
     jnum   = _next_job_number(company)
     cols   = ["company", "source", "job_number"] + list(data.keys())
     vals   = [company, "manual", jnum] + list(data.values())
@@ -332,6 +442,8 @@ def create_assignment():
         tuple(vals),
     )
     new_id = row["id"] if row else None
+    if new_id:
+        set_job_interpreters(company, new_id, interp_ids)
     audit_log("job_create", target=f"job:{new_id}", metadata={"status": data["status"]})
     if new_id and data["status"] == "confirmed":
         from portal_client_invoices import ensure_invoice_for_job
@@ -354,6 +466,7 @@ def edit_assignment(job_id):
         return render_template(
             "portal_assignment_edit.html",
             job=job,
+            staffed=job_interpreter_rows(job_id),
             clients=_clients(company),
             interpreters=_interpreters(company),
             statuses=STATUSES,
@@ -361,12 +474,13 @@ def edit_assignment(job_id):
             assignment_types=ASSIGNMENT_TYPES,
         )
 
-    data = _parse_job_form(request.form, company)
+    data, interp_ids = _parse_job_form(request.form, company)
     set_clause = ", ".join(f"{k} = %s" for k in data.keys())
     portal_db.execute(
         f"UPDATE jobs SET {set_clause} WHERE id = %s AND company = %s",
         tuple(data.values()) + (job_id, company),
     )
+    set_job_interpreters(company, job_id, interp_ids)
     audit_log("job_update", target=f"job:{job_id}", metadata={"status": data["status"]})
     if data["status"] == "confirmed":
         from portal_client_invoices import ensure_invoice_for_job
@@ -430,10 +544,12 @@ def calendar_view():
             "       organization, client_name, requester_name, status "
             "FROM jobs "
             "WHERE company = %s AND status = 'confirmed' "
-            "AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+            "AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+            "     OR EXISTS (SELECT 1 FROM job_interpreters ji "
+            "                WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
             "AND event_date >= %s AND event_date <= %s "
             "ORDER BY event_date, start_time",
-            (company, uid, uid, first_day.isoformat(), last_day.isoformat()),
+            (company, uid, uid, uid, first_day.isoformat(), last_day.isoformat()),
         )
 
     # Build a dict: {day_number: [job, ...]}

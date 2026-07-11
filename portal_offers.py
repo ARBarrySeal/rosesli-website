@@ -20,7 +20,7 @@ import portal_email
 from portal_audit import log as audit_log
 from portal_auth import admin_required, login_required
 from portal_availability import available_interpreters, is_unavailable
-from portal_jobs import _name_for
+from portal_jobs import _name_for, add_job_interpreter
 
 offers_bp = Blueprint("offers", __name__)
 
@@ -61,9 +61,11 @@ def _confirmed_elsewhere(interpreter_id: int, company: str, event_date, exclude_
         "SELECT 1 FROM jobs "
         "WHERE company = %s AND status = 'confirmed' AND event_date = %s "
         "AND id <> %s "
-        "AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+        "AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+        "     OR EXISTS (SELECT 1 FROM job_interpreters ji "
+        "                WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
         "LIMIT 1",
-        (company, event_date, exclude_job_id or -1, interpreter_id, interpreter_id),
+        (company, event_date, exclude_job_id or -1, interpreter_id, interpreter_id, interpreter_id),
     )
     return row is not None
 
@@ -214,25 +216,38 @@ def confirm_interpreter(job_id):
         return redirect(f"/portal/admin/assignments/{job_id}")
 
     name = _name_for(iid, company)
-    portal_db.execute(
-        "UPDATE jobs SET status = 'confirmed', "
-        "interpreter_1_id = %s, interpreter_1_name = %s "
-        "WHERE id = %s AND company = %s",
-        (iid, name, job_id, company),
-    )
-    # Mark the chosen offer accepted; withdraw every other open offer for this job.
+    # Staff at the next open slot (never overwrites anyone already confirmed),
+    # then mark the chosen offer accepted.
+    filled = add_job_interpreter(company, job_id, iid)
     portal_db.execute(
         "UPDATE job_offers SET status = 'accepted', responded_at = NOW() "
         "WHERE id = %s AND company = %s",
         (offer["id"], company),
     )
-    portal_db.execute(
-        "UPDATE job_offers SET status = 'withdrawn', responded_at = NOW() "
-        "WHERE job_id = %s AND company = %s AND id <> %s "
-        "AND status IN ('offered', 'accepted')",
-        (job_id, company, offer["id"]),
-    )
-    audit_log("job_confirm", target=f"job:{job_id}", metadata={"interpreter_id": iid})
+
+    # The job flips to confirmed — and sibling offers get withdrawn — only once
+    # every needed slot is filled (num_required, falling back to the requested
+    # count, then 1). Until then remaining offers stay open.
+    required = job.get("num_required") or job.get("num_interpreters") or 1
+    fully_staffed = filled >= required
+    if fully_staffed:
+        portal_db.execute(
+            "UPDATE jobs SET status = 'confirmed' WHERE id = %s AND company = %s",
+            (job_id, company),
+        )
+        portal_db.execute(
+            "UPDATE job_offers SET status = 'withdrawn', responded_at = NOW() "
+            "WHERE job_id = %s AND company = %s AND id <> %s "
+            "AND status IN ('offered', 'accepted') AND interpreter_id NOT IN "
+            "(SELECT interpreter_id FROM job_interpreters WHERE job_id = %s)",
+            (job_id, company, offer["id"], job_id),
+        )
+        # Idempotent (mig 012 unique index on job_id): re-confirming can never
+        # bill the same assignment twice.
+        from portal_client_invoices import ensure_invoice_for_job
+        ensure_invoice_for_job(company, job_id, int(g.user["sub"]))
+    audit_log("job_confirm", target=f"job:{job_id}",
+              metadata={"interpreter_id": iid, "filled": filled, "required": required})
 
     person = portal_db.query_one(
         "SELECT full_name, email FROM portal_users WHERE id = %s AND company = %s",
@@ -243,7 +258,10 @@ def confirm_interpreter(job_id):
             person["email"], person["full_name"] or "there", job,
             _abs_url("/portal/offers"), _company_name(company),
         )
-    flash(f"Confirmed {name}.", "success")
+    if fully_staffed:
+        flash(f"Confirmed {name}. Job fully staffed ({filled} of {required}).", "success")
+    else:
+        flash(f"Confirmed {name} ({filled} of {required} slots filled).", "success")
     return redirect(f"/portal/admin/assignments/{job_id}")
 
 

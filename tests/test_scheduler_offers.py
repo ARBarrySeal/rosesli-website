@@ -27,7 +27,8 @@ PW = "PytestSched12345!"
 ADMIN_EMAIL = "pytest-sched-admin@example.test"
 INT1_EMAIL = "pytest-sched-int1@example.test"
 INT2_EMAIL = "pytest-sched-int2@example.test"
-EMAILS = [ADMIN_EMAIL, INT1_EMAIL, INT2_EMAIL]
+INT3_EMAIL = "pytest-sched-int3@example.test"
+EMAILS = [ADMIN_EMAIL, INT1_EMAIL, INT2_EMAIL, INT3_EMAIL]
 
 JOB_MARKER = "pytest-sched-job-marker"
 EVENT_DATE = dt.date.today() + dt.timedelta(days=14)
@@ -189,3 +190,110 @@ def test_offer_skips_unavailable_interpreter(app, world):
     assert r.status_code in (302, 303)
     # No offer row should have been created for the unavailable interpreter.
     assert _offer_id(world["job"], world["int2"]) is None
+
+
+# ── Multi-interpreter staffing (Phase 5: job_interpreters join table) ─────────
+
+def _staffed(job_id):
+    return portal_db.query_all(
+        "SELECT interpreter_id, slot FROM job_interpreters "
+        "WHERE job_id = %s ORDER BY slot, id",
+        (job_id,),
+    )
+
+
+def _offer_and_accept(app, admin, job_id, interpreter_id, email):
+    admin.post(
+        f"/portal/admin/assignments/{job_id}/offer",
+        data={"interpreter_id": interpreter_id, "csrf_token": _csrf(admin)},
+    )
+    offer = _offer_id(job_id, interpreter_id)
+    intp = _client(app, email)
+    intp.post(f"/portal/offers/{offer['id']}/accept", data={"csrf_token": _csrf(intp)})
+
+
+def test_confirm_fills_next_slot_without_overwriting(app, world):
+    """num_required=2: first confirm holds slot 1 and leaves the job pending;
+    second confirm fills slot 2, flips to confirmed, and never overwrites slot 1
+    (the pre-Phase-5 bug)."""
+    job_id = world["job"]
+    portal_db.execute(
+        "UPDATE jobs SET num_interpreters = 2, num_required = 2 WHERE id = %s", (job_id,),
+    )
+    admin = _client(app, ADMIN_EMAIL)
+    _offer_and_accept(app, admin, job_id, world["int1"], INT1_EMAIL)
+    _offer_and_accept(app, admin, job_id, world["int2"], INT2_EMAIL)
+
+    # Confirm #1 → slot 1 filled, job still pending, int2's offer still open.
+    admin.post(
+        f"/portal/admin/assignments/{job_id}/confirm",
+        data={"interpreter_id": world["int1"], "csrf_token": _csrf(admin)},
+    )
+    job = portal_db.query_one(
+        "SELECT status, interpreter_1_id, interpreter_2_id FROM jobs WHERE id = %s", (job_id,),
+    )
+    assert job["status"] == "pending"
+    assert job["interpreter_1_id"] == world["int1"]
+    assert _offer_id(job_id, world["int2"])["status"] == "accepted"
+
+    # Confirm #2 → slot 2 filled (slot 1 untouched), job confirmed.
+    admin.post(
+        f"/portal/admin/assignments/{job_id}/confirm",
+        data={"interpreter_id": world["int2"], "csrf_token": _csrf(admin)},
+    )
+    job = portal_db.query_one(
+        "SELECT status, interpreter_1_id, interpreter_2_id FROM jobs WHERE id = %s", (job_id,),
+    )
+    assert job["status"] == "confirmed"
+    assert job["interpreter_1_id"] == world["int1"]  # never overwritten
+    assert job["interpreter_2_id"] == world["int2"]
+    assert [s["interpreter_id"] for s in _staffed(job_id)] == [world["int1"], world["int2"]]
+
+
+def test_confirm_withdraws_siblings_only_when_filled(app, world):
+    """num_required=1 (default job): confirming int1 withdraws int2's open offer
+    and keeps int1 staffed."""
+    job_id = world["job"]
+    int3 = _mk_user(INT3_EMAIL, "employee")
+    admin = _client(app, ADMIN_EMAIL)
+    _offer_and_accept(app, admin, job_id, world["int1"], INT1_EMAIL)
+    admin.post(
+        f"/portal/admin/assignments/{job_id}/offer",
+        data={"interpreter_id": int3, "csrf_token": _csrf(admin)},
+    )
+
+    admin.post(
+        f"/portal/admin/assignments/{job_id}/confirm",
+        data={"interpreter_id": world["int1"], "csrf_token": _csrf(admin)},
+    )
+    job = portal_db.query_one("SELECT status FROM jobs WHERE id = %s", (job_id,))
+    assert job["status"] == "confirmed"
+    assert _offer_id(job_id, world["int1"])["status"] == "accepted"
+    assert _offer_id(job_id, int3)["status"] == "withdrawn"
+    assert [s["interpreter_id"] for s in _staffed(job_id)] == [world["int1"]]
+
+
+def test_edit_form_staffs_three_interpreters_and_mirrors_two(app, world):
+    """set_job_interpreters: 3 ids land in the join table; legacy columns mirror
+    slots 1-2 only (write-through compatibility)."""
+    from portal_jobs import set_job_interpreters
+    job_id = world["job"]
+    int3 = _mk_user(INT3_EMAIL, "employee")
+    ids = [world["int1"], world["int2"], int3]
+    set_job_interpreters(COMPANY, job_id, ids)
+
+    assert [s["interpreter_id"] for s in _staffed(job_id)] == ids
+    job = portal_db.query_one(
+        "SELECT interpreter_1_id, interpreter_2_id FROM jobs WHERE id = %s", (job_id,),
+    )
+    assert job["interpreter_1_id"] == world["int1"]
+    assert job["interpreter_2_id"] == world["int2"]
+
+    # Re-staffing with a shorter list replaces, never appends.
+    set_job_interpreters(COMPANY, job_id, [int3])
+    assert [s["interpreter_id"] for s in _staffed(job_id)] == [int3]
+    job = portal_db.query_one(
+        "SELECT interpreter_1_id, interpreter_2_id FROM jobs WHERE id = %s", (job_id,),
+    )
+    assert job["interpreter_1_id"] == int3
+    assert job["interpreter_2_id"] is None

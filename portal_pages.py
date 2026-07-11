@@ -123,10 +123,12 @@ def dashboard():
         upcoming = portal_db.query_all(
             "SELECT id, job_number, event_date, start_time, end_time, setting, "
             "       event_address, status, client_name "
-            "FROM jobs WHERE company = %s AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+            "FROM jobs WHERE company = %s AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+            "     OR EXISTS (SELECT 1 FROM job_interpreters ji "
+            "                WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
             "AND event_date >= %s AND status IN ('confirmed', 'completed') "
             "ORDER BY event_date, start_time LIMIT 6",
-            (company, uid, uid, today),
+            (company, uid, uid, uid, today),
         )
         offers = portal_db.query_all(
             "SELECT o.id, j.id AS job_id, j.job_number, j.event_date, j.start_time, "

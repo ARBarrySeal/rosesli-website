@@ -79,36 +79,31 @@
 
   <h2 class="asn-section">Interpreters</h2>
   <div class="asn-grid">
-    {{ text_field('num_interpreters', 'Number of interpreters', type='number') }}
-    <label class="asn-field">
-      <span>Interpreter 1</span>
-      <input type="text" id="interp1-search" class="interp-search" placeholder="Search by name…" autocomplete="off"
-             data-target="interpreter_1_id"/>
-      <select name="interpreter_1_id" id="interp1-select">
-        <option value="">— unassigned —</option>
-        {% for i in interpreters %}
-        <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
-                {{ 'selected' if v['interpreter_1_id'] == i.id else '' }}>
-          {{ i.full_name or i.email }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
-        </option>
-        {% endfor %}
-      </select>
-    </label>
-    <label class="asn-field">
-      <span>Interpreter 2</span>
-      <input type="text" id="interp2-search" class="interp-search" placeholder="Search by name…" autocomplete="off"
-             data-target="interpreter_2_id"/>
-      <select name="interpreter_2_id" id="interp2-select">
-        <option value="">— unassigned —</option>
-        {% for i in interpreters %}
-        <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
-                {{ 'selected' if v['interpreter_2_id'] == i.id else '' }}>
-          {{ i.full_name or i.email }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
-        </option>
-        {% endfor %}
-      </select>
-    </label>
+    {{ text_field('num_interpreters', 'Number requested', type='number') }}
+    {{ text_field('num_required', 'Number required', type='number') }}
   </div>
+
+  {% macro interp_row(selected_id) %}
+    <label class="asn-field interp-row">
+      <span>Interpreter</span>
+      <input type="text" class="interp-search" placeholder="Search by name…" autocomplete="off"/>
+      <select name="interpreter_ids" class="interp-select">
+        <option value="">— unassigned —</option>
+        {% for i in interpreters %}
+        <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
+                {{ 'selected' if selected_id == i.id else '' }}>
+          {{ i.display_name }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endmacro %}
+
+  <div class="asn-grid" id="interp-rows">
+    {% for s in staffed %}{{ interp_row(s.interpreter_id) }}{% endfor %}
+    {% if not staffed %}{{ interp_row(none) }}{% endif %}
+  </div>
+  <button type="button" id="add-interp" class="btn" style="margin-top:.5rem;">+ Add interpreter</button>
 
   <h2 class="asn-section">Billing</h2>
   <div class="asn-grid">
@@ -144,13 +139,12 @@
 
 <script>
 (function () {
-  function wireSearch(searchId, selectId) {
-    var inp = document.getElementById(searchId);
-    var sel = document.getElementById(selectId);
+  function wireRow(row) {
+    var inp = row.querySelector('.interp-search');
+    var sel = row.querySelector('.interp-select');
     if (!inp || !sel) return;
-    var allOpts = Array.from(sel.options).slice(1); // skip blank
     // Seed the search box with the currently selected text
-    if (sel.selectedIndex > 0) inp.value = sel.options[sel.selectedIndex].text;
+    if (sel.selectedIndex > 0) inp.value = sel.options[sel.selectedIndex].text.trim();
     inp.addEventListener('input', function () {
       var q = inp.value.toLowerCase();
       Array.from(sel.options).forEach(function (o, i) {
@@ -166,8 +160,20 @@
       if (!sel.value) inp.value = '';
     });
   }
-  wireSearch('interp1-search', 'interp1-select');
-  wireSearch('interp2-search', 'interp2-select');
+  var rowsBox = document.getElementById('interp-rows');
+  Array.from(rowsBox.querySelectorAll('.interp-row')).forEach(wireRow);
+
+  document.getElementById('add-interp').addEventListener('click', function () {
+    var first = rowsBox.querySelector('.interp-row');
+    var clone = first.cloneNode(true);
+    var inp = clone.querySelector('.interp-search');
+    var sel = clone.querySelector('.interp-select');
+    inp.value = '';
+    sel.value = '';
+    Array.from(sel.options).forEach(function (o) { o.hidden = false; o.selected = false; });
+    rowsBox.appendChild(clone);
+    wireRow(clone);
+  });
 
   // Auto-fill Client rate from the selected client's base rate, unless the
   // coordinator has already typed one (don't clobber an explicit value).

@@ -59,11 +59,13 @@ def billable_jobs_for_interpreter(company, uid):
         "       duration, event_address, status "
         "FROM jobs "
         "WHERE company = %s "
-        "  AND (interpreter_1_id = %s OR interpreter_2_id = %s) "
+        "  AND (interpreter_1_id = %s OR interpreter_2_id = %s "
+        "       OR EXISTS (SELECT 1 FROM job_interpreters ji "
+        "                  WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
         "  AND status IN ('confirmed', 'completed') "
         "  AND id NOT IN (SELECT job_id FROM invoice_jobs WHERE job_id IS NOT NULL) "
         "ORDER BY event_date NULLS LAST, start_time",
-        (company, uid, uid),
+        (company, uid, uid, uid),
     )
     for r in rows:
         r["rate"] = rate

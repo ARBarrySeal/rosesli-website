@@ -54,8 +54,15 @@
 
   <h2 class="asn-section">Interpreters</h2>
   {{ row("Number requested", job.num_interpreters) }}
+  {{ row("Number required", job.num_required) }}
+  {% if staffed %}
+    {% for s in staffed %}
+  {{ row("Interpreter " ~ loop.index, s.interpreter_name) }}
+    {% endfor %}
+  {% else %}
   {{ row("Interpreter 1", job.interpreter_1_name) }}
   {{ row("Interpreter 2", job.interpreter_2_name) }}
+  {% endif %}
 
   {% if is_admin %}
   <h2 class="asn-section">Billing</h2>
