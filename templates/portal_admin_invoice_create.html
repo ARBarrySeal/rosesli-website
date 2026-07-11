@@ -206,10 +206,19 @@
       var ld = line.querySelector('.line-dur');
       var la = line.querySelector('.line-amt');
       if (!ls || !ld || !la) return;
+      var opt   = ls.options[ls.selectedIndex];
+      var code  = opt ? (opt.getAttribute('data-code') || '') : '';
       var addon = parseFloat(ls.value) || 0;
+      var ldur  = parseFloat(ld.value) || 0;
+      if (code.indexOf('specialty_') === 0) {
+        // Specialty is a surcharge on hours already billed at the base rate —
+        // no base rate in the line and no 2-hour minimum.
+        la.value = ldur > 0 ? fmt2(ldur * addon) : '';
+        total += parseFloat(la.value) || 0;
+        return;
+      }
       var base  = parseFloat(baseRate ? baseRate.value : 0) || 0;
       var lrate = isXcl(ls) ? 0 : base + addon;
-      var ldur  = parseFloat(ld.value) || 0;
       ldur = (ldur > 0 && ldur < 2) ? 2 : ldur;
       la.value = ldur > 0 ? fmt2(ldur * lrate) : '';
       total += parseFloat(la.value) || 0;
@@ -252,9 +261,23 @@
       var opt = document.createElement('option');
       opt.value = o.value;
       opt.textContent = o.label;
+      opt.setAttribute('data-code', o.code || '');
       sel.appendChild(opt);
     });
     return sel;
+  }
+
+  // Removing a middle line must not leave index gaps — the server stops
+  // reading at the first missing index.
+  function reindexLines() {
+    var lines = extraLines.querySelectorAll('.extra-line');
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].querySelector('.line-diff').name = 'extra_differential_' + i;
+      lines[i].querySelector('.line-dur').name  = 'extra_duration_' + i;
+      lines[i].querySelector('.line-amt').name  = 'extra_amount_' + i;
+      lines[i].querySelector('.line-date').name = 'extra_date_' + i;
+      lines[i].querySelector('.line-code').name = 'extra_code_' + i;
+    }
   }
 
   if (addLineBtn && extraLines) {
@@ -262,15 +285,33 @@
       var idx = extraLines.querySelectorAll('.extra-line').length;
       var div = document.createElement('div');
       div.className = 'extra-line';
-      div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+      div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr .8fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+
+      var codeIn = document.createElement('input');
+      codeIn.type = 'hidden'; codeIn.name = 'extra_code_' + idx; codeIn.className = 'line-code';
 
       var diffWrap = document.createElement('label');
       diffWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
       diffWrap.textContent = 'Differential';
       var diffSel2 = makeDiffSelect('line-diff');
       diffSel2.name = 'extra_differential_' + idx;
-      diffSel2.addEventListener('change', recomputeLines);
+      function syncCode() {
+        var opt = diffSel2.options[diffSel2.selectedIndex];
+        codeIn.value = opt ? (opt.getAttribute('data-code') || '') : '';
+      }
+      syncCode();
+      diffSel2.addEventListener('change', function () { syncCode(); recomputeLines(); });
       diffWrap.appendChild(diffSel2);
+
+      var dateWrap = document.createElement('label');
+      dateWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      dateWrap.textContent = 'Date';
+      var dateIn2 = document.createElement('input');
+      dateIn2.type = 'date'; dateIn2.name = 'extra_date_' + idx; dateIn2.className = 'line-date';
+      var mainDate = document.getElementById('date-of-service');
+      dateIn2.value = mainDate && mainDate.value ? mainDate.value : '';
+      dateIn2.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+      dateWrap.appendChild(dateIn2);
 
       var durWrap = document.createElement('label');
       durWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
@@ -294,9 +335,10 @@
       var rmBtn = document.createElement('button');
       rmBtn.type = 'button'; rmBtn.textContent = '✕';
       rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
-      rmBtn.addEventListener('click', function () { div.remove(); recomputeLines(); });
+      rmBtn.addEventListener('click', function () { div.remove(); reindexLines(); recomputeLines(); });
 
-      div.appendChild(diffWrap); div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
+      div.appendChild(codeIn); div.appendChild(diffWrap); div.appendChild(dateWrap);
+      div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
       extraLines.appendChild(div);
     });
   }

@@ -80,6 +80,7 @@
     <a href="/portal/admin/client-invoices/create" class="{{ 'active' if request.path == '/portal/admin/client-invoices/create' else '' }}">Create Client Invoice</a>
     {% if g.user.company == 'rosesli' %}
     <a href="/portal/calendar"              class="{{ 'active' if request.path == '/portal/calendar' else '' }}">Calendar</a>
+    <a href="/portal/admin/differentials"   class="{{ 'active' if request.path == '/portal/admin/differentials' else '' }}">Differentials</a>
     {% endif %}
     <a href="/portal/admin/archived-users"  class="{{ 'active' if request.path == '/portal/admin/archived-users' else '' }}">Archived Profiles</a>
     <a href="/portal/unpaid-invoices"       class="{{ 'active' if request.path == '/portal/unpaid-invoices' else '' }}">Unpaid Invoices</a>

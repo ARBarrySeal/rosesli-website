@@ -109,10 +109,30 @@
     DIFF_OPTIONS.forEach(function (o, i) {
       var opt = document.createElement('option');
       opt.value = o.value; opt.textContent = o.label;
+      opt.setAttribute('data-code', o.code || '');
       if (i === preselect) opt.selected = true;
       sel.appendChild(opt);
     });
     return sel;
+  }
+
+  function diffIndexForCode(code) {
+    for (var i = 0; i < DIFF_OPTIONS.length; i++)
+      if (DIFF_OPTIONS[i].code === code) return i;
+    return -1;
+  }
+
+  // Removing a middle line must not leave index gaps — the server stops
+  // reading at the first missing index.
+  function reindexLines() {
+    var lines = extraDiv.querySelectorAll('.ci-extra-line');
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].querySelector('.ci-line-diff').name = 'ci_extra_diff_' + i;
+      lines[i].querySelector('.ci-line-dur').name  = 'ci_extra_dur_'  + i;
+      lines[i].querySelector('.ci-line-amt').name  = 'ci_extra_amt_'  + i;
+      lines[i].querySelector('.ci-line-date').name = 'ci_extra_date_' + i;
+      lines[i].querySelector('.ci-line-code').name = 'ci_extra_code_' + i;
+    }
   }
 
   function recomputeLine(line) {
@@ -120,55 +140,99 @@
     var ld = line.querySelector('.ci-line-dur');
     var la = line.querySelector('.ci-line-amt');
     if (!ls || !ld || !la) return;
-    var base  = parseFloat(rateIn ? rateIn.value : 0) || 0;
+    var opt   = ls.options[ls.selectedIndex];
+    var code  = opt ? (opt.getAttribute('data-code') || '') : '';
     var addon = parseFloat(ls.value) || 0;
-    var lrate = base + addon;
     var ldur  = parseFloat(ld.value) || 0;
+    if (code.indexOf('specialty_') === 0) {
+      // Specialty is a surcharge on hours already billed at the base rate —
+      // no base rate in the line and no 2-hour minimum.
+      la.value = ldur > 0 ? fmt2(ldur * addon) : '';
+      return;
+    }
+    var base  = parseFloat(rateIn ? rateIn.value : 0) || 0;
+    var lrate = base + addon;
     ldur = (ldur > 0 && ldur < 2) ? 2 : ldur;
     la.value = ldur > 0 ? fmt2(ldur * lrate) : '';
   }
 
+  function addLine(preselectIdx) {
+    var idx = extraDiv.querySelectorAll('.ci-extra-line').length;
+    var div = document.createElement('div');
+    div.className = 'ci-extra-line';
+    div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr .8fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+
+    var codeI = document.createElement('input');
+    codeI.type='hidden'; codeI.name='ci_extra_code_'+idx; codeI.className='ci-line-code';
+
+    var dw = document.createElement('label');
+    dw.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    dw.textContent = 'Differential';
+    var ds = makeDiffSel('ci-line-diff', 'ci_extra_diff_' + idx, preselectIdx);
+    function syncCode() {
+      var opt = ds.options[ds.selectedIndex];
+      codeI.value = opt ? (opt.getAttribute('data-code') || '') : '';
+    }
+    syncCode();
+    ds.addEventListener('change', function () { syncCode(); recomputeLine(div); });
+    dw.appendChild(ds);
+
+    var dateW = document.createElement('label');
+    dateW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    dateW.textContent = 'Date';
+    var dateI = document.createElement('input');
+    dateI.type='date'; dateI.name='ci_extra_date_'+idx; dateI.className='ci-line-date';
+    dateI.value = dateIn && dateIn.value ? dateIn.value : '';
+    dateI.style.cssText='background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    dateW.appendChild(dateI);
+
+    var durW = document.createElement('label');
+    durW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    durW.textContent = 'Hrs';
+    var durI = document.createElement('input');
+    durI.type='number'; durI.step='0.25'; durI.min='0'; durI.placeholder='0.00';
+    durI.name='ci_extra_dur_'+idx; durI.className='ci-line-dur';
+    durI.style.cssText='background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    durI.addEventListener('input', function () { recomputeLine(div); });
+    durW.appendChild(durI);
+
+    var amtW = document.createElement('label');
+    amtW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    amtW.textContent = 'Amount';
+    var amtI = document.createElement('input');
+    amtI.type='number'; amtI.step='0.01'; amtI.readOnly=true;
+    amtI.name='ci_extra_amt_'+idx; amtI.className='ci-line-amt';
+    amtI.style.cssText='background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    amtW.appendChild(amtI);
+
+    var rmB = document.createElement('button');
+    rmB.type='button'; rmB.textContent='✕';
+    rmB.style.cssText='background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
+    rmB.addEventListener('click', function () { div.remove(); reindexLines(); });
+
+    div.appendChild(codeI); div.appendChild(dw); div.appendChild(dateW);
+    div.appendChild(durW); div.appendChild(amtW); div.appendChild(rmB);
+    extraDiv.appendChild(div);
+    return div;
+  }
+
   if (addBtn && extraDiv) {
-    addBtn.addEventListener('click', function () {
-      var idx = extraDiv.querySelectorAll('.ci-extra-line').length;
-      var div = document.createElement('div');
-      div.className = 'ci-extra-line';
-      div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+    addBtn.addEventListener('click', function () { addLine(suggestedDiffIndex()); });
+  }
 
-      var dw = document.createElement('label');
-      dw.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      dw.textContent = 'Differential';
-      var ds = makeDiffSel('ci-line-diff', 'ci_extra_diff_' + idx, suggestedDiffIndex());
-      ds.addEventListener('change', function () { recomputeLine(div); });
-      dw.appendChild(ds);
-
-      var durW = document.createElement('label');
-      durW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      durW.textContent = 'Hrs';
-      var durI = document.createElement('input');
-      durI.type='number'; durI.step='0.25'; durI.min='0'; durI.placeholder='0.00';
-      durI.name='ci_extra_dur_'+idx; durI.className='ci-line-dur';
-      durI.style.cssText='background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-      durI.addEventListener('input', function () { recomputeLine(div); });
-      durW.appendChild(durI);
-
-      var amtW = document.createElement('label');
-      amtW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      amtW.textContent = 'Amount';
-      var amtI = document.createElement('input');
-      amtI.type='number'; amtI.step='0.01'; amtI.readOnly=true;
-      amtI.name='ci_extra_amt_'+idx; amtI.className='ci-line-amt';
-      amtI.style.cssText='background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-      amtW.appendChild(amtI);
-
-      var rmB = document.createElement('button');
-      rmB.type='button'; rmB.textContent='✕';
-      rmB.style.cssText='background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
-      rmB.addEventListener('click', function () { div.remove(); });
-
-      div.appendChild(dw); div.appendChild(durW); div.appendChild(amtW); div.appendChild(rmB);
-      extraDiv.appendChild(div);
-    });
+  // A job whose assignment type maps to one specialty row auto-offers it as a
+  // pre-added line (removable). Its hours default to the main duration.
+  var specCode = '{{ pf.specialty_code or "" }}';
+  if (specCode && extraDiv) {
+    var si = diffIndexForCode(specCode);
+    if (si >= 0) {
+      var specLine = addLine(si);
+      var sd = specLine.querySelector('.ci-line-dur');
+      if (sd && durIn && durIn.value) {
+        sd.value = durIn.value;
+        recomputeLine(specLine);
+      }
+    }
   }
 })();
 </script>

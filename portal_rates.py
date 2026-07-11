@@ -44,8 +44,9 @@ def rate_history_for(user_id):
 
 def differentials_for(company, service_date=None, include_specialty=False):
     """Active differential rows effective on service_date: per code, the latest
-    row with effective_date <= date, in sort_order. specialty_* placeholder
-    rows are excluded from invoice dropdowns until Phase 8 prices them."""
+    row with effective_date <= date, in sort_order. specialty_* rows (per-hour
+    surcharges) are included only when include_specialty is set — they sort
+    after the time-band rows so dropdown positions 0-5 stay stable."""
     rows = portal_db.query_all(
         "SELECT DISTINCT ON (code) code, label, amount, sort_order "
         "FROM differentials "

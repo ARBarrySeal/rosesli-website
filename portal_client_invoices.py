@@ -25,10 +25,11 @@ _DIFFERENTIALS_FALLBACK = {
 }
 
 
-def DIFFERENTIALS(company="rosesli", service_date=None):
+def DIFFERENTIALS(company="rosesli", service_date=None, include_specialty=False):
     """DB-backed replacement for the old hardcoded dict: {code: (label, amount)}."""
     try:
-        rows = portal_rates.differentials_for(company, service_date)
+        rows = portal_rates.differentials_for(company, service_date,
+                                              include_specialty=include_specialty)
         if rows:
             return {r["code"]: (r["label"], float(r["amount"])) for r in rows}
     except Exception:
@@ -40,22 +41,78 @@ def diff_options_json(company="rosesli", service_date=None, label_style="client"
     """JSON for the invoice-form dropdowns — replaces the duplicated
     hand-maintained DIFF_OPTIONS arrays in both create templates. Order
     matters: the forms' auto-select maps day/evening/overnight bands to
-    positions 0–5, which the DB rows' sort_order preserves."""
+    positions 0–5, which the DB rows' sort_order preserves (specialty rows sort
+    after 100 so appending them can't shift those indices). Each entry carries
+    the row's code + specialty label so the form can tag submitted lines."""
     opts = []
-    for code, (label, amt) in DIFFERENTIALS(company, service_date).items():
+    for code, (label, amt) in DIFFERENTIALS(company, service_date,
+                                            include_specialty=True).items():
         amt = float(amt)
+        is_spec = code.startswith("specialty_")
         if label_style == "admin":
             suffix = f" (BR+${amt:g}/hr)" if amt else " (BR)"
         else:
             suffix = f" (+${amt:g}/hr)" if amt else ""
-        opts.append({"label": f"{label}{suffix}", "value": amt})
+        opts.append({"label": f"{label}{suffix}", "value": amt, "code": code,
+                     "spec": label if is_spec else ""})
     if label_style == "admin":
         # Cancellation entries are billing statuses, not priced differentials —
         # 'xcl' is a string sentinel the form JS special-cases, so these never
         # live in the differentials table.
-        opts.append({"label": "XCL<48 — Cancellation <48hr (BR)", "value": 0})
-        opts.append({"label": "XCL — No charge", "value": "xcl"})
+        opts.append({"label": "XCL<48 — Cancellation <48hr (BR)", "value": 0,
+                     "code": "xcl48", "spec": ""})
+        opts.append({"label": "XCL — No charge", "value": "xcl",
+                     "code": "xcl", "spec": ""})
     return json.dumps(opts)
+
+
+def parse_extra_lines(form, prefix, company, main_date=None):
+    """Collect the dynamic differential lines from an invoice-create post.
+
+    `prefix` maps the per-line field names, e.g.
+      ("ci_extra_diff_", "ci_extra_dur_", "ci_extra_amt_", "ci_extra_date_", "ci_extra_code_")
+
+    Line shape stays backward compatible ({differential, duration, amount});
+    Phase 8 adds `date` (only when it differs from the invoice's main service
+    date — so single-date invoices keep the old compact shape) and `specialty`
+    (label, only for specialty_* differential rows). Lines come back grouped
+    by date, then specialty."""
+    diff_f, dur_f, amt_f, date_f, code_f = prefix
+    try:
+        spec_labels = {
+            r["code"]: r["label"]
+            for r in portal_rates.differentials_for(company, main_date,
+                                                    include_specialty=True)
+            if r["code"].startswith("specialty_")
+        }
+    except Exception:
+        spec_labels = {}
+    lines = []
+    idx = 0
+    while True:
+        ed = form.get(f"{diff_f}{idx}")
+        if ed is None:
+            break
+        try:
+            ea = float(form.get(f"{amt_f}{idx}") or 0)
+        except ValueError:
+            ea = 0.0
+        try:
+            edur = float(form.get(f"{dur_f}{idx}") or 0)
+        except ValueError:
+            edur = 0.0
+        line = {"differential": ed, "duration": edur, "amount": ea}
+        edate = _date_or_none(form.get(f"{date_f}{idx}"))
+        if edate and edate != main_date:
+            line["date"] = edate
+        code = (form.get(f"{code_f}{idx}") or "").strip()
+        if code in spec_labels:
+            line["specialty"] = spec_labels[code]
+        lines.append(line)
+        idx += 1
+    lines.sort(key=lambda l: (l.get("date") or main_date or "",
+                              l.get("specialty") or ""))
+    return lines
 
 HOLIDAYS = (
     "New Year's Day", "MLK Day", "Presidents' Day", "Cesar Chavez Day",
@@ -156,8 +213,15 @@ def _prefill_from_job(company, raw_job_id):
     if not job:
         return {}
     event_date = job.get("event_date")
+    # Only assignment types with one obvious specialty row auto-offer a line;
+    # "Educational" is ambiguous (K-12 vs Higher Ed) so it stays manual.
+    specialty_code = {
+        "Conference":                "specialty_conference",
+        "Performance/Entertainment": "specialty_performance",
+    }.get(job.get("assignment_type") or "", "")
     return {
         "job_id":          job["id"],
+        "specialty_code":  specialty_code,
         "client_id":       job.get("client_id"),
         "client_name":     job.get("client_name") or job.get("requester_name"),
         "poc_email":       job.get("poc_email") or job.get("requester_email"),
@@ -269,22 +333,11 @@ def create_client_invoice():
         job_id = None
 
     import json as _json
-    extra_lines = []
-    idx = 0
-    while True:
-        ed = request.form.get(f"ci_extra_diff_{idx}")
-        if ed is None:
-            break
-        try:
-            ea = float(request.form.get(f"ci_extra_amt_{idx}") or 0)
-        except ValueError:
-            ea = 0.0
-        try:
-            edur = float(request.form.get(f"ci_extra_dur_{idx}") or 0)
-        except ValueError:
-            edur = 0.0
-        extra_lines.append({"differential": ed, "duration": edur, "amount": ea})
-        idx += 1
+    extra_lines = parse_extra_lines(
+        request.form,
+        ("ci_extra_diff_", "ci_extra_dur_", "ci_extra_amt_",
+         "ci_extra_date_", "ci_extra_code_"),
+        company, main_date=date_of_service)
     line_items = _json.dumps(extra_lines) if extra_lines else None
 
     # Blank rate resolves from the client's rate effective on the service date.

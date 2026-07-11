@@ -1,9 +1,12 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, abort, g, jsonify, render_template, request
+from flask import (
+    Blueprint, abort, flash, g, jsonify, redirect, render_template, request,
+)
 
 import portal_db
+import portal_rates
 from portal_audit import log as audit_log
 from portal_auth import (
     DEFAULT_PASSWORD, admin_required, hash_password, login_required, make_token,
@@ -112,7 +115,7 @@ def create_invoice():
         (company,),
     ) if is_admin else []
 
-    from portal_client_invoices import diff_options_json
+    from portal_client_invoices import diff_options_json, parse_extra_lines
     diffs_json = diff_options_json(company, label_style="admin")
 
     if request.method == "GET":
@@ -145,22 +148,11 @@ def create_invoice():
 
     # Collect dynamic extra lines
     import json as _json
-    extra_lines = []
-    idx = 0
-    while True:
-        ed = request.form.get(f"extra_differential_{idx}")
-        if ed is None:
-            break
-        try:
-            ea = float(request.form.get(f"extra_amount_{idx}") or 0)
-        except ValueError:
-            ea = 0.0
-        try:
-            edur = float(request.form.get(f"extra_duration_{idx}") or 0)
-        except ValueError:
-            edur = 0.0
-        extra_lines.append({"differential": ed, "duration": edur, "amount": ea})
-        idx += 1
+    extra_lines = parse_extra_lines(
+        request.form,
+        ("extra_differential_", "extra_duration_", "extra_amount_",
+         "extra_date_", "extra_code_"),
+        company, main_date=date_of_service)
     interpreter_rates = _json.dumps(extra_lines) if extra_lines else None
 
     if is_admin:
@@ -223,3 +215,56 @@ def smtp_test():
         metadata={"to": admin_email, "ok": ok, "detail": detail[:200]},
     )
     return jsonify(ok=ok, sent_to=admin_email, detail=detail)
+
+
+@admin_bp.route("/portal/admin/differentials", methods=["GET", "POST"])
+@admin_required
+def differentials_settings():
+    """Amanda self-serves differential pricing. Each save writes an
+    effective-dated row (upsert on company+code+effective_date), so invoices
+    keep resolving the amount in force on their service date — past invoices
+    never reprice."""
+    from datetime import date as _date
+    company = g.user["company"]
+
+    if request.method == "POST":
+        code = (request.form.get("code") or "").strip()
+        eff  = (request.form.get("effective_date") or "").strip()
+        try:
+            amount = float(request.form.get("amount") or "")
+        except ValueError:
+            amount = None
+        try:
+            _date.fromisoformat(eff)
+        except ValueError:
+            eff = None
+        current = {r["code"]: r for r in portal_rates.differentials_for(
+            company, include_specialty=True)}
+        if code not in current or amount is None or amount < 0 or not eff:
+            flash("Invalid differential update.", "error")
+        else:
+            row = current[code]
+            portal_db.execute(
+                "INSERT INTO differentials "
+                "(company, code, label, amount, effective_date, sort_order) "
+                "VALUES (%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (company, code, effective_date) "
+                "DO UPDATE SET amount = EXCLUDED.amount",
+                (company, code, row["label"], amount, eff, row["sort_order"]),
+            )
+            audit_log("differential_update",
+                      metadata={"code": code, "amount": amount,
+                                "effective_date": eff})
+            flash(f"{row['label']} set to ${amount:g}/hr effective {eff}.",
+                  "success")
+        return redirect("/portal/admin/differentials")
+
+    rows = portal_rates.differentials_for(company, include_specialty=True)
+    upcoming = portal_db.query_all(
+        "SELECT code, amount, effective_date FROM differentials "
+        "WHERE company = %s AND active = TRUE AND effective_date > %s "
+        "ORDER BY code, effective_date",
+        (company, _date.today()),
+    )
+    return render_template("portal_admin_differentials.html",
+                           rows=rows, upcoming=upcoming, today=_date.today())

@@ -49,12 +49,14 @@
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
       <thead>
         <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
+          <th style="text-align:left;padding:.3rem .5rem;">Date</th>
           <th style="text-align:left;padding:.3rem .5rem;">Differential</th>
           <th style="text-align:right;padding:.3rem .5rem;">Hrs</th>
           <th style="text-align:right;padding:.3rem .5rem;">Amount</th>
         </tr>
       </thead>
-      <tbody id="ci-extra-body"></tbody>
+      <tbody id="ci-extra-body"
+             data-main-date="{{ inv.date_of_service or '' }}"></tbody>
     </table>
   </div>
   <script id="ci-line-data" type="application/json">{{ inv.line_items | safe }}</script>
@@ -98,7 +100,8 @@
         td.textContent = text;
         return td;
       }
-      tr.appendChild(cell(l.differential || '—', ''));
+      tr.appendChild(cell(l.date || tbody.getAttribute('data-main-date') || '—', ''));
+      tr.appendChild(cell(l.specialty || l.differential || '—', ''));
       tr.appendChild(cell(String(l.duration || 0), 'right'));
       tr.appendChild(cell('$' + parseFloat(l.amount || 0).toFixed(2), 'right'));
       tbody.appendChild(tr);
