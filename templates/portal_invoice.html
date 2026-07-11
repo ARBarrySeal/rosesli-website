@@ -25,7 +25,7 @@
     <div><div class="field-label">Time</div><div style="font-size:.88rem;">{{ inv.service_start_time or '—' }}{% if inv.service_end_time %} – {{ inv.service_end_time }}{% endif %}</div></div>
     {% endif %}
     {% if inv.duration_hours %}
-    <div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours }} hrs</div></div>
+    <div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours|hours_minutes }}</div></div>
     {% endif %}
     {% if inv.base_rate %}
     <div><div class="field-label">Base Rate</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.base_rate) }}/hr</div></div>

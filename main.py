@@ -109,6 +109,26 @@ def _list_name(u):
 app.jinja_env.globals["list_name"] = _list_name
 
 
+@app.template_filter("hours_minutes")
+def _hours_minutes(value):
+    """Decimal-hours ('2.5') → '2 hr 30 min'. Whole hours drop the minutes
+    ('2' → '2 hr'), sub-hour values drop the hours ('0.75' → '45 min'), and
+    unparseable values pass through unchanged so legacy free-text durations
+    ('2 hours') still display."""
+    if value is None or str(value).strip() == "":
+        return value
+    try:
+        minutes = round(float(value) * 60)
+    except (TypeError, ValueError):
+        return value
+    hr, mn = divmod(minutes, 60)
+    if hr and mn:
+        return f"{hr} hr {mn} min"
+    if hr:
+        return f"{hr} hr"
+    return f"{mn} min"
+
+
 @app.context_processor
 def _inject_offer_badge():
     """Pending-offer count for the nav badge (interpreters/admins only)."""

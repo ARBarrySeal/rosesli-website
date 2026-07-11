@@ -26,24 +26,31 @@
   {{ row("Date", job.event_date.strftime('%A, %B %d, %Y') if job.event_date else None) }}
   {{ row("Start", job.start_time) }}
   {{ row("End", job.end_time) }}
-  {{ row("Duration", job.duration) }}
+  {{ row("Duration", job.duration|hours_minutes if job.duration else None) }}
 
   <h2 class="asn-section">Location</h2>
-  {% if job.event_address %}
+  {# Split street/city/state (mig 017) wins; legacy event_address is the fallback. #}
+  {% set split_addr = [job.event_street, job.event_city, job.event_state]|select|join(', ') %}
+  {% set map_addr = split_addr or job.event_address %}
+  {% if map_addr %}
   <div class="asn-row">
     <span class="asn-label">Event address</span>
     <span class="asn-value">
-      {{ job.event_address }}
-      <a href="https://www.google.com/maps/search/?api=1&query={{ (job.event_address ~ ' ' ~ (job.event_zip or '')) | urlencode }}"
+      {{ map_addr }}
+      <a href="https://www.google.com/maps/search/?api=1&query={{ (map_addr ~ ' ' ~ (job.event_zip or '')) | urlencode }}"
          target="_blank" rel="noopener" style="color:var(--accent);margin-left:.5rem;">Map ↗</a>
     </span>
   </div>
   {% endif %}
+  {{ row("Room / suite", job.room_number) }}
   {{ row("ZIP", job.event_zip) }}
   {{ row("Setting", job.setting) }}
   {{ row("Format", job.service_format) }}
   {{ row("Dress code", job.dress_code) }}
   {{ row("Deaf clients", job.deaf_clients) }}
+  {% for c in consumers %}
+  {{ row("Deaf Consumer " ~ loop.index, ((c.name or '') ~ (' — ' ~ c.email if c.email else ''))|trim(' —')) }}
+  {% endfor %}
 
   <h2 class="asn-section">Client &amp; contact</h2>
   {{ row("Client", job.client_name) }}
@@ -69,15 +76,17 @@
   {{ row("Client rate", '$%.2f'|format(job.client_rate) ~ (' / hr' if job.rate_type == 'hourly' else ' flat') if job.client_rate is not none else None) }}
   {% endif %}
 
-  {% if job.source == 'public_request' %}
-  <h2 class="asn-section">Original request</h2>
-  {{ row("Requester", job.requester_name) }}
-  {{ row("Requester email", job.requester_email) }}
-  {{ row("Requester phone", job.requester_phone) }}
-  {{ row("Organization", job.organization) }}
+  {% if g.user.company == 'rosesli' %}
+  {# admin_notes must NEVER reach interpreters — the is_admin gate is load-bearing. #}
+  {% if job.interpreter_notes %}
+  <h2 class="asn-section">Notes for interpreter</h2>
+  <p style="font-size:.82rem;white-space:pre-wrap;color:var(--text);margin:0;">{{ job.interpreter_notes }}</p>
   {% endif %}
-
-  {% if job.notes %}
+  {% if is_admin and job.admin_notes %}
+  <h2 class="asn-section">Admin notes</h2>
+  <p style="font-size:.82rem;white-space:pre-wrap;color:var(--text);margin:0;">{{ job.admin_notes }}</p>
+  {% endif %}
+  {% elif job.notes %}
   <h2 class="asn-section">Notes</h2>
   <p style="font-size:.82rem;white-space:pre-wrap;color:var(--text);margin:0;">{{ job.notes }}</p>
   {% endif %}

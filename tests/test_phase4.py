@@ -38,7 +38,7 @@ EVENT_DATE = dt.date.today() + dt.timedelta(days=21)
 # ── Setup / teardown ──────────────────────────────────────────────────────────
 
 def _cleanup():
-    portal_db.execute("DELETE FROM jobs WHERE notes = %s AND company = %s", (JOB_MARKER, COMPANY))
+    portal_db.execute("DELETE FROM jobs WHERE (notes = %s OR interpreter_notes = %s) AND company = %s", (JOB_MARKER, JOB_MARKER, COMPANY))
     portal_db.execute(
         "DELETE FROM portal_users WHERE email = ANY(%s) AND company = %s", (EMAILS, COMPANY),
     )
@@ -135,10 +135,10 @@ def test_create_assignment_autofills_blank_duration(app, world):
         "event_date": EVENT_DATE.isoformat(),
         "start_time": "9:00 AM", "end_time": "11:30 AM",
         "duration": "",  # blank → should be auto-filled
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT duration FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT duration FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     assert job["duration"] == "2.5"
@@ -151,10 +151,10 @@ def test_create_assignment_respects_explicit_duration(app, world):
         "status": "pending",
         "start_time": "9:00 AM", "end_time": "11:30 AM",
         "duration": "half day",
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT duration FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT duration FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     assert job["duration"] == "half day"
@@ -188,10 +188,10 @@ def test_create_assignment_pulls_client_rate_when_blank(app, world):
         "status": "pending",
         "client_id": world["client"],
         "client_rate": "",  # blank → pull from client's base rate (125)
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT client_rate FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT client_rate FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     assert float(job["client_rate"]) == 125.0
@@ -204,10 +204,10 @@ def test_create_assignment_respects_explicit_client_rate(app, world):
         "status": "pending",
         "client_id": world["client"],
         "client_rate": "200",
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT client_rate FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT client_rate FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     assert float(job["client_rate"]) == 200.0

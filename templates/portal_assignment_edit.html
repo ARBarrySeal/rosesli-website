@@ -47,18 +47,69 @@
     </label>
     {{ text_field('start_time', 'Start time', placeholder='9:00 AM') }}
     {{ text_field('end_time', 'End time', placeholder='11:00 AM') }}
-    {{ text_field('duration', 'Duration', placeholder='2 hours') }}
+    <label class="asn-field">
+      <span>Duration (hours){% if v.get('duration') %} — {{ v['duration']|hours_minutes }}{% endif %}</span>
+      <input type="text" name="duration" value="{{ v['duration'] if v['duration'] is not none else '' }}" placeholder="2.5"/>
+    </label>
   </div>
 
   <h2 class="asn-section">Location</h2>
+  {% if g.user.company == 'rosesli' %}
+  {% if v.get('event_address') and not (v.get('event_street') or v.get('event_city') or v.get('event_state')) %}
+  <label class="asn-field">
+    <span>Address on file (legacy)</span>
+    <input type="text" value="{{ v['event_address'] }}" disabled/>
+  </label>
+  {% endif %}
+  <div class="asn-grid">
+    {{ text_field('event_street', 'Street address', placeholder='123 Main St') }}
+    {{ text_field('event_city', 'City', placeholder='San Diego') }}
+    <label class="asn-field"><span>State</span>
+      <select name="event_state">
+        <option value=""></option>
+        {% for s in us_states %}
+        <option value="{{ s }}" {{ 'selected' if v.get('event_state') == s else '' }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ text_field('room_number', 'Room / suite', placeholder='Suite 210') }}
+  {% else %}
   <div class="asn-grid">
     {{ text_field('event_address', 'Address of event', placeholder='123 Main St, San Diego') }}
+  {% endif %}
     {{ text_field('event_zip', 'Event ZIP') }}
     {{ text_field('setting', 'Setting', placeholder='Medical, legal, education…') }}
     {{ text_field('service_format', 'Format', placeholder='In-person / VRI') }}
     {{ text_field('dress_code', 'Dress code', placeholder='Business casual') }}
     {{ text_field('deaf_clients', 'Deaf clients') }}
   </div>
+
+  {% if g.user.company == 'rosesli' %}
+  <h2 class="asn-section">Deaf Consumers</h2>
+  <div id="consumer-rows">
+    {% for c in consumers %}
+    <div class="asn-grid consumer-row">
+      <label class="asn-field"><span>Consumer name</span>
+        <input type="text" name="consumer_names" value="{{ c.name or '' }}"/>
+      </label>
+      <label class="asn-field"><span>Consumer email</span>
+        <input type="email" name="consumer_emails" value="{{ c.email or '' }}"/>
+      </label>
+    </div>
+    {% endfor %}
+    {% if not consumers %}
+    <div class="asn-grid consumer-row">
+      <label class="asn-field"><span>Consumer name</span>
+        <input type="text" name="consumer_names" value=""/>
+      </label>
+      <label class="asn-field"><span>Consumer email</span>
+        <input type="email" name="consumer_emails" value=""/>
+      </label>
+    </div>
+    {% endif %}
+  </div>
+  <button type="button" id="add-consumer" class="btn" style="margin-top:.5rem;">+ Add consumer</button>
+  {% endif %}
 
   <h2 class="asn-section">Client &amp; contact</h2>
   <div class="asn-grid">
@@ -117,10 +168,21 @@
     </label>
   </div>
 
+  {% if g.user.company == 'rosesli' %}
+  <label class="asn-field" style="margin-top:1rem;">
+    <span>Notes for interpreter (visible to interpreters)</span>
+    <textarea name="interpreter_notes" rows="4">{{ v.get('interpreter_notes') or '' }}</textarea>
+  </label>
+  <label class="asn-field" style="margin-top:1rem;">
+    <span>Admin notes (admins only — never shown to interpreters)</span>
+    <textarea name="admin_notes" rows="4">{{ v.get('admin_notes') or '' }}</textarea>
+  </label>
+  {% else %}
   <label class="asn-field" style="margin-top:1rem;">
     <span>Notes</span>
     <textarea name="notes" rows="4">{{ v['notes'] if v['notes'] is not none else '' }}</textarea>
   </label>
+  {% endif %}
 
   <div style="display:flex;gap:.75rem;align-items:center;margin-top:1.4rem;">
     <button type="submit" class="btn btn-primary">{{ 'Save Changes' if job else 'Create Assignment' }}</button>
@@ -174,6 +236,16 @@
     rowsBox.appendChild(clone);
     wireRow(clone);
   });
+
+  var consumerBtn = document.getElementById('add-consumer');
+  if (consumerBtn) {
+    consumerBtn.addEventListener('click', function () {
+      var box = document.getElementById('consumer-rows');
+      var clone = box.querySelector('.consumer-row').cloneNode(true);
+      Array.from(clone.querySelectorAll('input')).forEach(function (i) { i.value = ''; });
+      box.appendChild(clone);
+    });
+  }
 
   // Auto-fill Client rate from the selected client's base rate, unless the
   // coordinator has already typed one (don't clobber an explicit value).

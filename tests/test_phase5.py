@@ -41,12 +41,12 @@ def _cleanup():
     # created_by / client_id — sweep those too, or the user delete below FK-fails.
     portal_db.execute(
         "DELETE FROM client_invoices WHERE "
-        "job_id IN (SELECT id FROM jobs WHERE notes = %s AND company = %s) "
+        "job_id IN (SELECT id FROM jobs WHERE (notes = %s OR interpreter_notes = %s) AND company = %s) "
         "OR created_by IN (SELECT id FROM portal_users WHERE email = ANY(%s)) "
         "OR client_id IN (SELECT id FROM portal_users WHERE email = ANY(%s))",
-        (JOB_MARKER, COMPANY, EMAILS, EMAILS),
+        (JOB_MARKER, JOB_MARKER, COMPANY, EMAILS, EMAILS),
     )
-    portal_db.execute("DELETE FROM jobs WHERE notes = %s AND company = %s", (JOB_MARKER, COMPANY))
+    portal_db.execute("DELETE FROM jobs WHERE (notes = %s OR interpreter_notes = %s) AND company = %s", (JOB_MARKER, JOB_MARKER, COMPANY))
     portal_db.execute(
         "DELETE FROM portal_users WHERE email = ANY(%s) AND company = %s", (EMAILS, COMPANY),
     )
@@ -184,10 +184,10 @@ def test_create_confirmed_assignment_auto_bills(app, world):
         "client_id": world["client"],
         "client_rate": "150",
         "duration": "2",
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT id FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT id FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     inv = portal_db.query_one(
@@ -204,10 +204,10 @@ def test_create_pending_assignment_does_not_bill(app, world):
         "status": "pending",
         "client_id": world["client"],
         "client_rate": "150",
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     job = portal_db.query_one(
-        "SELECT id FROM jobs WHERE notes = %s AND company = %s ORDER BY id DESC",
+        "SELECT id FROM jobs WHERE interpreter_notes = %s AND company = %s ORDER BY id DESC",
         (JOB_MARKER, COMPANY),
     )
     inv = portal_db.query_one("SELECT id FROM client_invoices WHERE job_id = %s", (job["id"],))
@@ -223,7 +223,7 @@ def test_edit_to_confirmed_auto_bills(app, world):
         "client_id": world["client"],
         "client_rate": "150",
         "duration": "3",
-        "notes": JOB_MARKER,
+        "interpreter_notes": JOB_MARKER,
     })
     inv = portal_db.query_one("SELECT total FROM client_invoices WHERE job_id = %s", (job,))
     assert inv is not None

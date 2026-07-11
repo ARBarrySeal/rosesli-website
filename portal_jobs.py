@@ -227,6 +227,39 @@ def add_job_interpreter(company, job_id, interpreter_id):
         return cur.fetchone()[0]
 
 
+def job_consumer_rows(job_id):
+    """Deaf Consumer rows for a job, in entry order."""
+    return portal_db.query_all(
+        "SELECT id, name, email FROM job_consumers WHERE job_id = %s ORDER BY id",
+        (job_id,),
+    )
+
+
+def set_job_consumers(job_id, consumers):
+    """Replace a job's Deaf Consumer rows with (name, email) pairs from the
+    edit form (the form is authoritative, same as interpreter staffing)."""
+    with portal_db.transaction() as cur:
+        cur.execute("DELETE FROM job_consumers WHERE job_id = %s", (job_id,))
+        for name, email in consumers:
+            cur.execute(
+                "INSERT INTO job_consumers (job_id, name, email) VALUES (%s, %s, %s)",
+                (job_id, name, email),
+            )
+
+
+def _parse_consumers(form):
+    """Paired consumer_names/consumer_emails lists → [(name, email)], blanks dropped."""
+    names  = form.getlist("consumer_names")
+    emails = form.getlist("consumer_emails")
+    out = []
+    for i in range(max(len(names), len(emails))):
+        name  = (names[i]  if i < len(names)  else "").strip() or None
+        email = (emails[i] if i < len(emails) else "").strip() or None
+        if name or email:
+            out.append((name, email))
+    return out
+
+
 def _parse_job_form(form, company):
     """Map the admin job form to the jobs column set, snapshotting interpreter/client names.
 
@@ -270,13 +303,17 @@ def _parse_job_form(form, company):
         import portal_rates
         client_rate = portal_rates.rate_for(client_id, event_date)
 
-    return {
+    data = {
         "status":             status,
         "assignment_type":    atype,
         "client_id":          client_id,
         "client_name":        client_name,
         "client_address":     (form.get("client_address") or "").strip() or None,
         "event_address":      (form.get("event_address") or "").strip() or None,
+        "event_street":       (form.get("event_street") or "").strip() or None,
+        "event_city":         (form.get("event_city") or "").strip() or None,
+        "event_state":        (form.get("event_state") or "").strip() or None,
+        "room_number":        (form.get("room_number") or "").strip() or None,
         "event_zip":          (form.get("event_zip") or "").strip() or None,
         "setting":            (form.get("setting") or "").strip() or None,
         "service_format":     (form.get("service_format") or "").strip() or None,
@@ -297,8 +334,15 @@ def _parse_job_form(form, company):
         "interpreter_2_name": _name_for(interp2, company),
         "client_rate":        client_rate,
         "rate_type":          rate_type,
-        "notes":              (form.get("notes") or "").strip() or None,
-    }, ids
+    }
+    # rosesli splits notes into admin-only vs interpreter-visible; the legacy
+    # notes column is only written by the dod form (untouched for rosesli).
+    if company == "rosesli":
+        data["admin_notes"]       = (form.get("admin_notes") or "").strip() or None
+        data["interpreter_notes"] = (form.get("interpreter_notes") or "").strip() or None
+    else:
+        data["notes"] = (form.get("notes") or "").strip() or None
+    return data, ids
 
 
 # ── Assignments list (admin + interpreters) ───────────────────────────────────
@@ -380,6 +424,7 @@ def assignment_detail(job_id):
         "portal_assignment_detail.html",
         job=job, is_admin=(role == "admin"),
         staffed=job_interpreter_rows(job_id),
+        consumers=job_consumer_rows(job_id),
         offers=offers, interpreters=interpreters,
     )
 
@@ -425,6 +470,7 @@ def create_assignment():
             "portal_assignment_edit.html",
             job=None,
             staffed=[],
+            consumers=[],
             clients=_clients(company),
             interpreters=_interpreters(company),
             statuses=STATUSES,
@@ -444,6 +490,7 @@ def create_assignment():
     new_id = row["id"] if row else None
     if new_id:
         set_job_interpreters(company, new_id, interp_ids)
+        set_job_consumers(new_id, _parse_consumers(request.form))
     audit_log("job_create", target=f"job:{new_id}", metadata={"status": data["status"]})
     if new_id and data["status"] == "confirmed":
         from portal_client_invoices import ensure_invoice_for_job
@@ -467,6 +514,7 @@ def edit_assignment(job_id):
             "portal_assignment_edit.html",
             job=job,
             staffed=job_interpreter_rows(job_id),
+            consumers=job_consumer_rows(job_id),
             clients=_clients(company),
             interpreters=_interpreters(company),
             statuses=STATUSES,
@@ -481,6 +529,7 @@ def edit_assignment(job_id):
         tuple(data.values()) + (job_id, company),
     )
     set_job_interpreters(company, job_id, interp_ids)
+    set_job_consumers(job_id, _parse_consumers(request.form))
     audit_log("job_update", target=f"job:{job_id}", metadata={"status": data["status"]})
     if data["status"] == "confirmed":
         from portal_client_invoices import ensure_invoice_for_job

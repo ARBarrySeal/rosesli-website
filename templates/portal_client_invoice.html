@@ -36,7 +36,7 @@
     {% if inv.poc_phone %}<div><div class="field-label">POC Phone</div><div style="font-size:.88rem;">{{ inv.poc_phone }}</div></div>{% endif %}
     {% if inv.date_of_service %}<div><div class="field-label">Date of Service</div><div style="font-size:.88rem;">{{ inv.date_of_service.strftime('%B %d, %Y') }}</div></div>{% endif %}
     {% if inv.start_time %}<div><div class="field-label">Start</div><div style="font-size:.88rem;">{{ inv.start_time }}{% if inv.end_time %} – {{ inv.end_time }}{% endif %}</div></div>{% endif %}
-    {% if inv.duration_hours %}<div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours }} hrs</div></div>{% endif %}
+    {% if inv.duration_hours %}<div><div class="field-label">Duration</div><div style="font-size:.88rem;">{{ inv.duration_hours|hours_minutes }}</div></div>{% endif %}
     {% if inv.rate_per_hour %}<div><div class="field-label">Rate/hr</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.rate_per_hour) }}</div></div>{% endif %}
     {% if inv.incidentals %}<div><div class="field-label">Incidentals</div><div style="font-size:.88rem;">${{ "%.2f"|format(inv.incidentals) }}</div></div>{% endif %}
     {% if inv.total %}<div><div class="field-label">Total</div><div style="font-size:1.4rem;font-weight:600;">${{ "%.2f"|format(inv.total) }}</div></div>{% endif %}

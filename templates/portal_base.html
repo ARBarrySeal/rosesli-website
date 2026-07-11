@@ -43,7 +43,7 @@
     <a href="/portal/offers" class="{{ 'active' if request.path.startswith('/portal/offers') else '' }}">
       Job Offers{% if pending_offers %} <span class="badge badge-pending">{{ pending_offers }}</span>{% endif %}
     </a>
-    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Your Assignments</a>
     {% endif %}
     <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
     {% if g.user.company == 'rosesli' %}
@@ -61,7 +61,7 @@
     {% endif %}
     <a href="/portal/client-invoices" class="{{ 'active' if request.path.startswith('/portal/client-invoices') else '' }}">Client Invoices</a>
     {% if g.user.company == 'rosesli' %}
-    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Assignments</a>
+    <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Admin Assignments</a>
     <a href="/portal/offers" class="{{ 'active' if request.path.startswith('/portal/offers') else '' }}">
       Job Offers{% if pending_offers %} <span class="badge badge-pending">{{ pending_offers }}</span>{% endif %}
     </a>
