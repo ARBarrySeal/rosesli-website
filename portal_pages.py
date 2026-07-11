@@ -262,6 +262,44 @@ def profile():
                 + "They'll be asked to create a new password at next sign-in."
             )
 
+        elif action == "set_rate" and is_admin_view and user["company"] == "rosesli":
+            import portal_rates
+            from datetime import date as _date
+            rate_raw = (request.form.get("new_rate") or "").strip()
+            eff_raw  = (request.form.get("effective_date") or "").strip()
+            try:
+                new_rate = float(rate_raw)
+                if new_rate < 0:
+                    raise ValueError
+            except ValueError:
+                new_rate = None
+            try:
+                eff_date = _date.fromisoformat(eff_raw) if eff_raw else _date.today()
+            except ValueError:
+                eff_date = None
+            if new_rate is None:
+                error = "Rate must be a non-negative number."
+            elif eff_date is None:
+                error = "Effective date must be a valid date (YYYY-MM-DD)."
+            else:
+                summary = portal_rates.set_rate(
+                    user["company"], target_uid, new_rate, eff_date,
+                    created_by=int(g.user["sub"]),
+                )
+                audit_log(
+                    "rate_change",
+                    target=f"user:{target_uid}",
+                    metadata={"rate": new_rate, "effective_date": str(eff_date),
+                              "recalc": summary},
+                )
+                recalced = summary["jobs"] + summary["client_invoices"] + summary["interpreter_invoices"]
+                success = (
+                    f"Rate ${new_rate:.2f}/hr effective {eff_date} saved."
+                    + (f" {recalced} open record(s) with service date on/after "
+                       f"{eff_date} were recalculated." if recalced else "")
+                )
+                user = portal_db.query_one("SELECT * FROM portal_users WHERE id = %s", (target_uid,))
+
         elif action == "update":
             rosesli      = user["company"] == "rosesli"
             phone        = (request.form.get("phone")        or "").strip()[:50]
@@ -291,7 +329,9 @@ def profile():
             except ValueError:
                 interpreter_rate = None
             rate_sql, rate_vals = ("", [])
-            if is_admin_view:
+            if is_admin_view and not rosesli:
+                # rosesli rate changes go through the effective-dated Rate
+                # History form (action=set_rate) instead of a direct write.
                 rate_sql, rate_vals = (", interpreter_rate=%s", [interpreter_rate])
 
             name_sql, name_vals = ("full_name=%s", [full_name])
@@ -395,6 +435,11 @@ def profile():
                 _set_session_cookie(resp, fresh_token, max_age=SESSION_HOURS * 3600)
                 return resp
 
+    rate_history = None
+    if is_admin_view and user["company"] == "rosesli" and user["role"] in ("employee", "client"):
+        import portal_rates
+        rate_history = portal_rates.rate_history_for(target_uid)
+
     return render_template(
         "portal_profile.html",
         user=user,
@@ -404,6 +449,7 @@ def profile():
         view_uid=target_uid if is_admin_view else None,
         w9_attachment=_get_w9(target_uid),
         documents=documents,
+        rate_history=rate_history,
     )
 
 

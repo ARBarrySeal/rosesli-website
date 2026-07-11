@@ -185,9 +185,9 @@
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
     </label>
     {% endif %}
-    {% if rosesli and not is_admin_view %}
+    {% if rosesli %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-      Current Base Rate (set by admin)
+      Current Base Rate {{ '(edit via Rate History below)' if is_admin_view else '(set by admin)' }}
       <input type="text" value="{% if user.interpreter_rate is not none %}${{ '%.2f'|format(user.interpreter_rate) }}/hr{% else %}—{% endif %}" disabled
              style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);"/>
     </label>
@@ -203,12 +203,6 @@
     </p>
     {% elif user.role == 'client' %}
     {% if not rosesli %}
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
-      Base Rate ($/hr)
-      <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}" placeholder="0.00"
-             style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
-    </label>
-    {% elif is_admin_view %}
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
       <input type="number" name="interpreter_rate" step="0.01" min="0" value="{{ user.interpreter_rate or '' }}" placeholder="0.00"
@@ -238,6 +232,53 @@
       {% endif %}
     </div>
   </form>
+
+  {% if rate_history is not none %}
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">
+    <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">Rate History</div>
+    {% if rate_history %}
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:1rem;">
+      <thead>
+        <tr style="text-align:left;color:var(--muted);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;">
+          <th style="padding:.35rem .5rem;">Rate</th>
+          <th style="padding:.35rem .5rem;">Effective Date</th>
+          <th style="padding:.35rem .5rem;">Recorded</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rate_history %}
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:.35rem .5rem;">${{ '%.2f'|format(r.rate) }}/hr</td>
+          <td style="padding:.35rem .5rem;">{% if r.effective_date.isoformat() == '1970-01-01' %}Original{% else %}{{ r.effective_date }}{% endif %}</td>
+          <td style="padding:.35rem .5rem;color:var(--muted);">{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;">No rate on file yet.</div>
+    {% endif %}
+    <form method="POST" style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="action" value="set_rate"/>
+      <input type="hidden" name="view_uid" value="{{ view_uid }}"/>
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+        New Rate ($/hr)
+        <input type="number" name="new_rate" step="0.01" min="0" required placeholder="80.00"
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;width:8rem;"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+        Effective Date
+        <input type="date" name="effective_date" required
+               style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:.5rem .75rem;border-radius:var(--radius);outline:none;"/>
+      </label>
+      <button type="submit" class="btn btn-primary" style="font-size:.72rem;">Save Rate</button>
+    </form>
+    <p style="font-size:.7rem;color:var(--muted);margin:.6rem 0 0;">
+      Open assignments and unpaid invoices with a service date on or after the effective date are recalculated automatically. Paid or submitted invoices are never changed.
+    </p>
+  </div>
+  {% endif %}
 
   {% if user.role == 'employee' %}
   <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;">

@@ -170,19 +170,8 @@
   var addLineBtn = document.getElementById('add-line-btn');
   var extraLines = document.getElementById('extra-lines');
 
-  var DIFF_OPTIONS = [
-    { label: 'Daytime Weekday 7a–5p (BR)',          value: 0 },
-    { label: 'Weekend 7a–5p (BR+$5/hr)',             value: 5 },
-    { label: 'Evening Weekday 5p–10p (BR+$5/hr)',    value: 5 },
-    { label: 'Evening Weekend 5p–10p (BR+$10/hr)',   value: 10 },
-    { label: 'Overnight Weekday 10p–7a (BR+$10/hr)', value: 10 },
-    { label: 'Overnight Weekend 10p–7a (BR+$15/hr)', value: 15 },
-    { label: 'Conference (BR+$15/hr)',               value: 15 },
-    { label: 'Holiday (BR+$12/hr)',                  value: 12 },
-    { label: 'LMR ≤24hr notice (BR+$10/hr)',         value: 10 },
-    { label: 'XCL<48 — Cancellation <48hr (BR)',     value: 0 },
-    { label: 'XCL — No charge',                      value: 'xcl' }
-  ];
+  // Server-rendered from the differentials table (mig 015) + XCL rows.
+  var DIFF_OPTIONS = {{ diff_options_json|default('[]')|safe }};
 
   function fmt2(n) { return n.toFixed(2); }
 

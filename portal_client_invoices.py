@@ -1,13 +1,18 @@
 """Client invoice CRUD — Rose SLI portal (admin only create/edit)."""
+import json
+
 from flask import Blueprint, abort, flash, g, redirect, render_template, request
 
 import portal_db
+import portal_rates
 from portal_audit import log as audit_log
 from portal_auth import admin_required, login_required
 
 client_inv_bp = Blueprint("client_invoices", __name__)
 
-DIFFERENTIALS = {
+# Fallback only — since mig 015 differentials live in the DB (seeded from this
+# table) and are read via portal_rates.differentials_for().
+_DIFFERENTIALS_FALLBACK = {
     "day":                ("Daytime / Weekdays 7a–5p",   0),
     "weekend_day":        ("Weekend Day (Sat/Sun) 7a–5p",  5),
     "weekday_evening":    ("Weekday Evening 5p–10p",        5),
@@ -18,6 +23,39 @@ DIFFERENTIALS = {
     "holiday":            ("Holiday",                      12),
     "lmr":                ("LMR (<24 hr notice)",          10),
 }
+
+
+def DIFFERENTIALS(company="rosesli", service_date=None):
+    """DB-backed replacement for the old hardcoded dict: {code: (label, amount)}."""
+    try:
+        rows = portal_rates.differentials_for(company, service_date)
+        if rows:
+            return {r["code"]: (r["label"], float(r["amount"])) for r in rows}
+    except Exception:
+        pass
+    return dict(_DIFFERENTIALS_FALLBACK)
+
+
+def diff_options_json(company="rosesli", service_date=None, label_style="client"):
+    """JSON for the invoice-form dropdowns — replaces the duplicated
+    hand-maintained DIFF_OPTIONS arrays in both create templates. Order
+    matters: the forms' auto-select maps day/evening/overnight bands to
+    positions 0–5, which the DB rows' sort_order preserves."""
+    opts = []
+    for code, (label, amt) in DIFFERENTIALS(company, service_date).items():
+        amt = float(amt)
+        if label_style == "admin":
+            suffix = f" (BR+${amt:g}/hr)" if amt else " (BR)"
+        else:
+            suffix = f" (+${amt:g}/hr)" if amt else ""
+        opts.append({"label": f"{label}{suffix}", "value": amt})
+    if label_style == "admin":
+        # Cancellation entries are billing statuses, not priced differentials —
+        # 'xcl' is a string sentinel the form JS special-cases, so these never
+        # live in the differentials table.
+        opts.append({"label": "XCL<48 — Cancellation <48hr (BR)", "value": 0})
+        opts.append({"label": "XCL — No charge", "value": "xcl"})
+    return json.dumps(opts)
 
 HOLIDAYS = (
     "New Year's Day", "MLK Day", "Presidents' Day", "Cesar Chavez Day",
@@ -70,7 +108,14 @@ def ensure_invoice_for_job(company, job_id, created_by=None):
         )
         if not job or job.get("status") != "confirmed":
             return None
-        if not job.get("client_id") or job.get("client_rate") is None:
+        if not job.get("client_id"):
+            return None
+        # Snapshot rate from the job; when absent, resolve the client's rate
+        # effective on the SERVICE DATE (rate_history).
+        rate = job.get("client_rate")
+        if rate is None:
+            rate = portal_rates.rate_for(job["client_id"], job.get("event_date"))
+        if rate is None:
             return None
 
         existing = portal_db.query_one(
@@ -80,7 +125,7 @@ def ensure_invoice_for_job(company, job_id, created_by=None):
         if existing:
             return existing["id"]
 
-        rate = float(job["client_rate"])
+        rate = float(rate)
         dur_h = _float_or_none(str(job.get("duration") or ""))
         total = round(dur_h * rate, 2) if dur_h else None
 
@@ -188,7 +233,8 @@ def create_client_invoice():
     if request.method == "GET":
         prefill = _prefill_from_job(company, request.args.get("job"))
         return render_template("portal_client_invoice_create.html",
-                               clients=clients, prefill=prefill)
+                               clients=clients, prefill=prefill,
+                               diff_options_json=diff_options_json(company))
 
     client_id = request.form.get("client_id") or None
     if client_id:
@@ -198,7 +244,8 @@ def create_client_invoice():
         )
         if not target:
             return render_template("portal_client_invoice_create.html",
-                                   clients=clients, error="Invalid client.")
+                                   clients=clients, error="Invalid client.",
+                                   diff_options_json=diff_options_json(company))
         client_name = target["full_name"]
         client_id   = target["id"]
     else:
@@ -240,9 +287,13 @@ def create_client_invoice():
         idx += 1
     line_items = _json.dumps(extra_lines) if extra_lines else None
 
+    # Blank rate resolves from the client's rate effective on the service date.
+    if not rate_per_hour and client_id:
+        rate_per_hour = portal_rates.rate_for(client_id, date_of_service)
     if not rate_per_hour:
         return render_template("portal_client_invoice_create.html",
-                               clients=clients, error="Rate per hour is required.")
+                               clients=clients, error="Rate per hour is required.",
+                               diff_options_json=diff_options_json(company))
 
     total = None
     if duration_hours and rate_per_hour:

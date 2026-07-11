@@ -143,8 +143,23 @@ def test_ensure_invoice_skips_pending_job(world):
     assert ensure_invoice_for_job(COMPANY, job, world["admin"]) is None
 
 
-def test_ensure_invoice_skips_when_no_rate(world):
+def test_ensure_invoice_resolves_rate_when_job_has_none(world):
+    # Since mig 015 a missing job snapshot rate resolves from the client's
+    # rate effective on the service date (falls back to interpreter_rate=125).
     from portal_client_invoices import ensure_invoice_for_job
+    job = _mk_job(status="confirmed", client_id=world["client"])
+    inv_id = ensure_invoice_for_job(COMPANY, job, world["admin"])
+    assert inv_id is not None
+    inv = portal_db.query_one(
+        "SELECT rate_per_hour FROM client_invoices WHERE id = %s", (inv_id,))
+    assert float(inv["rate_per_hour"]) == 125.0
+
+
+def test_ensure_invoice_skips_when_no_rate_anywhere(world):
+    from portal_client_invoices import ensure_invoice_for_job
+    portal_db.execute(
+        "UPDATE portal_users SET interpreter_rate = NULL WHERE id = %s",
+        (world["client"],))
     job = _mk_job(status="confirmed", client_id=world["client"])
     assert ensure_invoice_for_job(COMPANY, job, world["admin"]) is None
 

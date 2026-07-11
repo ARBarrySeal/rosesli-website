@@ -135,11 +135,16 @@ def test_save_recomposes_full_name_and_ignores_rate(app, world):
     assert u["address"] == "1 Legacy Way, Old Town"      # legacy column untouched
 
 
-def test_admin_view_still_sets_rate(app, world):
+def test_admin_view_sets_rate_via_rate_history(app, world):
+    # Since Phase 4 the rosesli admin view has no direct rate input — rate
+    # changes go through the effective-dated set_rate action, which also
+    # syncs the legacy interpreter_rate column.
     c = _client(app, ADMIN_EMAIL)
-    r = _post_profile(c, extra={"certification": "CDI", "specialty": "Government",
-                                "interpreter_rate": "95.50"},
-                      uid=world["int"])
+    r = c.post("/portal/profile", data={
+        "csrf_token": _csrf(c), "action": "set_rate",
+        "view_uid": str(world["int"]),
+        "new_rate": "95.50", "effective_date": "2020-01-01",
+    })
     assert r.status_code == 200
     u = _get_user(world["int"])
     assert float(u["interpreter_rate"]) == 95.50

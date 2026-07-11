@@ -163,15 +163,13 @@ def _parse_job_form(form, company):
     end_time   = (form.get("end_time") or "").strip() or None
     duration   = (form.get("duration") or "").strip() or _compute_duration(start_time, end_time)
 
-    # Blank Client rate falls back to the client account's stored base rate.
+    # Blank Client rate resolves from the client's rate effective on the
+    # SERVICE DATE (rate_history), falling back to the stored base rate.
+    event_date = _date_or_none(form.get("event_date"))
     client_rate = _float_or_none(form.get("client_rate"))
     if client_rate is None and client_id:
-        crow = portal_db.query_one(
-            "SELECT interpreter_rate FROM portal_users WHERE id = %s AND company = %s",
-            (client_id, company),
-        )
-        if crow and crow["interpreter_rate"] is not None:
-            client_rate = float(crow["interpreter_rate"])
+        import portal_rates
+        client_rate = portal_rates.rate_for(client_id, event_date)
 
     return {
         "status":             status,
@@ -188,7 +186,7 @@ def _parse_job_form(form, company):
         "poc_name":           (form.get("poc_name") or "").strip() or None,
         "poc_email":          (form.get("poc_email") or "").strip() or None,
         "poc_phone":          (form.get("poc_phone") or "").strip() or None,
-        "event_date":         _date_or_none(form.get("event_date")),
+        "event_date":         event_date,
         "start_time":         start_time,
         "end_time":           end_time,
         "duration":           duration,

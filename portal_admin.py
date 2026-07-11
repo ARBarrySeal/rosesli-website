@@ -112,8 +112,12 @@ def create_invoice():
         (company,),
     ) if is_admin else []
 
+    from portal_client_invoices import diff_options_json
+    diffs_json = diff_options_json(company, label_style="admin")
+
     if request.method == "GET":
-        return render_template("portal_admin_invoice_create.html", interpreters=interpreters)
+        return render_template("portal_admin_invoice_create.html",
+                               interpreters=interpreters, diff_options_json=diffs_json)
 
     amount_raw      = (request.form.get("amount") or "").strip()
     description     = (request.form.get("description") or "").strip()
@@ -163,6 +167,7 @@ def create_invoice():
         user_id = request.form.get("user_id") or ""
         if not user_id:
             return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                                   diff_options_json=diffs_json,
                                    error="Please select an interpreter.")
         target = portal_db.query_one(
             "SELECT id FROM portal_users WHERE id = %s AND company = %s AND role = 'employee'",
@@ -170,6 +175,7 @@ def create_invoice():
         )
         if not target:
             return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                                   diff_options_json=diffs_json,
                                    error="Invalid interpreter.")
         recipient_id = int(user_id)
     else:
@@ -181,6 +187,7 @@ def create_invoice():
             raise ValueError
     except ValueError:
         return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                               diff_options_json=diffs_json,
                                error="Amount must be a positive number.")
 
     portal_db.execute(
@@ -198,7 +205,8 @@ def create_invoice():
         target=f"user:{recipient_id}",
         metadata={"amount": amount, "due_date": due_date or None, "self_submitted": not is_admin},
     )
-    return render_template("portal_admin_invoice_create.html", interpreters=interpreters, success=True)
+    return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                           diff_options_json=diffs_json, success=True)
 
 
 @admin_bp.route("/portal/admin/smtp-test", methods=["POST"])
