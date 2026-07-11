@@ -67,6 +67,24 @@ def _magic_ok(f, ext: str) -> bool:
     f.seek(0)
     return any(header.startswith(s) for s in sigs)
 
+
+def _upload_error(f) -> str | None:
+    """Validate one uploaded file (extension allowlist, magic bytes, size).
+    Returns a user-facing error string, or None when the file is acceptable."""
+    if not f or not f.filename:
+        return "No file selected."
+    _, ext = os.path.splitext(secure_filename(f.filename))
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        return "File type not allowed."
+    if not _magic_ok(f, ext):
+        return "File content does not match its extension."
+    f.seek(0, 2)
+    size = f.tell()
+    f.seek(0)
+    if size > MAX_UPLOAD_BYTES:
+        return "File too large (25 MB max)."
+    return None
+
 pages_bp = Blueprint("pages", __name__)
 
 CALENDLY_URLS = {
@@ -471,7 +489,7 @@ def _get_user_documents(user_id: int):
     try:
         return portal_db.query_all(
             "SELECT id, original_name, size_bytes, created_at FROM portal_documents "
-            "WHERE user_id = %s ORDER BY created_at DESC",
+            "WHERE user_id = %s AND job_id IS NULL ORDER BY created_at DESC",
             (user_id,),
         )
     except Exception:
@@ -1176,7 +1194,7 @@ def documents():
         docs = portal_db.query_all(
             "SELECT d.*, u.full_name, u.email FROM portal_documents d "
             "JOIN portal_users u ON u.id = d.user_id "
-            "WHERE d.company = %s ORDER BY d.created_at DESC",
+            "WHERE d.company = %s AND d.job_id IS NULL ORDER BY d.created_at DESC",
             (company,),
         )
         users = portal_db.query_all(
@@ -1186,7 +1204,7 @@ def documents():
         )
     else:
         docs = portal_db.query_all(
-            "SELECT * FROM portal_documents WHERE user_id = %s ORDER BY created_at DESC",
+            "SELECT * FROM portal_documents WHERE user_id = %s AND job_id IS NULL ORDER BY created_at DESC",
             (uid,),
         )
         users = []
@@ -1212,25 +1230,14 @@ def upload_document():
         return redirect(dest)
 
     f = request.files["file"]
-    if not f.filename:
-        flash("No file selected.", "error")
+    err = _upload_error(f)
+    if err:
+        flash(err, "error")
         return redirect(dest)
-
     _, ext = os.path.splitext(secure_filename(f.filename))
-    if ext.lower() not in ALLOWED_EXTENSIONS:
-        flash("File type not allowed.", "error")
-        return redirect(dest)
-
-    if not _magic_ok(f, ext):
-        flash("File content does not match its extension.", "error")
-        return redirect(dest)
-
     f.seek(0, 2)
     size = f.tell()
     f.seek(0)
-    if size > MAX_UPLOAD_BYTES:
-        flash("File too large (25 MB max).", "error")
-        return redirect(dest)
 
     target_uid = uid
     if role == "admin":
@@ -1274,12 +1281,12 @@ def download_document(doc_id):
 
     if role == "admin":
         doc = portal_db.query_one(
-            "SELECT * FROM portal_documents WHERE id = %s AND company = %s",
+            "SELECT * FROM portal_documents WHERE id = %s AND company = %s AND job_id IS NULL",
             (doc_id, company),
         )
     else:
         doc = portal_db.query_one(
-            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s",
+            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s AND job_id IS NULL",
             (doc_id, uid),
         )
 
@@ -1304,12 +1311,12 @@ def delete_document(doc_id):
 
     if role == "admin":
         doc = portal_db.query_one(
-            "SELECT * FROM portal_documents WHERE id = %s AND company = %s",
+            "SELECT * FROM portal_documents WHERE id = %s AND company = %s AND job_id IS NULL",
             (doc_id, company),
         )
     else:
         doc = portal_db.query_one(
-            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s",
+            "SELECT * FROM portal_documents WHERE id = %s AND user_id = %s AND job_id IS NULL",
             (doc_id, uid),
         )
 
@@ -1326,3 +1333,97 @@ def delete_document(doc_id):
     )
     flash("File deleted.", "success")
     return redirect(dest)
+
+
+# ── Assignment documents (job-scoped rows in portal_documents) ────────────────
+# Prep materials attached to a job. Admin uploads/deletes; download is limited
+# to admins and interpreters actually staffed on the job (join table + legacy
+# slots via is_staffed_on). These rows have job_id set, so they never appear
+# in the user-documents pages above (all filtered job_id IS NULL).
+
+def _job_or_404(job_id, company):
+    job = portal_db.query_one(
+        "SELECT id FROM jobs WHERE id = %s AND company = %s", (job_id, company),
+    )
+    if not job:
+        abort(404)
+    return job
+
+
+@pages_bp.route("/portal/admin/assignments/<int:job_id>/documents", methods=["POST"])
+@admin_required
+def upload_job_documents(job_id):
+    company = g.user["company"]
+    uid     = g.user["sub"]
+    dest    = f"/portal/admin/assignments/{job_id}"
+    _job_or_404(job_id, company)
+
+    files = [f for f in request.files.getlist("files") if f and f.filename]
+    if not files:
+        flash("No file selected.", "error")
+        return redirect(dest)
+
+    saved = 0
+    for f in files:
+        err = _upload_error(f)
+        if err:
+            flash(f"{secure_filename(f.filename)}: {err}", "error")
+            continue
+        _, ext = os.path.splitext(secure_filename(f.filename))
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(0)
+        stored_name = uuid.uuid4().hex + ext.lower()
+        portal_storage.save(company, stored_name, f)
+        mime = f.content_type or mimetypes.guess_type(f.filename)[0] or "application/octet-stream"
+        portal_db.execute(
+            "INSERT INTO portal_documents "
+            "(user_id, company, filename, original_name, mime_type, size_bytes, uploaded_by, job_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (uid, company, stored_name, secure_filename(f.filename), mime, size, uid, job_id),
+        )
+        saved += 1
+    if saved:
+        audit_log("job_doc_upload", target=f"job:{job_id}", metadata={"count": saved})
+        flash(f"Uploaded {saved} file{'s' if saved != 1 else ''}.", "success")
+    return redirect(dest)
+
+
+def _job_doc_or_403(job_id, doc_id):
+    """Fetch a job-scoped document, enforcing company + staffing access."""
+    company = g.user["company"]
+    role    = g.user["role"]
+    uid     = int(g.user["sub"])
+    _job_or_404(job_id, company)
+    if role != "admin":
+        from portal_jobs import is_staffed_on
+        if role != "employee" or not is_staffed_on(job_id, uid):
+            abort(403)
+    doc = portal_db.query_one(
+        "SELECT * FROM portal_documents WHERE id = %s AND company = %s AND job_id = %s",
+        (doc_id, company, job_id),
+    )
+    if not doc:
+        abort(404)
+    return doc
+
+
+@pages_bp.route("/portal/assignments/<int:job_id>/documents/<int:doc_id>/download")
+@login_required
+def download_job_document(job_id, doc_id):
+    doc = _job_doc_or_403(job_id, doc_id)
+    audit_log("job_doc_download", target=f"doc:{doc_id}",
+              metadata={"job_id": job_id, "original_name": doc["original_name"]})
+    return portal_storage.download(g.user["company"], doc["filename"], doc["original_name"])
+
+
+@pages_bp.route("/portal/admin/assignments/<int:job_id>/documents/<int:doc_id>/delete", methods=["POST"])
+@admin_required
+def delete_job_document(job_id, doc_id):
+    doc = _job_doc_or_403(job_id, doc_id)
+    portal_storage.delete(g.user["company"], doc["filename"])
+    portal_db.execute("DELETE FROM portal_documents WHERE id = %s", (doc_id,))
+    audit_log("job_doc_delete", target=f"doc:{doc_id}",
+              metadata={"job_id": job_id, "original_name": doc["original_name"]})
+    flash("File deleted.", "success")
+    return redirect(f"/portal/admin/assignments/{job_id}")

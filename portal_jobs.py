@@ -420,11 +420,18 @@ def assignment_detail(job_id):
         offers = offers_for_job(job_id, company)
         interpreters = interpreters_for_category(company, job.get("assignment_type"))
 
+    documents = portal_db.query_all(
+        "SELECT id, original_name, size_bytes, created_at FROM portal_documents "
+        "WHERE job_id = %s AND company = %s ORDER BY created_at DESC",
+        (job_id, company),
+    )
+
     return render_template(
         "portal_assignment_detail.html",
         job=job, is_admin=(role == "admin"),
         staffed=job_interpreter_rows(job_id),
         consumers=job_consumer_rows(job_id),
+        documents=documents,
         offers=offers, interpreters=interpreters,
     )
 

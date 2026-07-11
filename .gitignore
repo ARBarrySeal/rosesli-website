@@ -5,3 +5,6 @@ __pycache__/
 # Local generator scratch output
 gen_out.txt
 deploy_blog.log
+
+# Local document storage (LocalStorage backend fallback - never commit user files)
+uploads/

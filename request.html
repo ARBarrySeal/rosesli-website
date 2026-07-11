@@ -248,7 +248,7 @@
     <div class="form-fields">
 
       <div class="form-section">
-        <div class="form-section-h"><span class="num">01</span> About you</div>
+        <div class="form-section-h"><span class="num">01</span> Requester</div>
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Your name</span>
@@ -307,14 +307,39 @@
             <label><input type="radio" name="format" value="either"><span>Either</span></label>
           </div>
         </label>
+        <label class="field" style="margin-top:14px;">
+          <span class="field-lbl">Dress code (optional)</span>
+          <select name="dress_code">
+            <option value="">Select&hellip;</option>
+            <option>Casual</option>
+            <option>Business Casual</option>
+            <option>Business/Office</option>
+            <option>Semi-formal</option>
+            <option>Formal</option>
+          </select>
+        </label>
       </div>
 
       <div class="form-section">
         <div class="form-section-h"><span class="num">03</span> When &amp; where</div>
         <label class="field" style="margin-bottom:14px;">
-          <span class="field-lbl">Event ZIP code</span>
-          <input type="text" name="zip" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="92101">
+          <span class="field-lbl">Street address (optional)</span>
+          <input type="text" name="street" placeholder="123 Main St, Suite 200">
         </label>
+        <div class="field-row field-row-3" style="margin-bottom:14px;">
+          <label class="field">
+            <span class="field-lbl">City (optional)</span>
+            <input type="text" name="city" placeholder="San Diego">
+          </label>
+          <label class="field">
+            <span class="field-lbl">State (optional)</span>
+            <input type="text" name="state" maxlength="2" pattern="[A-Za-z]{2}" placeholder="CA" style="text-transform:uppercase;">
+          </label>
+          <label class="field">
+            <span class="field-lbl">Event ZIP code</span>
+            <input type="text" name="zip" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="92101">
+          </label>
+        </div>
         <div class="date-block" id="date-block">
           <div class="field-row field-row-3 date-row" data-slot="0">
             <label class="field">
@@ -343,7 +368,25 @@
       </div>
 
       <div class="form-section">
-        <div class="form-section-h"><span class="num">04</span> Anything else</div>
+        <div class="form-section-h"><span class="num">04</span> On-site point of contact <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional — if different from requester)</span></div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-lbl">POC name</span>
+            <input type="text" name="poc_name" placeholder="Who greets the interpreter?">
+          </label>
+          <label class="field">
+            <span class="field-lbl">POC phone</span>
+            <input type="tel" name="poc_phone" placeholder="(619) 555–0100">
+          </label>
+        </div>
+        <label class="field" style="margin-top:14px;">
+          <span class="field-lbl">POC email</span>
+          <input type="email" name="poc_email" placeholder="poc@org.com">
+        </label>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-h"><span class="num">05</span> Anything else</div>
         <label class="field">
           <span class="field-lbl">Brief details</span>
           <textarea name="details" rows="4" placeholder="Audience size, location, any prep materials we should review, gender preference for interpreter, etc."></textarea>

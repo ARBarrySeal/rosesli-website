@@ -353,17 +353,24 @@ def image_jpg(filename):
 
 
 FIELD_LABELS = [
-    ("name", "Name"),
+    ("name", "Requester name"),
     ("org", "Organization"),
-    ("email", "Email"),
-    ("phone", "Phone"),
+    ("email", "Requester email"),
+    ("phone", "Requester phone"),
     ("setting", "Setting"),
     ("client_count", "Deaf clients"),
     ("format", "Format"),
+    ("dress_code", "Dress code"),
+    ("street", "Event street"),
+    ("city", "Event city"),
+    ("state", "Event state"),
     ("zip", "Event ZIP"),
     ("date", "Date"),
     ("start_time", "Start"),
     ("end_time", "End"),
+    ("poc_name", "On-site POC"),
+    ("poc_phone", "POC phone"),
+    ("poc_email", "POC email"),
     ("details", "Details"),
 ]
 
@@ -467,6 +474,10 @@ def _valid_date(raw):
         return None
 
 
+# Shared with request.html's dropdown — keep the two lists in sync.
+DRESS_CODES = ["Casual", "Business Casual", "Business/Office", "Semi-formal", "Formal"]
+
+
 def _create_job_from_request(form):
     """Auto-create a pending job from a public interpreter request.
 
@@ -480,12 +491,22 @@ def _create_job_from_request(form):
     notes = (form.get("details") or "").strip()
     if extra_dates:
         notes = (notes + "\n" if notes else "") + "Additional dates: " + ", ".join(extra_dates)
+    # Public endpoint: only allowlisted dress codes / state codes reach the DB.
+    dress = (form.get("dress_code") or "").strip()
+    if dress not in DRESS_CODES:
+        dress = ""
+    state = (form.get("state") or "").strip().upper()
+    if state not in US_STATES:
+        state = ""
     try:
         portal_db.execute(
             "INSERT INTO jobs (company, status, source, requester_name, requester_email, "
             "requester_phone, organization, setting, service_format, event_zip, deaf_clients, "
-            "event_date, start_time, end_time, notes) "
-            "VALUES (%s, 'pending', 'public_request', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "event_date, start_time, end_time, notes, "
+            "dress_code, event_street, event_city, event_state, "
+            "poc_name, poc_email, poc_phone) "
+            "VALUES (%s, 'pending', 'public_request', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s)",
             (
                 company,
                 (form.get("name") or "").strip() or None,
@@ -500,6 +521,13 @@ def _create_job_from_request(form):
                 (form.get("start_time") or "").strip() or None,
                 (form.get("end_time") or "").strip() or None,
                 notes or None,
+                dress or None,
+                (form.get("street") or "").strip() or None,
+                (form.get("city") or "").strip() or None,
+                state or None,
+                (form.get("poc_name") or "").strip() or None,
+                (form.get("poc_email") or "").strip() or None,
+                (form.get("poc_phone") or "").strip() or None,
             ),
         )
     except Exception as exc:

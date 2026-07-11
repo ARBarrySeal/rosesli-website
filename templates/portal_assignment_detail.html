@@ -90,6 +90,43 @@
   <h2 class="asn-section">Notes</h2>
   <p style="font-size:.82rem;white-space:pre-wrap;color:var(--text);margin:0;">{{ job.notes }}</p>
   {% endif %}
+
+  {% if documents or is_admin %}
+  <h2 class="asn-section">Documents</h2>
+  {% if documents %}
+  <table class="portal-table" style="margin-bottom:.75rem;">
+    <thead><tr><th>File</th><th>Size</th><th>Uploaded</th>{% if is_admin %}<th style="text-align:right;"></th>{% endif %}</tr></thead>
+    <tbody>
+      {% for d in documents %}
+      <tr>
+        <td><a href="/portal/assignments/{{ job.id }}/documents/{{ d.id }}/download">{{ d.original_name }}</a></td>
+        <td>{{ '%.1f'|format(d.size_bytes / 1024) }} KB</td>
+        <td>{{ d.created_at.strftime('%b %d, %Y') if d.created_at else '—' }}</td>
+        {% if is_admin %}
+        <td style="text-align:right;">
+          <form method="post" action="/portal/admin/assignments/{{ job.id }}/documents/{{ d.id }}/delete"
+                data-confirm="Delete this file?" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif is_admin %}
+  <p style="color:var(--muted);font-size:.85rem;">No documents attached.</p>
+  {% endif %}
+  {% if is_admin %}
+  <form method="post" action="/portal/admin/assignments/{{ job.id }}/documents" enctype="multipart/form-data"
+        style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="file" name="files" multiple style="font-size:.8rem;"/>
+    <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+  </form>
+  {% endif %}
+  {% endif %}
 </div>
 
 {% if is_admin %}
