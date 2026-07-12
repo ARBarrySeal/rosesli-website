@@ -62,6 +62,8 @@
   // Server-rendered from the differentials table (mig 015);
   // falls back to the legacy hardcoded list if the context is absent.
   var DIFF_OPTIONS = {{ diff_options_json|default('[]')|safe }};
+  // Per-line Date field is a rosesli feature; dod keeps its pre-Phase-8 layout.
+  var HAS_LINE_DATES = {{ 'true' if company_id == 'rosesli' else 'false' }};
 
   function fmt2(n) { return n.toFixed(2); }
 
@@ -130,7 +132,8 @@
       lines[i].querySelector('.ci-line-diff').name = 'ci_extra_diff_' + i;
       lines[i].querySelector('.ci-line-dur').name  = 'ci_extra_dur_'  + i;
       lines[i].querySelector('.ci-line-amt').name  = 'ci_extra_amt_'  + i;
-      lines[i].querySelector('.ci-line-date').name = 'ci_extra_date_' + i;
+      var dateEl = lines[i].querySelector('.ci-line-date');
+      if (dateEl) dateEl.name = 'ci_extra_date_' + i;
       lines[i].querySelector('.ci-line-code').name = 'ci_extra_code_' + i;
     }
   }
@@ -160,7 +163,9 @@
     var idx = extraDiv.querySelectorAll('.ci-extra-line').length;
     var div = document.createElement('div');
     div.className = 'ci-extra-line';
-    div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr .8fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+    div.style.cssText = 'display:grid;grid-template-columns:' +
+      (HAS_LINE_DATES ? '2fr 1fr .8fr 1fr auto' : '2fr 1fr 1fr auto') +
+      ';gap:.5rem;align-items:end;margin-top:.5rem;';
 
     var codeI = document.createElement('input');
     codeI.type='hidden'; codeI.name='ci_extra_code_'+idx; codeI.className='ci-line-code';
@@ -177,14 +182,17 @@
     ds.addEventListener('change', function () { syncCode(); recomputeLine(div); });
     dw.appendChild(ds);
 
-    var dateW = document.createElement('label');
-    dateW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-    dateW.textContent = 'Date';
-    var dateI = document.createElement('input');
-    dateI.type='date'; dateI.name='ci_extra_date_'+idx; dateI.className='ci-line-date';
-    dateI.value = dateIn && dateIn.value ? dateIn.value : '';
-    dateI.style.cssText='background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-    dateW.appendChild(dateI);
+    var dateW = null;
+    if (HAS_LINE_DATES) {
+      dateW = document.createElement('label');
+      dateW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      dateW.textContent = 'Date';
+      var dateI = document.createElement('input');
+      dateI.type='date'; dateI.name='ci_extra_date_'+idx; dateI.className='ci-line-date';
+      dateI.value = dateIn && dateIn.value ? dateIn.value : '';
+      dateI.style.cssText='background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+      dateW.appendChild(dateI);
+    }
 
     var durW = document.createElement('label');
     durW.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
@@ -210,7 +218,8 @@
     rmB.style.cssText='background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
     rmB.addEventListener('click', function () { div.remove(); reindexLines(); });
 
-    div.appendChild(codeI); div.appendChild(dw); div.appendChild(dateW);
+    div.appendChild(codeI); div.appendChild(dw);
+    if (dateW) div.appendChild(dateW);
     div.appendChild(durW); div.appendChild(amtW); div.appendChild(rmB);
     extraDiv.appendChild(div);
     return div;

@@ -64,5 +64,6 @@ decision from Charles before building: **#1** and **#3**.
 - 2026-06-20: Checklist created after scope was lost to summarization.
 - 2026-06-20: Full audit complete. 26/30 verified shipped. Outstanding: #12, #15. Clarify: #1, #3.
 - 2026-06-21: Built #1 (Interpreter Review admin page), #12 (admin Job Offers grouped by status),
-  and #15 auto-SELECT of differential. 130 pass / 2 fail (known intentional MFA reds). UNCOMMITTED.
-  Remaining: #15 totals-math decision; #3 only if external payment system intended.
+  and #15 auto-SELECT of differential. 130 pass / 2 fail (known intentional MFA reds).
+- 2026-06-21: SHIPPED — commit bfaa0fb pushed to main; Cloud Run rev rosesli-00118-czc 100% traffic;
+  prod verified. Remaining: #15 totals-math decision; #3 only if external payment system intended.

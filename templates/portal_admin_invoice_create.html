@@ -172,6 +172,8 @@
 
   // Server-rendered from the differentials table (mig 015) + XCL rows.
   var DIFF_OPTIONS = {{ diff_options_json|default('[]')|safe }};
+  // Per-line Date field is a rosesli feature; dod keeps its pre-Phase-8 layout.
+  var HAS_LINE_DATES = {{ 'true' if company_id == 'rosesli' else 'false' }};
 
   function fmt2(n) { return n.toFixed(2); }
 
@@ -275,7 +277,8 @@
       lines[i].querySelector('.line-diff').name = 'extra_differential_' + i;
       lines[i].querySelector('.line-dur').name  = 'extra_duration_' + i;
       lines[i].querySelector('.line-amt').name  = 'extra_amount_' + i;
-      lines[i].querySelector('.line-date').name = 'extra_date_' + i;
+      var dateEl = lines[i].querySelector('.line-date');
+      if (dateEl) dateEl.name = 'extra_date_' + i;
       lines[i].querySelector('.line-code').name = 'extra_code_' + i;
     }
   }
@@ -285,7 +288,9 @@
       var idx = extraLines.querySelectorAll('.extra-line').length;
       var div = document.createElement('div');
       div.className = 'extra-line';
-      div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr .8fr 1fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+      div.style.cssText = 'display:grid;grid-template-columns:' +
+        (HAS_LINE_DATES ? '2fr 1fr .8fr 1fr auto' : '2fr 1fr 1fr auto') +
+        ';gap:.5rem;align-items:end;margin-top:.5rem;';
 
       var codeIn = document.createElement('input');
       codeIn.type = 'hidden'; codeIn.name = 'extra_code_' + idx; codeIn.className = 'line-code';
@@ -303,15 +308,18 @@
       diffSel2.addEventListener('change', function () { syncCode(); recomputeLines(); });
       diffWrap.appendChild(diffSel2);
 
-      var dateWrap = document.createElement('label');
-      dateWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      dateWrap.textContent = 'Date';
-      var dateIn2 = document.createElement('input');
-      dateIn2.type = 'date'; dateIn2.name = 'extra_date_' + idx; dateIn2.className = 'line-date';
-      var mainDate = document.getElementById('date-of-service');
-      dateIn2.value = mainDate && mainDate.value ? mainDate.value : '';
-      dateIn2.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-      dateWrap.appendChild(dateIn2);
+      var dateWrap = null;
+      if (HAS_LINE_DATES) {
+        dateWrap = document.createElement('label');
+        dateWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+        dateWrap.textContent = 'Date';
+        var dateIn2 = document.createElement('input');
+        dateIn2.type = 'date'; dateIn2.name = 'extra_date_' + idx; dateIn2.className = 'line-date';
+        var mainDate = document.getElementById('date-of-service');
+        dateIn2.value = mainDate && mainDate.value ? mainDate.value : '';
+        dateIn2.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+        dateWrap.appendChild(dateIn2);
+      }
 
       var durWrap = document.createElement('label');
       durWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
@@ -337,7 +345,8 @@
       rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
       rmBtn.addEventListener('click', function () { div.remove(); reindexLines(); recomputeLines(); });
 
-      div.appendChild(codeIn); div.appendChild(diffWrap); div.appendChild(dateWrap);
+      div.appendChild(codeIn); div.appendChild(diffWrap);
+      if (dateWrap) div.appendChild(dateWrap);
       div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
       extraLines.appendChild(div);
     });
