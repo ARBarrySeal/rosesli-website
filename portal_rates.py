@@ -5,7 +5,7 @@ work resolves to the new rate even if already booked; records dated before the
 effective date are frozen. `portal_users.interpreter_rate` stays synced to the
 currently-effective rate so existing autocomplete APIs keep working.
 """
-from datetime import date
+from datetime import date, time, timedelta
 
 import portal_db
 
@@ -144,3 +144,70 @@ def set_rate(company, user_id, rate, effective_date, created_by=None):
             summary["interpreter_invoices"] = cur.rowcount
 
     return summary
+
+
+# ── Time-band differential splitting (Phase 1, 2026-07-22 batch) ───────────
+# The six time-band differential codes from migrations/015: each is
+# (weekday|weekend) x (day 7a-5p | evening 5p-10p | overnight 10p-7a).
+# Non-time-derivable differentials (holiday, lmr, conference, specialty_*)
+# are NOT computed here — they stay manual "+ Add Line" additions on the
+# invoice form, same as today.
+_MIN_BILLABLE_HOURS = 2.0
+_BAND_BOUNDARIES_MIN = (0, 7 * 60, 17 * 60, 22 * 60, 24 * 60)  # midnight,7a,5p,10p,midnight
+
+
+def _band_for_minute_of_day(minute_of_day, is_weekend):
+    # minute_of_day in [0, 1440); overnight wraps both [0,7a) and [10p,24:00)
+    if minute_of_day < 7 * 60 or minute_of_day >= 22 * 60:
+        band = "overnight"
+    elif minute_of_day < 17 * 60:
+        band = "day"
+    else:
+        band = "weekday_evening" if not is_weekend else "weekend_evening"
+        return band
+    return ("weekend_" + band) if is_weekend and band != "overnight" else \
+           ("weekend_overnight" if is_weekend else band)
+
+
+def compute_time_band_hours(event_date, start_time, end_time):
+    """Split a shift into hours per time-band differential code, splitting
+    proportionally at every 7a/5p/10p/midnight boundary it crosses. Midnight
+    crossings can also flip weekday->weekend (or vice versa), which changes
+    the code for the portion after midnight. If the shift's actual duration
+    is under the 2-hour minimum, every band's hours are scaled up so the
+    total equals exactly 2.0 (proportional to the actual split), matching
+    the existing 2-hour-minimum billing rule."""
+    start_min = start_time.hour * 60 + start_time.minute
+    end_min = end_time.hour * 60 + end_time.minute
+    if end_min <= start_min:
+        end_min += 24 * 60  # crosses midnight
+
+    # Boundaries: every 7a/5p/10p/midnight instant between start and end.
+    boundaries = {start_min, end_min}
+    day_offset = 0
+    while day_offset * 1440 < end_min:
+        for b in _BAND_BOUNDARIES_MIN:
+            point = day_offset * 1440 + b
+            if start_min < point < end_min:
+                boundaries.add(point)
+        day_offset += 1
+    points = sorted(boundaries)
+
+    totals = {}
+    for i in range(len(points) - 1):
+        seg_start, seg_end = points[i], points[i + 1]
+        mid = (seg_start + seg_end) / 2.0
+        day_num = int(mid // 1440)  # 0 = event_date, 1 = event_date + 1
+        minute_of_day = mid % 1440
+        seg_date = event_date + timedelta(days=day_num)
+        is_weekend = seg_date.weekday() >= 5  # Sat=5, Sun=6
+        code = _band_for_minute_of_day(minute_of_day, is_weekend)
+        hours = (seg_end - seg_start) / 60.0
+        totals[code] = totals.get(code, 0.0) + hours
+
+    actual_total = sum(totals.values())
+    if 0 < actual_total < _MIN_BILLABLE_HOURS:
+        scale = _MIN_BILLABLE_HOURS / actual_total
+        totals = {k: v * scale for k, v in totals.items()}
+
+    return {k: round(v, 2) for k, v in totals.items()}

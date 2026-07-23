@@ -115,3 +115,50 @@ def test_job_id_unique_index_rejects_second_invoice_for_same_job(world):
         portal_db.execute(
             "INSERT INTO invoices (user_id, amount, status, job_id) VALUES (%s, 10, 'unpaid', %s)",
             (world["interp"], jid))
+
+
+# ── 2. Time-band splitter ─────────────────────────────────────────────────
+
+from portal_rates import compute_time_band_hours  # add to top imports
+
+
+def test_split_pure_daytime_weekday():
+    # Wed 2026-08-05, 9am-1pm: entirely inside 7a-5p on a weekday
+    bands = compute_time_band_hours(date(2026, 8, 5), time(9, 0), time(13, 0))
+    assert bands == {"day": 4.0}
+
+
+def test_split_crosses_day_into_evening():
+    # Wed 2026-08-05, 4pm-8pm: 1hr day (4-5p) + 3hr evening (5-8p)
+    bands = compute_time_band_hours(date(2026, 8, 5), time(16, 0), time(20, 0))
+    assert bands == {"day": 1.0, "weekday_evening": 3.0}
+
+
+def test_split_overnight_crossing_midnight():
+    # Fri 2026-08-07 11pm -> Sat 2026-08-08 2am: both portions are "overnight"
+    # band by time-of-day, but the post-midnight portion is a WEEKEND day, so
+    # it becomes weekend_overnight while the pre-midnight portion (still
+    # Friday, a weekday) stays overnight.
+    bands = compute_time_band_hours(date(2026, 8, 7), time(23, 0), time(2, 0))
+    assert bands == {"overnight": 1.0, "weekend_overnight": 2.0}
+
+
+def test_split_weekend_daytime():
+    # Sat 2026-08-08, 10am-2pm
+    bands = compute_time_band_hours(date(2026, 8, 8), time(10, 0), time(14, 0))
+    assert bands == {"weekend_day": 4.0}
+
+
+def test_split_applies_two_hour_minimum_proportionally():
+    # Wed 2026-08-05, 9am-9:30am = 0.5h actual, entirely daytime.
+    # Under the 2-hour minimum, billed hours scale to 2.0, still all "day"
+    # since the shift never leaves that band.
+    bands = compute_time_band_hours(date(2026, 8, 5), time(9, 0), time(9, 30))
+    assert bands == {"day": 2.0}
+
+
+def test_split_two_hour_minimum_scales_multi_band_proportionally():
+    # Wed 2026-08-05, 4:45pm-5:15pm = 0.5h actual: 0.25h day + 0.25h evening.
+    # Scaled to a 2h minimum (4x), each band scales to 1.0h.
+    bands = compute_time_band_hours(date(2026, 8, 5), time(16, 45), time(17, 15))
+    assert bands == {"day": 1.0, "weekday_evening": 1.0}
