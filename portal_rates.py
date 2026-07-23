@@ -159,14 +159,17 @@ _BAND_BOUNDARIES_MIN = (0, 7 * 60, 17 * 60, 22 * 60, 24 * 60)  # midnight,7a,5p,
 def _band_for_minute_of_day(minute_of_day, is_weekend):
     # minute_of_day in [0, 1440); overnight wraps both [0,7a) and [10p,24:00)
     if minute_of_day < 7 * 60 or minute_of_day >= 22 * 60:
-        band = "overnight"
+        tod = "overnight"
     elif minute_of_day < 17 * 60:
-        band = "day"
+        tod = "day"
     else:
-        band = "weekday_evening" if not is_weekend else "weekend_evening"
-        return band
-    return ("weekend_" + band) if is_weekend and band != "overnight" else \
-           ("weekend_overnight" if is_weekend else band)
+        tod = "evening"
+
+    if is_weekend:
+        return "weekend_" + tod
+    if tod == "evening":
+        return "weekday_evening"
+    return tod  # "day" and "overnight" have no weekday_ prefix in the table
 
 
 def compute_time_band_hours(event_date, start_time, end_time):
@@ -177,6 +180,9 @@ def compute_time_band_hours(event_date, start_time, end_time):
     is under the 2-hour minimum, every band's hours are scaled up so the
     total equals exactly 2.0 (proportional to the actual split), matching
     the existing 2-hour-minimum billing rule."""
+    if start_time == end_time:
+        raise ValueError("start_time and end_time must differ")
+
     start_min = start_time.hour * 60 + start_time.minute
     end_min = end_time.hour * 60 + end_time.minute
     if end_min <= start_min:

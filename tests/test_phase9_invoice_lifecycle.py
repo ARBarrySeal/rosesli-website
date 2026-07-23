@@ -162,3 +162,8 @@ def test_split_two_hour_minimum_scales_multi_band_proportionally():
     # Scaled to a 2h minimum (4x), each band scales to 1.0h.
     bands = compute_time_band_hours(date(2026, 8, 5), time(16, 45), time(17, 15))
     assert bands == {"day": 1.0, "weekday_evening": 1.0}
+
+
+def test_split_rejects_zero_duration_shift():
+    with pytest.raises(ValueError):
+        compute_time_band_hours(date(2026, 8, 5), time(9, 0), time(9, 0))
