@@ -167,3 +167,19 @@ def test_split_two_hour_minimum_scales_multi_band_proportionally():
 def test_split_rejects_zero_duration_shift():
     with pytest.raises(ValueError):
         compute_time_band_hours(date(2026, 8, 5), time(9, 0), time(9, 0))
+
+
+# ── 3. Billable jobs excludes already-invoiced-by-job_id assignments ───────
+
+def test_billable_jobs_excludes_job_linked_invoice(world):
+    from portal_interpreter_invoices import billable_jobs_for_interpreter
+    jid = _mk_job(world["interp"], date(2026, 8, 10), time(9, 0), time(11, 0))
+    before = billable_jobs_for_interpreter(COMPANY, world["interp"])
+    assert any(j["id"] == jid for j in before)
+
+    portal_db.execute(
+        "INSERT INTO invoices (user_id, amount, status, job_id) VALUES (%s, 100, 'unpaid', %s)",
+        (world["interp"], jid))
+
+    after = billable_jobs_for_interpreter(COMPANY, world["interp"])
+    assert not any(j["id"] == jid for j in after)

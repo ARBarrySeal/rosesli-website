@@ -64,6 +64,7 @@ def billable_jobs_for_interpreter(company, uid):
         "                  WHERE ji.job_id = jobs.id AND ji.interpreter_id = %s)) "
         "  AND status IN ('confirmed', 'completed') "
         "  AND id NOT IN (SELECT job_id FROM invoice_jobs WHERE job_id IS NOT NULL) "
+        "  AND id NOT IN (SELECT job_id FROM invoices WHERE job_id IS NOT NULL) "
         "ORDER BY event_date NULLS LAST, start_time",
         (company, uid, uid, uid),
     )
