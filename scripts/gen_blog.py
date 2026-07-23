@@ -204,7 +204,7 @@ PAGE = """<!DOCTYPE html>
   <div class="left"><span><span class="dot"></span>Accepting new bookings this week</span></div>
   <div class="right">
     <span>In person for San Diego County and VRI nationwide</span>
-    <span><a href="tel:+16192897368" style="color:inherit;text-decoration:none;">619-289-7368</a></span>
+    <span><a href="tel:+18582636719" style="color:inherit;text-decoration:none;">858-263-6719</a></span>
     <span>info@rosesli.com</span>
   </div>
   <span class="topbar-request-pill"><a href="/request">Request Interpreter</a></span>
@@ -325,7 +325,7 @@ PAGE = """<!DOCTYPE html>
     <div class="foot-brand">
       <div class="logo-text">Rose <em>Sign Language Interpreting</em></div>
       <p>Certified ASL interpreting across San Diego County and nationwide via video. Founded by Amanda Rose.</p>
-      <div class="foot-contact"><a href="tel:+16192897368">619-289-7368</a> · info@rosesli.com · San Diego, CA</div>
+      <div class="foot-contact"><a href="tel:+18582636719">858-263-6719</a> · info@rosesli.com · San Diego, CA</div>
     </div>
     <div class="foot-creds">
       <img src="/rid-logo.png" alt="RID" class="rid-mark">
