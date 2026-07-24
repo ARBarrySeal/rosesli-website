@@ -99,7 +99,9 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 7 — Job Offers visibility
 | # | Requirement | Status |
 |---|---|---|
-| 7.1 | Verify/enforce Job Offers page visible to admin + interpreters only (clients already excluded — add explicit guard/test) | ⬜ |
+| 7.1 | Verify/enforce Job Offers page visible to admin + interpreters only (clients already excluded — add explicit guard/test) | ✅ verified: `/portal/offers` already `abort(403)`s for any role but admin/employee, and the client nav already has no "Job Offers" link — no code change needed, just added the explicit test coverage |
+
+**Built 2026-07-23.** 5 tests in `tests/test_phase7_job_offers_visibility.py`. Pure verification phase — no deploy needed (test-only diff).
 
 ## Phase 8 — "Needs staffing" interpreter-facing rework
 | # | Requirement | Status |
