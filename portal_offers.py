@@ -20,7 +20,7 @@ import portal_email
 from portal_audit import log as audit_log
 from portal_auth import admin_required, login_required
 from portal_availability import available_interpreters, is_unavailable
-from portal_jobs import _name_for, add_job_interpreter
+from portal_jobs import _name_for, add_job_interpreter, job_interpreter_rows
 
 offers_bp = Blueprint("offers", __name__)
 
@@ -361,7 +361,7 @@ def my_offers():
 
     pending = portal_db.query_all(
         "SELECT o.*, j.event_date, j.start_time, j.end_time, j.setting, "
-        "       j.event_address, j.event_zip, j.job_number "
+        "       j.event_zip, j.job_number, j.assignment_type "
         "FROM job_offers o JOIN jobs j ON j.id = o.job_id "
         "WHERE o.interpreter_id = %s AND o.company = %s AND o.status = 'offered' "
         "ORDER BY j.event_date NULLS LAST, o.offered_at",
@@ -418,8 +418,45 @@ def _respond(offer_id: int, decision: str):
             email, me, verb, job or {}, link, _company_name(company)
         )
 
+    # Phase 8 (2026-07-22 batch, 8.6): confirm-of-acceptance email to the
+    # interpreter themselves, with a link to view full details (schedule,
+    # location, client, notes, documents) in the portal.
+    if decision == "accepted" and job:
+        person = portal_db.query_one(
+            "SELECT full_name, email FROM portal_users WHERE id = %s AND company = %s",
+            (uid, company),
+        )
+        if person and person.get("email"):
+            staffed_names = [
+                r["interpreter_name"] for r in job_interpreter_rows(offer["job_id"])
+            ]
+            doc_names = [
+                r["original_name"] for r in portal_db.query_all(
+                    "SELECT original_name FROM portal_documents "
+                    "WHERE job_id = %s AND company = %s ORDER BY created_at DESC",
+                    (offer["job_id"], company),
+                )
+            ]
+            portal_email.send_offer_accepted_confirmation_email(
+                person["email"], person["full_name"] or "there", job,
+                staffed_names, doc_names, link, _company_name(company),
+            )
+
     flash(f"Offer {verb}.", "success")
     return redirect("/portal/offers")
+
+
+def has_open_or_accepted_offer(job_id: int, company: str, interpreter_id: int) -> bool:
+    """True if this interpreter has an offered/accepted (not declined/withdrawn)
+    job_offers row for this job — used to let someone who's accepted (but not
+    yet formally confirmed/staffed) view the assignment's full detail page,
+    since Phase 8's acceptance email links there for documents/notes."""
+    row = portal_db.query_one(
+        "SELECT 1 FROM job_offers WHERE job_id = %s AND company = %s "
+        "AND interpreter_id = %s AND status IN ('offered', 'accepted') LIMIT 1",
+        (job_id, company, interpreter_id),
+    )
+    return row is not None
 
 
 @offers_bp.route("/portal/offers/<int:offer_id>/accept", methods=["POST"])

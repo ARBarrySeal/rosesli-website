@@ -106,14 +106,16 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 8 — "Needs staffing" interpreter-facing rework
 | # | Requirement | Status |
 |---|---|---|
-| 8.1 | Remove "Client" column | ⬜ |
-| 8.2 | Show assignment date + "Start Time – End Time" | ⬜ |
-| 8.3 | Location displayed as zip code only | ⬜ |
-| 8.4 | Show "Type of assignment" field | ⬜ |
-| 8.5 | Add "Accept" / "Decline" checkboxes | ⬜ |
-| 8.6 | Accept → email interpreter (from profile) with: Schedule info, Location info, Interpreters assigned (or "Unassigned"), client name, notes for interpreters, document attachments | ⬜ |
-| 8.7 | Accept → populates the assignment's "Interpreter" field with that interpreter's name | ⬜ |
-| 8.8 | Decline → greys out that interpreter's name in the assignment's Interpreter dropdown, for that assignment only | ⬜ |
+| 8.1 | Remove "Client" column | ✅ already true — the pending-offers table (`/portal/offers`) never showed a Client column |
+| 8.2 | Show assignment date + "Start Time – End Time" | ✅ already true — Date + Time columns already showed this |
+| 8.3 | Location displayed as zip code only | ✅ was showing full `event_address` — now zip only, matching Phase 6's privacy pattern |
+| 8.4 | Show "Type of assignment" field | ✅ new Type column (`job.assignment_type`) |
+| 8.5 | Add "Accept" / "Decline" checkboxes | ✅ already true — per-row Accept/Decline buttons already existed and cover the same intent |
+| 8.6 | Accept → email interpreter (from profile) with: Schedule info, Location info, Interpreters assigned (or "Unassigned"), client name, notes for interpreters, document attachments | ✅ new `send_offer_accepted_confirmation_email`; documents are portal links, not literal MIME attachments (clarified w/ Charles — matches every other email in this system) |
+| 8.7 | Accept → populates the assignment's "Interpreter" field with that interpreter's name | ✅ display-only "accepted, awaiting confirm" line on the admin detail page (clarified w/ Charles — staffing still requires the existing manual Confirm click, to preserve the double-booking-safe pick-among-multiple-acceptors flow) |
+| 8.8 | Decline → greys out that interpreter's name in the assignment's Interpreter dropdown, for that assignment only | ✅ declined interpreters render `disabled` with a "(declined this job)" suffix in that assignment's edit-form dropdown only |
+
+**Built 2026-07-23.** Also relaxed the assignment detail page's employee-access guard: an interpreter who's accepted (but not yet formally confirmed) can now view it — needed since the new acceptance email links there for documents/notes (`has_open_or_accepted_offer`, `portal_offers.py`). 9 tests in `tests/test_phase8_needs_staffing_rework.py`.
 
 ## Phase 9 — Job # everywhere
 | # | Requirement | Status |

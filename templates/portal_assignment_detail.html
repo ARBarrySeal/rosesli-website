@@ -70,6 +70,12 @@
   {{ row("Interpreter 1", job.interpreter_1_name) }}
   {{ row("Interpreter 2", job.interpreter_2_name) }}
   {% endif %}
+  {% if is_admin and offers %}
+    {% set staffed_ids = staffed|map(attribute='interpreter_id')|list %}
+    {% for o in offers if o.status == 'accepted' and o.interpreter_id not in staffed_ids %}
+  {{ row("Interpreter (pending confirm)", (o.interpreter_name or o.interpreter_email) ~ " — accepted, awaiting confirm") }}
+    {% endfor %}
+  {% endif %}
 
   {% if is_admin %}
   <h2 class="asn-section">Billing</h2>

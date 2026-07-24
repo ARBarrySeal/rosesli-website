@@ -155,9 +155,11 @@
       <select name="interpreter_ids" class="interp-select">
         <option value="">— unassigned —</option>
         {% for i in interpreters %}
+        {% set declined = i.id in (declined_ids or []) %}
         <option value="{{ i.id }}" data-rate="{{ i.interpreter_rate or '' }}"
-                {{ 'selected' if selected_id == i.id else '' }}>
-          {{ i.display_name }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}
+                {{ 'selected' if selected_id == i.id else '' }}
+                {{ 'disabled' if declined and selected_id != i.id else '' }}>
+          {{ i.display_name }}{% if i.interpreter_rate %} — ${{ '%.2f'|format(i.interpreter_rate) }}/hr{% endif %}{% if declined %} (declined this job){% endif %}
         </option>
         {% endfor %}
       </select>

@@ -221,6 +221,35 @@ def send_broadcast_offer_email(to_email: str, to_name: str, job: dict, offers_ur
     return _send(to_email, subject, body)
 
 
+def send_offer_accepted_confirmation_email(to_email: str, to_name: str, job: dict,
+                                           staffed_names: list, doc_names: list,
+                                           portal_url: str, company_name: str) -> bool:
+    """Phase 8 (2026-07-22 batch, 8.6) — sent to the interpreter themselves the
+    moment they accept an offer (before the office's separate confirm step).
+    Full location detail is fine here (unlike the broadcast blast) since
+    they've already committed to this specific job. Documents are linked,
+    not attached — consistent with every other email in this system."""
+    subject = f"You accepted — {_job_when(job)}"
+    interp_line = ", ".join(staffed_names) if staffed_names else "Unassigned"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"You accepted this assignment. The office will confirm it shortly:\n\n"
+        f"  {_job_when(job)}\n"
+        f"  Client: {job.get('client_name') or '—'}\n"
+        f"  Interpreters assigned: {interp_line}\n"
+    )
+    if job.get("interpreter_notes"):
+        body += f"  Notes: {job['interpreter_notes']}\n"
+    body += "\nDocuments:\n"
+    body += "".join(f"  - {d}\n" for d in doc_names) if doc_names else "  (none)\n"
+    body += (
+        f"\nView full details in the portal:\n\n{portal_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
 def send_confirm_email(to_email: str, to_name: str, job: dict, offers_url: str,
                        company_name: str) -> bool:
     subject = f"You're confirmed — {_job_when(job)}"

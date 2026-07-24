@@ -13,7 +13,7 @@
 <table class="portal-table">
   <thead>
     <tr>
-      <th>Date</th><th>Time</th><th>Setting</th><th>Location</th><th>Job #</th>
+      <th>Date</th><th>Time</th><th>Type</th><th>Setting</th><th>Location</th><th>Job #</th>
       <th style="text-align:right;">Respond</th>
     </tr>
   </thead>
@@ -26,11 +26,9 @@
         {% if o.end_time %}– {{ o.end_time }}{% endif %}
         {% if not o.start_time and not o.end_time %}—{% endif %}
       </td>
+      <td>{{ o.assignment_type or '—' }}</td>
       <td>{{ o.setting or '—' }}</td>
-      <td>
-        {{ o.event_address or '' }}{% if o.event_zip %} {{ o.event_zip }}{% endif %}
-        {% if not o.event_address and not o.event_zip %}—{% endif %}
-      </td>
+      <td>{{ o.event_zip or '—' }}</td>
       <td>{{ o.job_number or '—' }}</td>
       <td style="text-align:right;white-space:nowrap;">
         <form method="post" action="/portal/offers/{{ o.id }}/accept" style="display:inline;">

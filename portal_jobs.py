@@ -426,7 +426,12 @@ def assignment_detail(job_id):
     if not job:
         abort(404)
     if role == "employee" and not is_staffed_on(job_id, uid):
-        abort(403)
+        # Phase 8 (2026-07-22 batch, 8.6): an interpreter who's accepted (but
+        # not yet formally confirmed/staffed) can still view full details —
+        # the acceptance-confirmation email links here for documents/notes.
+        from portal_offers import has_open_or_accepted_offer
+        if not has_open_or_accepted_offer(job_id, company, uid):
+            abort(403)
     if role == "client":
         abort(403)
 
@@ -496,6 +501,7 @@ def create_assignment():
             consumers=[],
             clients=_clients(company),
             interpreters=_interpreters_for_form(company, None),
+            declined_ids=[],
             statuses=STATUSES,
             rate_types=RATE_TYPES,
             assignment_types=ASSIGNMENT_TYPES,
@@ -536,6 +542,16 @@ def edit_assignment(job_id):
 
     if request.method == "GET":
         staffed = job_interpreter_rows(job_id)
+        # Phase 8 (2026-07-22 batch, 8.8): grey out anyone who declined an
+        # offer for THIS assignment specifically — doesn't affect their
+        # availability on any other job.
+        declined_ids = [
+            r["interpreter_id"] for r in portal_db.query_all(
+                "SELECT interpreter_id FROM job_offers "
+                "WHERE job_id = %s AND company = %s AND status = 'declined'",
+                (job_id, company),
+            )
+        ]
         return render_template(
             "portal_assignment_edit.html",
             job=job,
@@ -544,6 +560,7 @@ def edit_assignment(job_id):
             clients=_clients(company),
             interpreters=_interpreters_for_form(
                 company, job.get("event_date"), [s["interpreter_id"] for s in staffed]),
+            declined_ids=declined_ids,
             statuses=STATUSES,
             rate_types=RATE_TYPES,
             assignment_types=ASSIGNMENT_TYPES,
