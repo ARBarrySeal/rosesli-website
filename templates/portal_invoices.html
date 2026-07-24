@@ -15,6 +15,7 @@
     <tr>
       {% if checkable %}<th style="width:2.5rem;"><input type="checkbox" class="select-all-cb" aria-label="Select all"/></th>{% endif %}
       <th>#</th>
+      <th>Job #</th>
       {% if g.user.role == 'admin' %}<th>Client</th>{% endif %}
       <th>Amount</th>
       <th>Status</th>
@@ -29,6 +30,7 @@
       <td><input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-cb" form="batchSubmitForm" aria-label="Select invoice {{ inv.id }}"/></td>
       {% endif %}
       <td style="color:var(--muted);{% if checkable %}cursor:pointer;{% endif %}" {% if checkable %}data-href="/portal/invoices/{{ inv.id }}"{% endif %}>#{{ inv.id }}</td>
+      <td style="color:var(--muted);font-variant-numeric:tabular-nums;">{{ '%03d'|format(inv.job_number) if inv.job_number else '—' }}</td>
       {% if g.user.role == 'admin' %}
       <td>{{ inv.full_name or inv.email or '—' }}</td>
       {% endif %}

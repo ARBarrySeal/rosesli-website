@@ -18,6 +18,7 @@
   <thead>
     <tr>
       <th>#</th>
+      <th>Job #</th>
       <th>Client</th>
       <th>Date of Service</th>
       <th>Total</th>
@@ -28,6 +29,7 @@
     {% for inv in invoices %}
     <tr style="cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">
       <td style="color:var(--muted);">#{{ inv.id }}</td>
+      <td style="color:var(--muted);font-variant-numeric:tabular-nums;">{{ '%03d'|format(inv.job_number) if inv.job_number else '—' }}</td>
       <td>{{ inv.client_name or inv.user_full_name or '—' }}</td>
       <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>
       <td>{% if inv.total %}${{ "%.2f"|format(inv.total) }}{% else %}—{% endif %}</td>

@@ -32,7 +32,7 @@
       <div class="day-num">{{ day }}</div>
       {% for j in jobs_today %}
       <div class="cal-event" onclick="location.href='/portal/assignments/{{ j.id }}'">
-        {{ j.start_time or '' }} {{ j.client_name or j.requester_name or j.organization or '#' ~ j.id }}
+        {{ '%03d'|format(j.job_number) if j.job_number else '—' }} · {{ j.start_time or '' }} {{ j.client_name or j.requester_name or j.organization or '' }}
       </div>
       {% endfor %}
       {% endif %}

@@ -153,9 +153,20 @@ def send_test_email(to_email: str, company_name: str) -> tuple[bool, str]:
 
 # ── Scheduler: job offers ─────────────────────────────────────────────────────
 
+def _job_number_bit(job: dict) -> str | None:
+    """Job # (2026-07-22 batch, Phase 9) — the padded job_number, not the
+    raw internal row id, matching the label used everywhere else in the
+    portal (assignments list, offers, dashboards, invoices, calendar)."""
+    n = job.get("job_number")
+    return f"Job #{n:03d}" if n else None
+
+
 def _job_when(job: dict) -> str:
-    """One-line date/time/location summary for offer/confirm emails."""
+    """One-line Job #/date/time/location summary for offer/confirm emails."""
     bits = []
+    jn = _job_number_bit(job)
+    if jn:
+        bits.append(jn)
     d = job.get("event_date")
     if d:
         bits.append(d.strftime("%A, %B %d, %Y") if hasattr(d, "strftime") else str(d))
@@ -190,6 +201,9 @@ def _job_when_zip_only(job: dict) -> str:
     fans out to every active interpreter, not just people the coordinator
     specifically vetted for this job."""
     bits = []
+    jn = _job_number_bit(job)
+    if jn:
+        bits.append(jn)
     d = job.get("event_date")
     if d:
         bits.append(d.strftime("%A, %B %d, %Y") if hasattr(d, "strftime") else str(d))

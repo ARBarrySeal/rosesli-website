@@ -17,6 +17,7 @@
       <tr>
         <th style="width:2.5rem;"><input type="checkbox" class="select-all-cb" aria-label="Select all"/></th>
         <th>#</th>
+        <th>Job #</th>
         <th>Client</th>
         <th style="text-align:right;">Total</th>
         <th>Date of Service</th>
@@ -28,6 +29,7 @@
       <tr>
         <td><input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-cb" aria-label="Select invoice {{ inv.id }}"/></td>
         <td style="color:var(--muted);cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">#{{ inv.id }}</td>
+        <td style="color:var(--muted);font-variant-numeric:tabular-nums;">{{ '%03d'|format(inv.job_number) if inv.job_number else '—' }}</td>
         <td style="cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">{{ inv.user_full_name or inv.client_name or '—' }}</td>
         <td style="text-align:right;">{{ '$%.2f'|format(inv.total) if inv.total is not none else '—' }}</td>
         <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>

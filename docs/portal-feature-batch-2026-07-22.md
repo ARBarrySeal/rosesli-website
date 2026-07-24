@@ -120,7 +120,9 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 9 — Job # everywhere
 | # | Requirement | Status |
 |---|---|---|
-| 9.1 | Surface a consistent Job # (existing `jobs.id`) on every assignment-related view: detail, invoices, offers, calendar, emails | ⬜ |
+| 9.1 | Surface a consistent Job # (existing `jobs.id`) on every assignment-related view: detail, invoices, offers, calendar, emails | ✅ clarified w/ Charles: means the existing padded `job_number` already shown on assignments/offers/dashboards/requests (e.g. "007"), not the raw internal `jobs.id`. Extended to: interpreter invoice list + detail, client invoice list + detail + Client Review, calendar (fixed a raw-id fallback), and every job-related email (`_job_when`/`_job_when_zip_only` now prefix "Job #NNN") |
+
+**Built 2026-07-23.** 9 tests in `tests/test_phase9_job_number_everywhere.py`.
 
 ## Phase 10 — Main menu / nav restructure (LAST — depends on Phases 1–9 existing)
 | # | Requirement | Status |

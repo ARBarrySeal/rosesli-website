@@ -896,8 +896,9 @@ def invoices():
     if role == "admin":
         rows = portal_db.query_all(
             "SELECT i.id, u.full_name, u.email, u.role AS user_role, i.amount, i.status, "
-            "i.due_date, i.created_at, i.submitted "
+            "i.due_date, i.created_at, i.submitted, j.job_number "
             "FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "LEFT JOIN jobs j ON j.id = i.job_id "
             "WHERE u.company = %s ORDER BY i.created_at DESC",
             (company,),
         )
@@ -908,8 +909,9 @@ def invoices():
         )
     else:
         rows = portal_db.query_all(
-            "SELECT id, amount, status, due_date, created_at, submitted "
-            "FROM invoices WHERE user_id = %s ORDER BY created_at DESC",
+            "SELECT i.id, i.amount, i.status, i.due_date, i.created_at, i.submitted, j.job_number "
+            "FROM invoices i LEFT JOIN jobs j ON j.id = i.job_id "
+            "WHERE i.user_id = %s ORDER BY i.created_at DESC",
             (uid,),
         )
         interpreters = []
@@ -953,14 +955,17 @@ def invoice_detail(invoice_id):
 
     if role == "admin":
         inv = portal_db.query_one(
-            "SELECT i.*, u.full_name, u.email FROM invoices i "
+            "SELECT i.*, u.full_name, u.email, j.job_number FROM invoices i "
             "JOIN portal_users u ON u.id = i.user_id "
+            "LEFT JOIN jobs j ON j.id = i.job_id "
             "WHERE i.id = %s AND u.company = %s",
             (invoice_id, company),
         )
     else:
         inv = portal_db.query_one(
-            "SELECT * FROM invoices WHERE id = %s AND user_id = %s",
+            "SELECT i.*, j.job_number FROM invoices i "
+            "LEFT JOIN jobs j ON j.id = i.job_id "
+            "WHERE i.id = %s AND i.user_id = %s",
             (invoice_id, uid),
         )
 

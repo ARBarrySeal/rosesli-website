@@ -241,17 +241,19 @@ def client_invoices_list():
 
     if role == "admin":
         rows = portal_db.query_all(
-            "SELECT ci.*, u.full_name AS user_full_name "
+            "SELECT ci.*, u.full_name AS user_full_name, j.job_number "
             "FROM client_invoices ci "
             "LEFT JOIN portal_users u ON u.id = ci.client_id "
+            "LEFT JOIN jobs j ON j.id = ci.job_id "
             "WHERE ci.company = %s ORDER BY ci.created_at DESC",
             (company,),
         )
     elif role == "client":
         rows = portal_db.query_all(
-            "SELECT * FROM client_invoices "
-            "WHERE company = %s AND client_id = %s AND submitted = TRUE "
-            "ORDER BY created_at DESC",
+            "SELECT ci.*, j.job_number FROM client_invoices ci "
+            "LEFT JOIN jobs j ON j.id = ci.job_id "
+            "WHERE ci.company = %s AND ci.client_id = %s AND ci.submitted = TRUE "
+            "ORDER BY ci.created_at DESC",
             (company, uid),
         )
     else:
@@ -269,16 +271,18 @@ def client_invoice_detail(inv_id):
 
     if role == "admin":
         inv = portal_db.query_one(
-            "SELECT ci.*, u.full_name AS user_full_name "
+            "SELECT ci.*, u.full_name AS user_full_name, j.job_number "
             "FROM client_invoices ci "
             "LEFT JOIN portal_users u ON u.id = ci.client_id "
+            "LEFT JOIN jobs j ON j.id = ci.job_id "
             "WHERE ci.id = %s AND ci.company = %s",
             (inv_id, company),
         )
     elif role == "client":
         inv = portal_db.query_one(
-            "SELECT * FROM client_invoices "
-            "WHERE id = %s AND company = %s AND client_id = %s AND submitted = TRUE",
+            "SELECT ci.*, j.job_number FROM client_invoices ci "
+            "LEFT JOIN jobs j ON j.id = ci.job_id "
+            "WHERE ci.id = %s AND ci.company = %s AND ci.client_id = %s AND ci.submitted = TRUE",
             (inv_id, company, uid),
         )
     else:
@@ -411,8 +415,9 @@ def client_review():
     the Interpreter Review page's layout."""
     company = g.user["company"]
     invoices = portal_db.query_all(
-        "SELECT ci.*, u.full_name AS user_full_name "
+        "SELECT ci.*, u.full_name AS user_full_name, j.job_number "
         "FROM client_invoices ci LEFT JOIN portal_users u ON u.id = ci.client_id "
+        "LEFT JOIN jobs j ON j.id = ci.job_id "
         "WHERE ci.company = %s AND COALESCE(ci.submitted, FALSE) = FALSE "
         "ORDER BY ci.created_at DESC",
         (company,),

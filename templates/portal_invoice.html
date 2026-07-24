@@ -18,6 +18,9 @@
 
   {# ── Service Details ── #}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;">
+    {% if inv.job_number %}
+    <div><div class="field-label">Job #</div><div style="font-size:.88rem;">{{ '%03d'|format(inv.job_number) }}</div></div>
+    {% endif %}
     {% if inv.date_of_service %}
     <div><div class="field-label">Date of Service</div><div style="font-size:.88rem;">{{ inv.date_of_service.strftime('%B %d, %Y') }}</div></div>
     {% endif %}
