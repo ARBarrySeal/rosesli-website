@@ -295,24 +295,36 @@ def sitemap():
     return send_from_directory(BASE_DIR, "sitemap.xml", mimetype="application/xml")
 
 
+# Static, rarely-changed assets (logos, CSS, photos) get a day of browser
+# caching -- previously served with no caching directive at all (Flask's
+# send_file defaults to Cache-Control: no-cache when max_age isn't passed),
+# so every repeat visit re-fetched them from scratch. HTML pages stay
+# uncached since those are edited regularly and should always be fresh.
+_STATIC_ASSET_MAX_AGE = 86400
+
+
 @app.route("/favicon.svg")
 def favicon():
-    return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
+    return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 @app.route("/favicon.ico")
 def favicon_ico():
-    return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml")
+    return send_from_directory(BASE_DIR, "favicon.svg", mimetype="image/svg+xml",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 @app.route("/logo.svg")
 def bimi_logo():
-    return send_from_directory(BASE_DIR, "logo.svg", mimetype="image/svg+xml")
+    return send_from_directory(BASE_DIR, "logo.svg", mimetype="image/svg+xml",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 @app.route("/site.css")
 def css():
-    return send_from_directory(BASE_DIR, "site.css", mimetype="text/css")
+    return send_from_directory(BASE_DIR, "site.css", mimetype="text/css",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 _ALLOWED_IMAGES = frozenset({
@@ -333,7 +345,8 @@ def image(filename):
     name = f"{filename}.png"
     if name not in _ALLOWED_IMAGES:
         return ("Not found", 404)
-    return send_from_directory(BASE_DIR, name, mimetype="image/png")
+    return send_from_directory(BASE_DIR, name, mimetype="image/png",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 @app.route("/<path:filename>.webp")
@@ -341,7 +354,8 @@ def image_webp(filename):
     name = f"{filename}.webp"
     if name not in _ALLOWED_IMAGES:
         return ("Not found", 404)
-    return send_from_directory(BASE_DIR, name, mimetype="image/webp")
+    return send_from_directory(BASE_DIR, name, mimetype="image/webp",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 @app.route("/<path:filename>.jpg")
@@ -349,7 +363,8 @@ def image_jpg(filename):
     name = f"{filename}.jpg"
     if name not in _ALLOWED_IMAGES:
         return ("Not found", 404)
-    return send_from_directory(BASE_DIR, name, mimetype="image/jpeg")
+    return send_from_directory(BASE_DIR, name, mimetype="image/jpeg",
+                               max_age=_STATIC_ASSET_MAX_AGE)
 
 
 FIELD_LABELS = [
