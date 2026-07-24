@@ -20,6 +20,13 @@
       {% endfor %}
     </select>
   </label>
+  <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Rate type
+    <select name="rate_type" id="ci-rate-type" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="hourly" selected>Hourly</option>
+      <option value="flat">Flat</option>
+    </select>
+  </label>
+
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Email<input type="email" name="poc_email" value="{{ pf.poc_email or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">POC Phone<input type="tel" name="poc_phone" value="{{ pf.poc_phone or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
@@ -27,22 +34,37 @@
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Start Time<input type="time" name="start_time" id="ci-start" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">End Time<input type="time" name="end_time" id="ci-end" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
     <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Duration (hrs)<input type="number" name="duration_hours" id="ci-dur" step="0.25" min="0" value="{{ pf.duration_hours or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Rate/hr ($) <span style="color:#e55;">*</span><input type="number" name="rate_per_hour" id="ci-rate" step="0.01" min="0" value="{{ pf.rate_per_hour or '' }}" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
-    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Incidentals ($)<input type="number" name="incidentals" step="0.01" min="0" value="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
   </div>
 
-  {# Additional lines: differential drop-down + duration + amount each #}
-  <div id="ci-extra-lines"></div>
-  <button type="button" id="ci-add-line-btn"
-          style="align-self:flex-start;background:none;border:1px dashed var(--border);color:var(--muted);
-                 font-family:var(--font);padding:.4rem .85rem;border-radius:var(--radius);cursor:pointer;font-size:.78rem;">
-    + Add Line
-  </button>
+  <div id="ci-hourly-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Base rate ($/hr) <span style="color:#e55;">*</span><input type="number" name="base_rate" id="ci-rate" step="0.01" min="0" value="{{ pf.rate_per_hour or '' }}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Differential
+      <select name="differential" id="ci-differential" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"></select>
+    </label>
+  </div>
+
+  <div id="ci-flat-fields" style="display:none;">
+    <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Flat amount ($) <span style="color:#e55;">*</span><input type="number" name="flat_amount" id="ci-flat-amount" step="0.01" min="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+  </div>
+
+  <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);max-width:12rem;">Incidentals ($)<input type="number" name="incidentals" id="ci-incidentals" step="0.01" min="0" value="0" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/></label>
+
+  {# Additional lines: differential drop-down + duration + amount each — hourly only #}
+  <div id="ci-extra-wrap">
+    <div id="ci-extra-lines"></div>
+    <button type="button" id="ci-add-line-btn"
+            style="align-self:flex-start;background:none;border:1px dashed var(--border);color:var(--muted);
+                   font-family:var(--font);padding:.4rem .85rem;border-radius:var(--radius);cursor:pointer;font-size:.78rem;">
+      + Add Line
+    </button>
+  </div>
 
   <label style="display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Notes
     <textarea name="notes" rows="2" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;resize:vertical;"></textarea>
   </label>
-  <p style="font-size:.72rem;color:var(--muted);">Total = duration × rate + incidentals + additional lines (auto-calculated)</p>
+  <div id="ci-total" style="font-size:.9rem;font-weight:600;padding-top:.5rem;border-top:1px solid var(--border);">
+    Total: $<span id="ci-total-amount">0.00</span>
+  </div>
   <div style="display:flex;gap:.75rem;">
     <button type="submit" class="btn btn-primary">Create Invoice</button>
     <a href="/portal/client-invoices" class="btn" style="text-decoration:none;">Cancel</a>
@@ -51,13 +73,21 @@
 
 <script nonce="{{ csp_nonce() }}">
 (function () {
-  var clientSel = document.getElementById('client-select');
-  var rateIn    = document.getElementById('ci-rate');
-  var startIn   = document.getElementById('ci-start');
-  var endIn     = document.getElementById('ci-end');
-  var durIn     = document.getElementById('ci-dur');
-  var addBtn    = document.getElementById('ci-add-line-btn');
-  var extraDiv  = document.getElementById('ci-extra-lines');
+  var clientSel   = document.getElementById('client-select');
+  var rateIn      = document.getElementById('ci-rate');
+  var diffSel     = document.getElementById('ci-differential');
+  var startIn     = document.getElementById('ci-start');
+  var endIn       = document.getElementById('ci-end');
+  var durIn       = document.getElementById('ci-dur');
+  var addBtn      = document.getElementById('ci-add-line-btn');
+  var extraDiv    = document.getElementById('ci-extra-lines');
+  var rateTypeSel = document.getElementById('ci-rate-type');
+  var hourlyBox   = document.getElementById('ci-hourly-fields');
+  var flatBox     = document.getElementById('ci-flat-fields');
+  var extraWrap   = document.getElementById('ci-extra-wrap');
+  var flatAmtIn   = document.getElementById('ci-flat-amount');
+  var incidentalsIn = document.getElementById('ci-incidentals');
+  var totalEl     = document.getElementById('ci-total-amount');
 
   // Server-rendered from the differentials table (mig 015);
   // falls back to the legacy hardcoded list if the context is absent.
@@ -68,6 +98,58 @@
   function fmt2(n) { return n.toFixed(2); }
 
   var dateIn = document.querySelector('[name="date_of_service"]');
+
+  // Main-line differential (Phase 5, 2026-07-22 batch — resolves the
+  // 2026-06-20 batch's open #15): wired into the applied rate, not just an
+  // additive extra line.
+  if (diffSel) {
+    var noneOpt = document.createElement('option');
+    noneOpt.value = ''; noneOpt.textContent = '— none —';
+    diffSel.appendChild(noneOpt);
+    DIFF_OPTIONS.forEach(function (o) {
+      if ((o.code || '').indexOf('specialty_') === 0) return; // specialty stays an extra line only
+      var opt = document.createElement('option');
+      opt.value = o.value; opt.textContent = o.label;
+      diffSel.appendChild(opt);
+    });
+  }
+
+  function recomputeTotal() {
+    var incidentals = parseFloat(incidentalsIn ? incidentalsIn.value : 0) || 0;
+    var extraTotal = 0;
+    extraDiv && extraDiv.querySelectorAll('.ci-line-amt').forEach(function (el) {
+      extraTotal += parseFloat(el.value) || 0;
+    });
+    var total;
+    if (rateTypeSel && rateTypeSel.value === 'flat') {
+      total = (parseFloat(flatAmtIn ? flatAmtIn.value : 0) || 0) + incidentals + extraTotal;
+    } else {
+      var base = parseFloat(rateIn ? rateIn.value : 0) || 0;
+      var diff = parseFloat(diffSel ? diffSel.value : 0) || 0;
+      var dur  = parseFloat(durIn ? durIn.value : 0) || 0;
+      total = dur * (base + diff) + incidentals + extraTotal;
+    }
+    if (totalEl) totalEl.textContent = fmt2(total);
+  }
+
+  function applyRateTypeVisibility() {
+    var isFlat = rateTypeSel && rateTypeSel.value === 'flat';
+    if (hourlyBox) hourlyBox.style.display = isFlat ? 'none' : 'grid';
+    if (flatBox)   flatBox.style.display   = isFlat ? 'block' : 'none';
+    if (extraWrap) extraWrap.style.display = isFlat ? 'none' : 'block';
+    if (rateIn)  rateIn.required  = !isFlat;
+    if (flatAmtIn) flatAmtIn.required = isFlat;
+    recomputeTotal();
+  }
+  if (rateTypeSel) {
+    rateTypeSel.addEventListener('change', applyRateTypeVisibility);
+    applyRateTypeVisibility();
+  }
+
+  [rateIn, diffSel, durIn, incidentalsIn, flatAmtIn].forEach(function (el) {
+    if (el) el.addEventListener('input', recomputeTotal);
+    if (el) el.addEventListener('change', recomputeTotal);
+  });
 
   // Auto-pick the differential that matches the assignment's day + start time.
   // Returns the DIFF_OPTIONS index, or 0 (daytime weekday) when it can't tell.
@@ -90,6 +172,7 @@
       var opt  = clientSel.options[clientSel.selectedIndex];
       var rate = opt ? opt.getAttribute('data-rate') : '';
       if (rate) rateIn.value = rate;
+      recomputeTotal();
     });
   }
 
@@ -98,7 +181,7 @@
     var s = startIn.value.split(':').map(Number);
     var e = endIn.value.split(':').map(Number);
     var diff = (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
-    if (diff > 0 && durIn) durIn.value = fmt2(diff / 60);
+    if (diff > 0 && durIn) { durIn.value = fmt2(diff / 60); recomputeTotal(); }
   }
 
   if (startIn) startIn.addEventListener('change', autoFillDur);
@@ -151,12 +234,14 @@
       // Specialty is a surcharge on hours already billed at the base rate —
       // no base rate in the line and no 2-hour minimum.
       la.value = ldur > 0 ? fmt2(ldur * addon) : '';
+      recomputeTotal();
       return;
     }
     var base  = parseFloat(rateIn ? rateIn.value : 0) || 0;
     var lrate = base + addon;
     ldur = (ldur > 0 && ldur < 2) ? 2 : ldur;
     la.value = ldur > 0 ? fmt2(ldur * lrate) : '';
+    recomputeTotal();
   }
 
   function addLine(preselectIdx) {
@@ -216,7 +301,7 @@
     var rmB = document.createElement('button');
     rmB.type='button'; rmB.textContent='✕';
     rmB.style.cssText='background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
-    rmB.addEventListener('click', function () { div.remove(); reindexLines(); });
+    rmB.addEventListener('click', function () { div.remove(); reindexLines(); recomputeTotal(); });
 
     div.appendChild(codeI); div.appendChild(dw);
     if (dateW) div.appendChild(dateW);

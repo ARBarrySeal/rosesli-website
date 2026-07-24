@@ -112,7 +112,7 @@ def test_create_client_invoice_route_creates_draft(app, world):
     admin = _client(app, ADMIN_EMAIL)
     r = admin.post("/portal/admin/client-invoices/create", data={
         "csrf_token": _csrf(admin), "client_id": str(world["client"]),
-        "date_of_service": str(EVENT_DATE), "rate_per_hour": "100", "duration_hours": "2",
+        "date_of_service": str(EVENT_DATE), "base_rate": "100", "duration_hours": "2",
         "notes": MARKER,
     }, follow_redirects=False)
     assert r.status_code == 302, r.data

@@ -80,11 +80,13 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 5 — Billing section
 | # | Requirement | Status |
 |---|---|---|
-| 5.1 | Admin-only access | ⬜ |
-| 5.2 | Apply differentials | ⬜ |
-| 5.3 | Auto-calculate + display total billed = client rate × duration when hourly | ⬜ |
-| 5.4 | If flat rate, display flat-rate total only (no rate×duration math) | ⬜ |
-| 5.5 | Resolves 2026-06-20 batch's open #15: differential now wires into the main line total, not just an additive extra line | ⬜ |
+| 5.1 | Admin-only access | ✅ already `@admin_required` on `/portal/admin/client-invoices/create` — confirmed with a test |
+| 5.2 | Apply differentials | ✅ new main-line Differential dropdown on the create form; server computes `rate_applied = base_rate + differential` (mirrors `invoices.base_rate/rate_applied` on the interpreter side exactly) |
+| 5.3 | Auto-calculate + display total billed = client rate × duration when hourly | ✅ live-computed Total row on the form (JS), server recomputes the same way on submit |
+| 5.4 | If flat rate, display flat-rate total only (no rate×duration math) | ✅ new Rate type toggle (Hourly/Flat); flat mode hides rate/duration/differential/extra-lines fields, total = flat amount + incidentals only |
+| 5.5 | Resolves 2026-06-20 batch's open #15: differential now wires into the main line total, not just an additive extra line | ✅ migration 021 adds `client_invoices.rate_type/base_rate/differential`; `rate_per_hour` keeps its existing meaning (the applied rate) so every existing reader keeps working; `portal_rates.set_rate()`'s client-invoice recalc updated to match (and now skips flat-rate invoices) |
+
+**Built 2026-07-23.** 10 tests in `tests/test_phase5_billing.py`. Migration 021 (`021_client_invoice_billing.sql`) applied before deploy.
 
 ## Phase 6 — Send Offer blast
 | # | Requirement | Status |

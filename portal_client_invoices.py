@@ -323,9 +323,9 @@ def create_client_invoice():
     start_time      = (request.form.get("start_time") or "").strip() or None
     end_time        = (request.form.get("end_time") or "").strip() or None
     duration_hours  = _float_or_none(request.form.get("duration_hours"))
-    rate_per_hour   = _float_or_none(request.form.get("rate_per_hour"))
     incidentals     = _float_or_none(request.form.get("incidentals")) or 0.0
     notes           = (request.form.get("notes") or "").strip() or None
+    rate_type       = request.form.get("rate_type") if request.form.get("rate_type") in ("hourly", "flat") else "hourly"
 
     job_id = request.form.get("job_id")
     try:
@@ -340,32 +340,65 @@ def create_client_invoice():
          "ci_extra_date_", "ci_extra_code_"),
         company, main_date=date_of_service)
     line_items = _json.dumps(extra_lines) if extra_lines else None
+    extra_total = sum(l["amount"] for l in extra_lines)
 
-    # Blank rate resolves from the client's rate effective on the service date.
-    if not rate_per_hour and client_id:
-        rate_per_hour = portal_rates.rate_for(client_id, date_of_service)
-    if not rate_per_hour:
-        return render_template("portal_client_invoice_create.html",
-                               clients=clients, error="Rate per hour is required.",
-                               diff_options_json=diff_options_json(company))
+    # Phase 5 (2026-07-22 batch, resolves 2026-06-20's open #15): the main
+    # line's differential is wired directly into the applied rate, not just
+    # added as an extra line — base_rate stays the client's raw rate,
+    # rate_per_hour keeps its existing meaning of "the rate this bills at"
+    # (base_rate + differential), mirroring invoices.base_rate/rate_applied
+    # on the interpreter side.
+    if rate_type == "hourly":
+        # base_rate is the current field name; rate_per_hour is accepted too
+        # for backward compatibility with callers built against the old form.
+        base_rate_raw = (request.form.get("base_rate") or request.form.get("rate_per_hour") or "").strip()
+        diff_raw = (request.form.get("differential") or "").strip()
+        base_rate = _float_or_none(base_rate_raw)
+        diff_val = _float_or_none(diff_raw) or 0.0
 
-    total = None
-    if duration_hours and rate_per_hour:
-        extra_total = sum(l["amount"] for l in extra_lines)
-        total = round(duration_hours * rate_per_hour + incidentals + extra_total, 2)
+        # Blank base rate resolves from the client's rate effective on the
+        # service date.
+        if base_rate is None and client_id:
+            base_rate = portal_rates.rate_for(client_id, date_of_service)
+        if base_rate is None:
+            return render_template("portal_client_invoice_create.html",
+                                   clients=clients, error="Base rate is required.",
+                                   diff_options_json=diff_options_json(company))
+
+        rate_applied = base_rate + diff_val
+        total = None
+        if duration_hours:
+            total = round(duration_hours * rate_applied + incidentals + extra_total, 2)
+
+        cols_extra = {
+            "rate_type": "hourly", "base_rate": base_rate,
+            "differential": diff_raw or None, "rate_per_hour": rate_applied,
+        }
+    else:
+        flat_amount = _float_or_none(request.form.get("flat_amount"))
+        if flat_amount is None:
+            return render_template("portal_client_invoice_create.html",
+                                   clients=clients, error="Flat amount is required.",
+                                   diff_options_json=diff_options_json(company))
+        total = round(flat_amount + incidentals + extra_total, 2)
+        cols_extra = {
+            "rate_type": "flat", "base_rate": None,
+            "differential": None, "rate_per_hour": None,
+        }
 
     portal_db.execute(
         "INSERT INTO client_invoices "
         "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
         "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
-        "notes, line_items, job_id, created_by, submitted) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)",
+        "notes, line_items, job_id, created_by, submitted, rate_type, base_rate, differential) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE,%s,%s,%s)",
         (company, client_id, client_name, poc_email, poc_phone, date_of_service,
-         start_time, end_time, duration_hours, rate_per_hour, incidentals, total,
-         notes, line_items, job_id, int(g.user["sub"])),
+         start_time, end_time, duration_hours, cols_extra["rate_per_hour"], incidentals, total,
+         notes, line_items, job_id, int(g.user["sub"]),
+         cols_extra["rate_type"], cols_extra["base_rate"], cols_extra["differential"]),
     )
     audit_log("client_invoice_create",
-              metadata={"client_name": client_name, "total": total})
+              metadata={"client_name": client_name, "total": total, "rate_type": rate_type})
     flash("Client invoice created — pending review before the client can see it.", "success")
     return redirect("/portal/admin/client-review")
 

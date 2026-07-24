@@ -114,16 +114,19 @@ def set_rate(company, user_id, rate, effective_date, created_by=None):
                 (rate, company, user_id, effective_date),
             )
             summary["jobs"] = cur.rowcount
+            # Flat-rate invoices don't derive from base_rate x duration, so a
+            # client rate change never touches them (Phase 5, 2026-07-22 batch).
             cur.execute(
-                "UPDATE client_invoices SET rate_per_hour = %s, "
-                "  total = CASE WHEN duration_hours IS NOT NULL THEN "
-                "    ROUND(duration_hours * %s + COALESCE(incidentals, 0) + COALESCE(( "
+                f"UPDATE client_invoices SET base_rate = %s, "
+                f"  rate_per_hour = %s + {diff_num}, "
+                f"  total = CASE WHEN duration_hours IS NOT NULL THEN "
+                f"    ROUND(duration_hours * (%s + {diff_num}) + COALESCE(incidentals, 0) + COALESCE(( "
                 "      SELECT SUM((li->>'amount')::numeric) "
                 "      FROM jsonb_array_elements(line_items::jsonb) li), 0), 2) "
                 "    ELSE total END "
-                "WHERE company = %s AND client_id = %s AND status = 'unpaid' "
+                "WHERE company = %s AND client_id = %s AND status = 'unpaid' AND rate_type = 'hourly' "
                 "  AND date_of_service >= %s",
-                (rate, rate, company, user_id, effective_date),
+                (rate, rate, rate, company, user_id, effective_date),
             )
             summary["client_invoices"] = cur.rowcount
         elif role == "employee":
