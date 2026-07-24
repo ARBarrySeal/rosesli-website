@@ -64,16 +64,18 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 4 — Administrative Assignments form rework
 | # | Requirement | Status |
 |---|---|---|
-| 4.1 | Add "Administrative Assignments" section/shortcut under Dashboard | ⬜ |
-| 4.2 | Location: remove "Deaf Client", replace with "Consumer(s):" + a +/− button to set the number of consumers | ⬜ |
-| 4.3 | Remove "Interpreter" search field; add "+ Interpreter" button with a dropdown of available interpreters | ⬜ |
-| 4.4 | One line per required interpreter (ties into existing multi-interpreter `job_interpreters` model) | ⬜ |
-| 4.5 | "Client" becomes a dropdown that auto-populates fields from the client profile | ⬜ |
-| 4.6 | Remove "Setting" field | ⬜ |
-| 4.7 | "Format" becomes a dropdown | ⬜ |
-| 4.8 | "Dress code" becomes a dropdown | ⬜ |
-| 4.9 | Remove "Client address" and "Client name" fields | ⬜ |
-| 4.10 | Add POC name + POC email fields | ⬜ |
+| 4.1 | Add "Administrative Assignments" section/shortcut under Dashboard | ✅ new stat-card on the admin dashboard → `/portal/admin/assignments/new` |
+| 4.2 | Location: remove "Deaf Client", replace with "Consumer(s):" + a +/− button to set the number of consumers | ✅ removed the leftover `deaf_clients` text field (the real Consumer name+email rows already existed from an earlier batch); added a "−" remove button per row, kept "+ Add consumer" |
+| 4.3 | Remove "Interpreter" search field; add "+ Interpreter" button with a dropdown of available interpreters | ✅ removed the free-text search box; dropdown now filters to interpreters free that day via `portal_availability.available_interpreters`, live-refetched from `/api/interpreters?date=` on every Date change (clarified w/ Charles: real availability filter, not just search removal) |
+| 4.4 | One line per required interpreter (ties into existing multi-interpreter `job_interpreters` model) | ✅ already built in an earlier batch — untouched |
+| 4.5 | "Client" becomes a dropdown that auto-populates fields from the client profile | ✅ already a dropdown (rate auto-fill existed); added POC name/email/phone auto-fill from the client account (clarified w/ Charles), same don't-clobber-manual-edits behavior |
+| 4.6 | Remove "Setting" field | ✅ removed from the form; `_parse_job_form` no longer writes the column at all, so existing values on old assignments aren't wiped by a later edit |
+| 4.7 | "Format" becomes a dropdown | ✅ In-Person / VRI / VRS / Phone-OPI (clarified w/ Charles) |
+| 4.8 | "Dress code" becomes a dropdown | ✅ Business Professional / Business Casual / Casual / Scrubs-Medical (clarified w/ Charles) |
+| 4.9 | Remove "Client address" and "Client name" fields | ✅ removed from the form; client_name still derives from the linked account server-side, client_address column left untouched on edit (same preserve-legacy approach as Setting) |
+| 4.10 | Add POC name + POC email fields | ✅ already built in an earlier batch — untouched |
+
+**Built 2026-07-23.** Also fixed a latent bug found while touching this form: the assignment-form `<script>` had no CSP nonce, so under this portal's strict nonce-only `script-src` it was silently non-functional in production (Add Interpreter/Add Consumer/rate auto-fill never worked). 11 tests in `tests/test_phase4_admin_assignments_rework.py` (named for the batch, not "test_phase4.py" — that file already exists covering an unrelated earlier-batch "Phase 4"). Full suite passed / same 3 pre-existing unrelated fails.
 
 ## Phase 5 — Billing section
 | # | Requirement | Status |

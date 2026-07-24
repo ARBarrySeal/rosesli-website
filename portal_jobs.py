@@ -20,11 +20,14 @@ ASSIGNMENT_TYPES = (
     "Conference", "Educational", "Legal", "Medical",
     "Other", "Performance/Entertainment", "Private Event", "Work Related",
 )
+SERVICE_FORMATS = ("In-Person", "VRI", "VRS", "Phone/OPI")
+DRESS_CODES = ("Business Professional", "Business Casual", "Casual", "Scrubs/Medical")
 
 
 def _clients(company):
     return portal_db.query_all(
-        "SELECT id, full_name, email, interpreter_rate FROM portal_users "
+        "SELECT id, full_name, email, interpreter_rate, phone, point_of_contact "
+        "FROM portal_users "
         "WHERE company = %s AND role = 'client' AND active = TRUE ORDER BY full_name",
         (company,),
     )
@@ -52,6 +55,22 @@ def _interpreters(company):
         parts = (r["full_name"] or "").split()
         return parts[-1].lower() if parts else ""
     return sorted(rows, key=_last)
+
+
+def _interpreters_for_form(company, event_date, staffed_ids=None):
+    """Interpreters for the assignment-form dropdown: available on event_date
+    (Phase 4.3), always including anyone already staffed on this job even if
+    they'd otherwise be filtered out (a block added after staffing shouldn't
+    make them vanish from their own assignment's dropdown)."""
+    from portal_availability import available_interpreters
+    rows = available_interpreters(company, event_date)
+    if staffed_ids:
+        have = {r["id"] for r in rows}
+        missing = [i for i in staffed_ids if i not in have]
+        if missing:
+            all_rows = {r["id"]: r for r in _interpreters(company)}
+            rows = rows + [all_rows[i] for i in missing if i in all_rows]
+    return rows
 
 
 def _specialties(raw):
@@ -308,17 +327,14 @@ def _parse_job_form(form, company):
         "assignment_type":    atype,
         "client_id":          client_id,
         "client_name":        client_name,
-        "client_address":     (form.get("client_address") or "").strip() or None,
         "event_address":      (form.get("event_address") or "").strip() or None,
         "event_street":       (form.get("event_street") or "").strip() or None,
         "event_city":         (form.get("event_city") or "").strip() or None,
         "event_state":        (form.get("event_state") or "").strip() or None,
         "room_number":        (form.get("room_number") or "").strip() or None,
         "event_zip":          (form.get("event_zip") or "").strip() or None,
-        "setting":            (form.get("setting") or "").strip() or None,
         "service_format":     (form.get("service_format") or "").strip() or None,
         "dress_code":         (form.get("dress_code") or "").strip() or None,
-        "deaf_clients":       (form.get("deaf_clients") or "").strip() or None,
         "poc_name":           (form.get("poc_name") or "").strip() or None,
         "poc_email":          (form.get("poc_email") or "").strip() or None,
         "poc_phone":          (form.get("poc_phone") or "").strip() or None,
@@ -479,10 +495,12 @@ def create_assignment():
             staffed=[],
             consumers=[],
             clients=_clients(company),
-            interpreters=_interpreters(company),
+            interpreters=_interpreters_for_form(company, None),
             statuses=STATUSES,
             rate_types=RATE_TYPES,
             assignment_types=ASSIGNMENT_TYPES,
+            service_formats=SERVICE_FORMATS,
+            dress_codes=DRESS_CODES,
         )
 
     data, interp_ids = _parse_job_form(request.form, company)
@@ -517,16 +535,20 @@ def edit_assignment(job_id):
         abort(404)
 
     if request.method == "GET":
+        staffed = job_interpreter_rows(job_id)
         return render_template(
             "portal_assignment_edit.html",
             job=job,
-            staffed=job_interpreter_rows(job_id),
+            staffed=staffed,
             consumers=job_consumer_rows(job_id),
             clients=_clients(company),
-            interpreters=_interpreters(company),
+            interpreters=_interpreters_for_form(
+                company, job.get("event_date"), [s["interpreter_id"] for s in staffed]),
             statuses=STATUSES,
             rate_types=RATE_TYPES,
             assignment_types=ASSIGNMENT_TYPES,
+            service_formats=SERVICE_FORMATS,
+            dress_codes=DRESS_CODES,
         )
 
     data, interp_ids = _parse_job_form(request.form, company)
@@ -635,17 +657,21 @@ def calendar_view():
     )
 
 
-# ── Interpreter JSON endpoint for autocomplete ────────────────────────────────
+# ── Interpreter JSON endpoint for the assignment-form dropdown ────────────────
 
 @jobs_bp.route("/api/interpreters")
 @admin_required
 def interpreters_json():
-    company = g.user["company"]
-    rows = _interpreters(company)
+    """Interpreters for the assignment form's dropdown. With ?date=, filters
+    to those available that day (Phase 4.3) — the form refetches this on
+    every Date change so the picker stays live as the coordinator edits."""
+    company  = g.user["company"]
+    date_raw = request.args.get("date") or None
+    rows = _interpreters_for_form(company, date_raw)
     return jsonify([
         {
             "id":   r["id"],
-            "name": r["full_name"] or r["email"],
+            "name": r["display_name"],
             "rate": float(r["interpreter_rate"]) if r["interpreter_rate"] else None,
         }
         for r in rows
