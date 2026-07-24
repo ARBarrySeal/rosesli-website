@@ -51,7 +51,7 @@
 </div>
 <a href="/" class="back">← Back to rosesli.com</a>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   var form   = document.getElementById('login-form');
   var errEl  = document.getElementById('error-msg');
