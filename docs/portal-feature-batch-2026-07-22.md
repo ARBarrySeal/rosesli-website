@@ -127,15 +127,17 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 10 — Main menu / nav restructure (LAST — depends on Phases 1–9 existing)
 | # | Requirement | Status |
 |---|---|---|
-| 10.1 | Delete "Create Interpreter Invoice" standalone nav link | ⬜ |
-| 10.2 | Delete "Create Client Invoice" standalone nav link | ⬜ |
-| 10.3 | Add "Client Review" nav link (Phase 2 page) | ⬜ |
-| 10.4 | Move "Admin Assignments" to the top of the Admin section | ⬜ |
-| 10.5 | Remove "Invite User" | ⬜ |
-| 10.6 | Move "Availability" to sit under "Profile" | ⬜ |
-| 10.7 | Move "Interpreter Invoices" + "Client Invoices" + "Profile" into the Admin section (Interpreter Invoices positioned near "Incoming Requests") | ⬜ |
+| 10.1 | Delete "Create Interpreter Invoice" standalone nav link | ✅ removed; route still reachable via the existing "+ New Invoice" button on `/portal/invoices` |
+| 10.2 | Delete "Create Client Invoice" standalone nav link | ✅ removed; route still reachable via the existing "+ New Client Invoice" button on `/portal/client-invoices` |
+| 10.3 | Add "Client Review" nav link (Phase 2 page) | ✅ already added in Phase 2; now grouped with Client Invoices inside the Admin section |
+| 10.4 | Move "Admin Assignments" to the top of the Admin section | ✅ first item under the "Admin" label |
+| 10.5 | Remove "Invite User" | ✅ removed; route still reachable via the existing "+ Invite User" button on `/portal/admin/users` (both fallback affordances the doc's assumption note anticipated were already built) |
+| 10.6 | Move "Availability" to sit under "Profile" | ✅ |
+| 10.7 | Move "Interpreter Invoices" + "Client Invoices" + "Profile" into the Admin section (Interpreter Invoices positioned near "Incoming Requests") | ✅ Interpreter Invoices sits directly after Incoming Requests; also grouped Interpreter Review under Interpreter Invoices and Client Review under Client Invoices (not explicitly named, but they're each other's admin-only satellite page — kept them together rather than separating related pages) |
 
-**Assumption to verify at Phase 10 time**: removing the "Create Interpreter/Client Invoice" nav links assumes invoice creation still happens contextually (interpreter creates their own via Phase 1; client invoice auto-creates on assignment, already shipped). If admins still need a manual "create invoice for someone" affordance, we'll add a button on the relevant list page instead of a standalone nav link.
+**Built 2026-07-23.** 11 tests in `tests/test_phase10_nav_restructure.py`, including a dod-tenant check that rosesli-only nav items stay gated off. The "Assumption to verify" note above was confirmed true: both fallback create-invoice buttons and the Invite User button already existed on their list pages before this phase.
+
+**BATCH COMPLETE 2026-07-23.** All 10 phases (0–9 plus this Phase 10) shipped and deployed same session.
 
 ## Progress log
 - 2026-07-22: Batch doc created after brainstorming + clarifying questions. Phase 0 (phone number) done locally, pending commit/push/deploy approval.
