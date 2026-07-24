@@ -184,6 +184,43 @@ def send_offer_email(to_email: str, to_name: str, job: dict, offers_url: str,
     return _send(to_email, subject, body)
 
 
+def _job_when_zip_only(job: dict) -> str:
+    """Schedule summary for the broadcast blast (Phase 6, 2026-07-22 batch) —
+    zip code only, NEVER the full street address (6.2), since a broadcast
+    fans out to every active interpreter, not just people the coordinator
+    specifically vetted for this job."""
+    bits = []
+    d = job.get("event_date")
+    if d:
+        bits.append(d.strftime("%A, %B %d, %Y") if hasattr(d, "strftime") else str(d))
+    times = " – ".join(t for t in (job.get("start_time"), job.get("end_time")) if t)
+    if times:
+        bits.append(times)
+    zip_code = job.get("event_zip")
+    if zip_code:
+        bits.append(f"ZIP {zip_code}")
+    return " · ".join(bits) if bits else "details in the portal"
+
+
+def send_broadcast_offer_email(to_email: str, to_name: str, job: dict, offers_url: str,
+                               company_name: str) -> bool:
+    """"Broadcast to all interpreters" (Phase 6, 2026-07-22 batch) — same
+    offer mechanics as send_offer_email, but the schedule line is zip-only
+    (see _job_when_zip_only) since it goes out to everyone at once."""
+    subject = f"New assignment available — {_job_when_zip_only(job)}"
+    body = (
+        f"Hi {to_name},\n\n"
+        f"A new assignment is open and available on a first-come basis:\n\n"
+        f"  {_job_when_zip_only(job)}\n"
+        f"  Setting: {job.get('setting') or '—'}\n\n"
+        f"Claim it in the portal:\n\n"
+        f"{offers_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
 def send_confirm_email(to_email: str, to_name: str, job: dict, offers_url: str,
                        company_name: str) -> bool:
     subject = f"You're confirmed — {_job_when(job)}"

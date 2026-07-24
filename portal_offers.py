@@ -109,23 +109,14 @@ def active_interpreter_emails(company: str) -> list:
 
 # ── Coordinator side (admin) ──────────────────────────────────────────────────
 
-@offers_bp.route("/portal/admin/assignments/<int:job_id>/offer", methods=["POST"])
-@admin_required
-def offer_job(job_id):
-    company = g.user["company"]
-    job = _job(job_id, company)
-    if not job:
-        abort(404)
-
-    ids = request.form.getlist("interpreter_id", type=int)
-    if not ids:
-        flash("Select at least one interpreter to offer.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
-
-    note = (request.form.get("note") or "").strip() or None
+def _offer_to_ids(job_id, company, job, ids, note, email_fn):
+    """Shared offer-creation core for both the targeted and broadcast (Phase 6,
+    2026-07-22 batch) flows: skips anyone already booked or blocked off that
+    day, upserts a job_offers row, and emails via whichever sender the caller
+    passes (targeted vs. broadcast use different email bodies — see 6.2).
+    Returns (offered_ids, skipped_[(id, reason)])."""
     offered, skipped = [], []
     for iid in ids:
-        # Don't offer to someone already booked or blocked off that day.
         if _confirmed_elsewhere(iid, company, job.get("event_date"), exclude_job_id=job_id):
             skipped.append((iid, "already booked"))
             continue
@@ -134,7 +125,7 @@ def offer_job(job_id):
             continue
 
         # Upsert: re-offering a previously declined/withdrawn interpreter resets them.
-        row = portal_db.execute(
+        portal_db.execute(
             "INSERT INTO job_offers (company, job_id, interpreter_id, status, note) "
             "VALUES (%s, %s, %s, 'offered', %s) "
             "ON CONFLICT (job_id, interpreter_id) DO UPDATE SET "
@@ -151,10 +142,28 @@ def offer_job(job_id):
             (iid, company),
         )
         if person and person.get("email"):
-            portal_email.send_offer_email(
+            email_fn(
                 person["email"], person["full_name"] or "there", job,
                 _abs_url("/portal/offers"), _company_name(company),
             )
+    return offered, skipped
+
+
+@offers_bp.route("/portal/admin/assignments/<int:job_id>/offer", methods=["POST"])
+@admin_required
+def offer_job(job_id):
+    company = g.user["company"]
+    job = _job(job_id, company)
+    if not job:
+        abort(404)
+
+    ids = request.form.getlist("interpreter_id", type=int)
+    if not ids:
+        flash("Select at least one interpreter to offer.", "error")
+        return redirect(f"/portal/admin/assignments/{job_id}")
+
+    note = (request.form.get("note") or "").strip() or None
+    offered, skipped = _offer_to_ids(job_id, company, job, ids, note, portal_email.send_offer_email)
 
     audit_log("job_offer", target=f"job:{job_id}",
               metadata={"offered": offered, "skipped": skipped})
@@ -164,6 +173,37 @@ def offer_job(job_id):
     if skipped:
         names = ", ".join(f"{_name_for(i, company) or f'#{i}'} ({why})" for i, why in skipped)
         flash(f"Skipped {len(skipped)}: {names}.", "error")
+    return redirect(f"/portal/admin/assignments/{job_id}")
+
+
+@offers_bp.route("/portal/admin/assignments/<int:job_id>/broadcast", methods=["POST"])
+@admin_required
+def broadcast_offer_job(job_id):
+    """Phase 6 (2026-07-22 batch) — "Broadcast to all interpreters": offers
+    the job to every active interpreter at once, additive to the existing
+    targeted offer above. Uses a privacy-trimmed email (zip only, never the
+    full address — 6.2) since it fans out to everyone, not just people the
+    coordinator specifically vetted for this job."""
+    company = g.user["company"]
+    job = _job(job_id, company)
+    if not job:
+        abort(404)
+
+    ids = [r["id"] for r in active_interpreter_emails(company)]
+    if not ids:
+        flash("No active interpreters to broadcast to.", "error")
+        return redirect(f"/portal/admin/assignments/{job_id}")
+
+    offered, skipped = _offer_to_ids(
+        job_id, company, job, ids, None, portal_email.send_broadcast_offer_email)
+
+    audit_log("job_offer_broadcast", target=f"job:{job_id}",
+              metadata={"offered": offered, "skipped": skipped})
+
+    if offered:
+        flash(f"Broadcast to {len(offered)} interpreter(s).", "success")
+    if skipped:
+        flash(f"Skipped {len(skipped)} (already booked or unavailable that day).", "error")
     return redirect(f"/portal/admin/assignments/{job_id}")
 
 

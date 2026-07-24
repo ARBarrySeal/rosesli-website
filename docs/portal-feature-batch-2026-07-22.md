@@ -91,8 +91,10 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 6 — Send Offer blast
 | # | Requirement | Status |
 |---|---|---|
-| 6.1 | New "Broadcast to all interpreters" action (additive to existing targeted offer) | ⬜ |
-| 6.2 | Blast email includes Schedule section info + zip code only (not full address) | ⬜ |
+| 6.1 | New "Broadcast to all interpreters" action (additive to existing targeted offer) | ✅ new `/portal/admin/assignments/<id>/broadcast` route + button on the assignment detail page, sits alongside (doesn't replace) the existing targeted "Offer to interpreters" form; sources its recipient list from Phase 3's `active_interpreter_emails`; shares the same skip-if-booked/unavailable guard as the targeted flow |
+| 6.2 | Blast email includes Schedule section info + zip code only (not full address) | ✅ new `send_broadcast_offer_email` / `_job_when_zip_only` in `portal_email.py` — zip only, never `event_address`; the existing targeted offer email is untouched (still shows full address, since the coordinator specifically vetted that recipient) |
+
+**Built 2026-07-23.** 7 tests in `tests/test_phase6_broadcast_offer.py`.
 
 ## Phase 7 — Job Offers visibility
 | # | Requirement | Status |

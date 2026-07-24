@@ -187,6 +187,13 @@
     </div>
     <button type="submit" class="btn btn-primary" style="margin-top:.75rem;">Send offer</button>
   </form>
+
+  <form method="post" action="/portal/admin/assignments/{{ job.id }}/broadcast"
+        data-confirm="Broadcast this assignment to every active interpreter?"
+        style="margin-top:1rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <button type="submit" class="btn">Broadcast to all interpreters</button>
+  </form>
 </div>
 {% endif %}
 {% endblock %}
