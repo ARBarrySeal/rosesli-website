@@ -1,0 +1,77 @@
+{% extends "portal_base.html" %}
+{% block title %}Client Review — Portal{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 .5rem;">Client Review</h1>
+<p style="color:var(--muted);font-size:.8rem;max-width:46rem;margin-top:0;">
+  Draft client invoices, newest first. Clients cannot see any invoice until it's
+  submitted here. Click a row to see the full detail, or check off invoices below
+  and submit them at once.
+</p>
+
+{% if invoices %}
+<form method="POST" action="/portal/admin/client-invoices/submit-batch" id="clientReviewForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <table class="portal-table">
+    <thead>
+      <tr>
+        <th style="width:2.5rem;"><input type="checkbox" class="select-all-cb" aria-label="Select all"/></th>
+        <th>#</th>
+        <th>Client</th>
+        <th style="text-align:right;">Total</th>
+        <th>Date of Service</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td><input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-cb" aria-label="Select invoice {{ inv.id }}"/></td>
+        <td style="color:var(--muted);cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">#{{ inv.id }}</td>
+        <td style="cursor:pointer;" data-href="/portal/client-invoices/{{ inv.id }}">{{ inv.user_full_name or inv.client_name or '—' }}</td>
+        <td style="text-align:right;">{{ '$%.2f'|format(inv.total) if inv.total is not none else '—' }}</td>
+        <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>
+        <td style="color:var(--muted);">{{ inv.created_at.strftime('%b %d, %Y') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div style="margin-top:1rem;">
+    <button type="submit" class="btn btn-primary" id="clientReviewSubmitBtn" disabled>Submit Selected</button>
+  </div>
+</form>
+{% else %}
+<p style="color:var(--muted);font-size:.78rem;">No draft client invoices awaiting review.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var selectAll = document.querySelector('.select-all-cb');
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.row-cb'));
+  var submitBtn = document.getElementById('clientReviewSubmitBtn');
+  if (!boxes.length) return;
+
+  function recalc() {
+    if (submitBtn) submitBtn.disabled = !boxes.some(function (b) { return b.checked; });
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener('change', function () {
+      if (!b.checked && selectAll) selectAll.checked = false;
+      recalc();
+    });
+    b.addEventListener('click', function (e) { e.stopPropagation(); });
+  });
+  if (selectAll) selectAll.addEventListener('change', function () {
+    boxes.forEach(function (b) { b.checked = selectAll.checked; });
+    recalc();
+  });
+
+  document.querySelectorAll('[data-href]').forEach(function (el) {
+    el.addEventListener('click', function () { window.location.href = el.getAttribute('data-href'); });
+  });
+  recalc();
+})();
+</script>
+{% endblock %}

@@ -47,10 +47,12 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 2 — Client Review page (new)
 | # | Requirement | Status |
 |---|---|---|
-| 2.1 | New "Client Review" page, using the Interpreter Review page's format/layout | ⬜ |
-| 2.2 | Imports from the Client Invoice page/data | ⬜ |
-| 2.3 | Requires client review before an invoice can be submitted | ⬜ |
-| 2.4 | Checkbox per invoice to select for submission | ⬜ |
+| 2.1 | New "Client Review" page, using the Interpreter Review page's format/layout | ✅ `/portal/admin/client-review`, checkbox-table layout mirroring Interpreter Invoices/Review |
+| 2.2 | Imports from the Client Invoice page/data | ✅ queries `client_invoices` directly, same detail page (`/portal/client-invoices/<id>`) on row click |
+| 2.3 | Requires client review before an invoice can be submitted | ✅ new `submitted` flag (migration 020, DEFAULT TRUE backfill); new invoices created FALSE and are invisible to the client (list + detail both filtered) until an admin submits them here |
+| 2.4 | Checkbox per invoice to select for submission | ✅ select-all + per-row checkboxes → `/portal/admin/client-invoices/submit-batch` |
+
+**Built 2026-07-23.** 10 tests in `tests/test_phase2_client_review.py`. Full suite 252 passed / 3 pre-existing unrelated fails (2 known MFA reds + 1 stale hardcoded-date test). Migration 020 (`020_client_invoice_review.sql`) applied to prod before deploy. Committed/pushed/deployed.
 
 ## Phase 3 — Interpreter email list
 | # | Requirement | Status |

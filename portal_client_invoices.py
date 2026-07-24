@@ -190,8 +190,8 @@ def ensure_invoice_for_job(company, job_id, created_by=None):
             "INSERT INTO client_invoices "
             "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
             "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
-            "notes, job_id, created_by) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            "notes, job_id, created_by, submitted) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE) RETURNING id",
             (company, job["client_id"], job.get("client_name"), job.get("poc_email"),
              job.get("poc_phone"), job.get("event_date"), job.get("start_time"),
              job.get("end_time"), dur_h, rate, 0.0, total, None, job_id, created_by),
@@ -250,7 +250,8 @@ def client_invoices_list():
     elif role == "client":
         rows = portal_db.query_all(
             "SELECT * FROM client_invoices "
-            "WHERE company = %s AND client_id = %s ORDER BY created_at DESC",
+            "WHERE company = %s AND client_id = %s AND submitted = TRUE "
+            "ORDER BY created_at DESC",
             (company, uid),
         )
     else:
@@ -277,7 +278,7 @@ def client_invoice_detail(inv_id):
     elif role == "client":
         inv = portal_db.query_one(
             "SELECT * FROM client_invoices "
-            "WHERE id = %s AND company = %s AND client_id = %s",
+            "WHERE id = %s AND company = %s AND client_id = %s AND submitted = TRUE",
             (inv_id, company, uid),
         )
     else:
@@ -357,16 +358,67 @@ def create_client_invoice():
         "INSERT INTO client_invoices "
         "(company, client_id, client_name, poc_email, poc_phone, date_of_service, "
         "start_time, end_time, duration_hours, rate_per_hour, incidentals, total, "
-        "notes, line_items, job_id, created_by) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "notes, line_items, job_id, created_by, submitted) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)",
         (company, client_id, client_name, poc_email, poc_phone, date_of_service,
          start_time, end_time, duration_hours, rate_per_hour, incidentals, total,
          notes, line_items, job_id, int(g.user["sub"])),
     )
     audit_log("client_invoice_create",
               metadata={"client_name": client_name, "total": total})
-    flash("Client invoice created.", "success")
-    return redirect("/portal/client-invoices")
+    flash("Client invoice created — pending review before the client can see it.", "success")
+    return redirect("/portal/admin/client-review")
+
+
+@client_inv_bp.route("/portal/admin/client-review")
+@admin_required
+def client_review():
+    """Admin review queue: every client invoice still in draft (not yet
+    submitted), newest first — the gate before a client can see it. Mirrors
+    the Interpreter Review page's layout."""
+    company = g.user["company"]
+    invoices = portal_db.query_all(
+        "SELECT ci.*, u.full_name AS user_full_name "
+        "FROM client_invoices ci LEFT JOIN portal_users u ON u.id = ci.client_id "
+        "WHERE ci.company = %s AND COALESCE(ci.submitted, FALSE) = FALSE "
+        "ORDER BY ci.created_at DESC",
+        (company,),
+    )
+    return render_template("portal_client_review.html", invoices=invoices)
+
+
+@client_inv_bp.route("/portal/admin/client-invoices/submit-batch", methods=["POST"])
+@admin_required
+def submit_client_invoices_batch():
+    """Admin selects draft client invoices from the Client Review page and
+    submits them all at once — from that point the client can see them."""
+    company = g.user["company"]
+    ids_raw = request.form.getlist("invoice_ids")
+    try:
+        ids = [int(i) for i in ids_raw]
+    except (TypeError, ValueError):
+        ids = []
+    if not ids:
+        flash("Select at least one invoice to submit.", "error")
+        return redirect("/portal/admin/client-review")
+
+    rows = portal_db.query_all(
+        "SELECT id FROM client_invoices "
+        "WHERE id = ANY(%s) AND company = %s AND COALESCE(submitted, FALSE) = FALSE",
+        (ids, company),
+    )
+    if not rows:
+        flash("Nothing eligible to submit.", "error")
+        return redirect("/portal/admin/client-review")
+
+    submitted_ids = [r["id"] for r in rows]
+    portal_db.execute(
+        "UPDATE client_invoices SET submitted = TRUE, submitted_at = NOW() WHERE id = ANY(%s)",
+        (submitted_ids,),
+    )
+    audit_log("client_invoice_submit_batch", metadata={"invoice_ids": submitted_ids})
+    flash(f"{len(submitted_ids)} invoice(s) submitted — now visible to the client.", "success")
+    return redirect("/portal/admin/client-review")
 
 
 @client_inv_bp.route("/portal/admin/client-invoices/<int:inv_id>/mark-paid",

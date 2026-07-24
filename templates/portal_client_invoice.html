@@ -66,6 +66,17 @@
   <div style="margin-bottom:1.5rem;"><div class="field-label">Notes</div><div style="font-size:.88rem;white-space:pre-wrap;">{{ inv.notes }}</div></div>
   {% endif %}
 
+  {% if g.user.role == 'admin' and not inv.submitted %}
+  <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem;">Draft — the client can't see this invoice yet.</p>
+    <form method="POST" action="/portal/admin/client-invoices/submit-batch">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="invoice_ids" value="{{ inv.id }}"/>
+      <button type="submit" class="btn btn-primary">Submit for Client</button>
+    </form>
+  </div>
+  {% endif %}
+
   {% if g.user.role == 'admin' %}
   <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);align-items:center;">
     <form method="POST" action="/portal/admin/client-invoices/{{ inv.id }}/mark-paid" style="display:flex;gap:.5rem;align-items:center;">

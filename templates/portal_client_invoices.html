@@ -31,7 +31,10 @@
       <td>{{ inv.client_name or inv.user_full_name or '—' }}</td>
       <td>{{ inv.date_of_service.strftime('%b %d, %Y') if inv.date_of_service else '—' }}</td>
       <td>{% if inv.total %}${{ "%.2f"|format(inv.total) }}{% else %}—{% endif %}</td>
-      <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+      <td>
+        <span class="badge badge-{{ inv.status }}">{{ inv.status }}</span>
+        {% if g.user.role == 'admin' and not inv.submitted %}<span class="badge" style="background:rgba(255,255,255,.08);">draft</span>{% endif %}
+      </td>
     </tr>
     {% endfor %}
   </tbody>
