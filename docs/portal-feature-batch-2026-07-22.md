@@ -57,7 +57,9 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 3 — Interpreter email list
 | # | Requirement | Status |
 |---|---|---|
-| 3.1 | Build "Interpreter email list" by pulling all emails from interpreter profiles (feeds Phase 6 blast) | ⬜ |
+| 3.1 | Build "Interpreter email list" by pulling all emails from interpreter profiles (feeds Phase 6 blast) | ✅ `portal_offers.active_interpreter_emails(company)` — active, non-archived interpreters only; no new page (the existing Interpreter Profiles page at `/portal/admin/interpreters` already lists emails for humans — this is the server-side list Phase 6's blast will consume) |
+
+**Built 2026-07-23.** 3 tests in `tests/test_phase3_interpreter_email_list.py`. Backend-only — nothing to deploy until Phase 6 wires it into the blast.
 
 ## Phase 4 — Administrative Assignments form rework
 | # | Requirement | Status |

@@ -95,6 +95,18 @@ def pending_offer_count(interpreter_id: int, company: str) -> int:
     return int(row["n"]) if row else 0
 
 
+def active_interpreter_emails(company: str) -> list:
+    """Every active, non-archived interpreter's id/email/name for this company —
+    the "Interpreter email list" the Phase 6 broadcast-offer blast sends to."""
+    return portal_db.query_all(
+        "SELECT id, email, full_name FROM portal_users "
+        "WHERE company = %s AND role = 'employee' AND active = TRUE "
+        "AND (archived IS NULL OR archived = FALSE) "
+        "ORDER BY full_name NULLS LAST",
+        (company,),
+    )
+
+
 # ── Coordinator side (admin) ──────────────────────────────────────────────────
 
 @offers_bp.route("/portal/admin/assignments/<int:job_id>/offer", methods=["POST"])
