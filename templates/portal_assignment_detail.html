@@ -199,6 +199,12 @@
         style="margin-top:1rem;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <button type="submit" class="btn">Broadcast to all interpreters</button>
+    {% if active_interpreter_count is not none %}
+    <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem;">
+      {{ active_interpreter_count }} active interpreter{{ 's' if active_interpreter_count != 1 else '' }} will receive this —
+      <a href="/portal/admin/interpreters" style="color:var(--accent);">view roster</a>
+    </span>
+    {% endif %}
   </form>
 </div>
 {% endif %}

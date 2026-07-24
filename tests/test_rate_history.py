@@ -14,7 +14,7 @@ Covers:
 """
 import os
 import secrets
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -151,15 +151,22 @@ def _mk_client_invoice(client_id, dos, status, rate=120, hours=2):
 
 
 def test_client_rate_change_recalcs_future_unpaid_only(world):
-    cid = world["client"]
-    j_future = _mk_job(cid, "2026-08-01", "confirmed")
-    j_past = _mk_job(cid, "2026-06-01", "confirmed")
-    j_done = _mk_job(cid, "2026-08-01", "completed")
-    i_unpaid = _mk_client_invoice(cid, "2026-08-01", "unpaid")
-    i_paid = _mk_client_invoice(cid, "2026-08-01", "paid")
-    i_old = _mk_client_invoice(cid, "2026-06-01", "unpaid")
+    # Dates anchored to date.today() (not hardcoded absolutes) so this test's
+    # "still in the future" assumption never silently expires as time passes.
+    today = date.today()
+    effective = today + timedelta(days=10)
+    far_future = today + timedelta(days=25)
+    past = today - timedelta(days=25)
 
-    summary = portal_rates.set_rate(COMPANY, cid, 150, date(2026, 7, 15),
+    cid = world["client"]
+    j_future = _mk_job(cid, far_future.isoformat(), "confirmed")
+    j_past = _mk_job(cid, past.isoformat(), "confirmed")
+    j_done = _mk_job(cid, far_future.isoformat(), "completed")
+    i_unpaid = _mk_client_invoice(cid, far_future.isoformat(), "unpaid")
+    i_paid = _mk_client_invoice(cid, far_future.isoformat(), "paid")
+    i_old = _mk_client_invoice(cid, past.isoformat(), "unpaid")
+
+    summary = portal_rates.set_rate(COMPANY, cid, 150, effective,
                                     created_by=world["admin"])
     assert summary["jobs"] == 1
     assert summary["client_invoices"] == 1
@@ -173,11 +180,12 @@ def test_client_rate_change_recalcs_future_unpaid_only(world):
     assert float(ui["total"]) == 300.0                            # 2h × 150 recomputed
     assert float(get("client_invoices", i_paid)["rate_per_hour"]) == 120.0   # paid frozen
     assert float(get("client_invoices", i_old)["rate_per_hour"]) == 120.0    # old DOS frozen
-    # 2026-07-15 is still in the future (today = 2026-07-10), so the legacy
-    # column keeps the currently-effective 120 while future work resolves 150.
+    # effective_date (today+10) is still in the future relative to today, so
+    # the legacy column keeps the currently-effective 120 while future work
+    # resolves 150.
     u = portal_db.query_one("SELECT interpreter_rate FROM portal_users WHERE id = %s", (cid,))
     assert float(u["interpreter_rate"]) == 120.0
-    assert portal_rates.rate_for(cid, date(2026, 8, 1)) == 150.0
+    assert portal_rates.rate_for(cid, far_future) == 150.0
 
 
 def test_interpreter_rate_change_recalcs_unsubmitted_unpaid(world):

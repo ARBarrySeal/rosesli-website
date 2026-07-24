@@ -436,10 +436,12 @@ def assignment_detail(job_id):
         abort(403)
 
     offers = interpreters = None
+    active_interpreter_count = None
     if role == "admin":
-        from portal_offers import offers_for_job
+        from portal_offers import offers_for_job, active_interpreter_emails
         offers = offers_for_job(job_id, company)
         interpreters = interpreters_for_category(company, job.get("assignment_type"))
+        active_interpreter_count = len(active_interpreter_emails(company))
 
     documents = portal_db.query_all(
         "SELECT id, original_name, size_bytes, created_at FROM portal_documents "
@@ -454,6 +456,7 @@ def assignment_detail(job_id):
         consumers=job_consumer_rows(job_id),
         documents=documents,
         offers=offers, interpreters=interpreters,
+        active_interpreter_count=active_interpreter_count,
     )
 
 
