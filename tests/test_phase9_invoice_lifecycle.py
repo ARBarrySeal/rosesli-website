@@ -183,3 +183,191 @@ def test_billable_jobs_excludes_job_linked_invoice(world):
 
     after = billable_jobs_for_interpreter(COMPANY, world["interp"])
     assert not any(j["id"] == jid for j in after)
+
+
+# ── 4. parse_expenses — informational only, never priced ───────────────────
+
+from portal_admin import parse_expenses  # noqa: E402
+
+
+def test_parse_expenses_collects_category_and_note_only():
+    form = {
+        "expense_category_0": "Parking", "expense_note_0": "Garage",
+        "expense_category_1": "", "expense_note_1": "skip me",
+        "expense_category_2": "Mileage", "expense_note_2": "",
+    }
+    lines = parse_expenses(form)
+    assert lines == [
+        {"category": "Parking", "note": "Garage"},
+        {"category": "Mileage", "note": ""},
+    ]
+
+
+def test_parse_expenses_stops_at_first_gap():
+    form = {"expense_category_0": "Parking", "expense_category_2": "Other"}
+    assert len(parse_expenses(form)) == 1
+
+
+# ── 5. /portal/api/time-bands ───────────────────────────────────────────────
+
+def test_time_bands_endpoint_returns_split(app, world):
+    c = _client(app, INTERP_EMAIL)
+    r = c.get("/portal/api/time-bands?date=2026-08-05&start=16:00&end=20:00")
+    assert r.status_code == 200
+    assert r.get_json()["bands"] == {"day": 1.0, "weekday_evening": 3.0}
+
+
+def test_time_bands_endpoint_returns_empty_on_bad_input(app, world):
+    c = _client(app, INTERP_EMAIL)
+    r = c.get("/portal/api/time-bands?date=&start=&end=")
+    assert r.status_code == 200
+    assert r.get_json()["bands"] == {}
+
+
+# ── 6. Create redirects to detail; optional job_id link ────────────────────
+
+def test_employee_create_invoice_redirects_to_detail(app, world):
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/admin/invoices/create", data={
+        "csrf_token": _csrf(c),
+        "date_of_service": "2026-08-05", "start_time": "09:00", "end_time": "13:00",
+        "base_rate": "50", "differential": "0", "amount": "200.00",
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    inv = portal_db.query_one(
+        "SELECT * FROM invoices WHERE user_id = %s ORDER BY id DESC LIMIT 1",
+        (world["interp"],))
+    assert r.location.endswith(f"/portal/invoices/{inv['id']}")
+
+
+def test_employee_create_invoice_links_billable_job(app, world):
+    jid = _mk_job(world["interp"], date(2026, 8, 12), time(9, 0), time(11, 0))
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/admin/invoices/create", data={
+        "csrf_token": _csrf(c), "job_id": str(jid),
+        "date_of_service": "2026-08-12", "start_time": "09:00", "end_time": "11:00",
+        "base_rate": "50", "differential": "0", "amount": "100.00",
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    inv = portal_db.query_one(
+        "SELECT * FROM invoices WHERE user_id = %s ORDER BY id DESC LIMIT 1",
+        (world["interp"],))
+    assert inv["job_id"] == jid
+
+
+def test_employee_cannot_link_someone_elses_job(app, world):
+    jid = _mk_job(world["interp2"], date(2026, 8, 13), time(9, 0), time(11, 0))
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/admin/invoices/create", data={
+        "csrf_token": _csrf(c), "job_id": str(jid),
+        "amount": "100.00",
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    inv = portal_db.query_one(
+        "SELECT * FROM invoices WHERE user_id = %s ORDER BY id DESC LIMIT 1",
+        (world["interp"],))
+    assert inv["job_id"] is None
+
+
+# ── 7. Edit route permissions ───────────────────────────────────────────────
+
+def _mk_invoice(uid, amount=100.0, submitted=False):
+    row = portal_db.execute(
+        "INSERT INTO invoices (user_id, amount, status, submitted) "
+        "VALUES (%s, %s, 'unpaid', %s) RETURNING id",
+        (uid, amount, submitted),
+    )
+    return row["id"]
+
+
+def test_owner_can_edit_unsubmitted_invoice(app, world):
+    inv_id = _mk_invoice(world["interp"], amount=100.0)
+    c = _client(app, INTERP_EMAIL)
+    r = c.post(f"/portal/invoices/{inv_id}/edit", data={
+        "csrf_token": _csrf(c), "amount": "150.00", "description": "updated",
+    }, follow_redirects=False)
+    assert r.status_code == 302, r.data
+    inv = portal_db.query_one("SELECT * FROM invoices WHERE id = %s", (inv_id,))
+    assert float(inv["amount"]) == 150.0
+    assert inv["description"] == "updated"
+
+
+def test_owner_blocked_from_editing_after_submit(app, world):
+    inv_id = _mk_invoice(world["interp"], amount=100.0, submitted=True)
+    c = _client(app, INTERP_EMAIL)
+    r = c.post(f"/portal/invoices/{inv_id}/edit", data={
+        "csrf_token": _csrf(c), "amount": "999.00",
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    inv = portal_db.query_one("SELECT amount FROM invoices WHERE id = %s", (inv_id,))
+    assert float(inv["amount"]) == 100.0
+
+
+def test_other_employee_cannot_edit_invoice(app, world):
+    inv_id = _mk_invoice(world["interp"], amount=100.0)
+    c = _client(app, INTERP2_EMAIL)
+    r = c.get(f"/portal/invoices/{inv_id}/edit")
+    assert r.status_code == 403
+
+
+def test_admin_can_edit_any_invoice(app, world):
+    inv_id = _mk_invoice(world["interp"], amount=100.0, submitted=True)
+    c = _client(app, ADMIN_EMAIL)
+    r = c.post(f"/portal/invoices/{inv_id}/edit", data={
+        "csrf_token": _csrf(c), "user_id": str(world["interp"]), "amount": "200.00",
+    }, follow_redirects=False)
+    assert r.status_code == 302, r.data
+    inv = portal_db.query_one("SELECT amount FROM invoices WHERE id = %s", (inv_id,))
+    assert float(inv["amount"]) == 200.0
+
+
+# ── 8. Submit locks the invoice ─────────────────────────────────────────────
+
+def test_submit_locks_invoice(app, world):
+    inv_id = _mk_invoice(world["interp"], amount=100.0)
+    c = _client(app, INTERP_EMAIL)
+    r = c.post(f"/portal/invoices/{inv_id}/submit",
+               data={"csrf_token": _csrf(c)}, follow_redirects=False)
+    assert r.status_code == 302
+    inv = portal_db.query_one("SELECT submitted FROM invoices WHERE id = %s", (inv_id,))
+    assert inv["submitted"] is True
+
+
+# ── 9. Batch submit scoped to caller and open invoices only ────────────────
+
+def test_batch_submit_scoped_to_caller_and_open_only(app, world):
+    mine_open_1 = _mk_invoice(world["interp"], amount=100.0)
+    mine_open_2 = _mk_invoice(world["interp"], amount=50.0)
+    mine_already = _mk_invoice(world["interp"], amount=75.0, submitted=True)
+    others = _mk_invoice(world["interp2"], amount=60.0)
+
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/invoices/submit-batch", data={
+        "csrf_token": _csrf(c),
+        "invoice_ids": [str(mine_open_1), str(mine_open_2), str(others)],
+    }, follow_redirects=False)
+    assert r.status_code == 302
+
+    def submitted(iid):
+        return portal_db.query_one(
+            "SELECT submitted FROM invoices WHERE id = %s", (iid,))["submitted"]
+
+    assert submitted(mine_open_1) is True
+    assert submitted(mine_open_2) is True
+    assert submitted(others) is False
+    assert submitted(mine_already) is True  # was already submitted
+
+
+# ── 10. List page splits open vs. submitted for employees ──────────────────
+
+def test_invoices_list_splits_open_and_submitted(app, world):
+    open_id = _mk_invoice(world["interp"], amount=10.0)
+    sub_id = _mk_invoice(world["interp"], amount=20.0, submitted=True)
+    c = _client(app, INTERP_EMAIL)
+    html = c.get("/portal/invoices").get_data(as_text=True)
+    assert "Not Yet Submitted" in html
+    assert "Past (Submitted)" in html
+    open_pos = html.index(f"#{open_id}")
+    sub_pos = html.index(f"#{sub_id}")
+    split_pos = html.index("Past (Submitted)")
+    assert open_pos < split_pos < sub_pos

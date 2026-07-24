@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta, timezone
 
+import psycopg2
 from flask import (
     Blueprint, abort, flash, g, jsonify, redirect, render_template, request,
 )
@@ -100,15 +101,78 @@ def invite():
                            home_url="/")
 
 
-@admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
+EXPENSE_CATEGORIES = ["Parking", "Mileage", "Travel Time", "Other"]
+
+
+def parse_expenses(form):
+    """Collect the dynamic Expenses lines from an invoice create/edit post:
+    expense_category_N (Parking/Mileage/Travel Time/Other) + expense_note_N free
+    text. Informational only — never priced or rolled into the invoice amount
+    (2026-07-23 decision). Blank category rows are dropped."""
+    expenses = []
+    idx = 0
+    while True:
+        cat = form.get(f"expense_category_{idx}")
+        if cat is None:
+            break
+        cat = cat.strip()
+        if cat:
+            note = (form.get(f"expense_note_{idx}") or "").strip()
+            expenses.append({"category": cat, "note": note})
+        idx += 1
+    return expenses
+
+
+@admin_bp.route("/portal/api/time-bands")
 @login_required
-def create_invoice():
+def time_bands_json():
+    """Split a shift into per-differential-band hours (day/evening/overnight x
+    weekday/weekend), for auto-generating invoice rate lines from a date+time
+    range. Returns {} for missing/invalid input rather than erroring, since the
+    form calls this on every keystroke while the fields are still incomplete."""
+    from datetime import time as _time
+    raw_date = request.args.get("date") or ""
+    raw_start = request.args.get("start") or ""
+    raw_end = request.args.get("end") or ""
+    try:
+        event_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+        start_time = _time.fromisoformat(raw_start)
+        end_time = _time.fromisoformat(raw_end)
+        bands = portal_rates.compute_time_band_hours(event_date, start_time, end_time)
+    except (ValueError, TypeError):
+        bands = {}
+    return jsonify(bands=bands)
+
+
+@admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
+@admin_bp.route("/portal/invoices/<int:invoice_id>/edit", methods=["GET", "POST"])
+@login_required
+def create_invoice(invoice_id=None):
+    import json as _json
+
     role = g.user["role"]
     if role == "client":
         abort(403)
     company  = g.user["company"]
+    uid      = int(g.user["sub"])
     is_admin = role == "admin"
-    # Admins create pay invoices for interpreters; interpreters submit their own.
+
+    inv = None
+    if invoice_id is not None:
+        inv = portal_db.query_one(
+            "SELECT i.* FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "WHERE i.id = %s AND u.company = %s",
+            (invoice_id, company),
+        )
+        if not inv:
+            abort(404)
+        if not is_admin and inv["user_id"] != uid:
+            abort(403)
+        if not is_admin and inv["submitted"]:
+            flash("This invoice was submitted for review and can no longer be edited.", "error")
+            return redirect(f"/portal/invoices/{invoice_id}")
+
+    # Admins bill any interpreter; interpreters submit their own.
     interpreters = portal_db.query_all(
         "SELECT id, full_name, email, interpreter_rate FROM portal_users "
         "WHERE company = %s AND role = 'employee' AND active = TRUE ORDER BY full_name",
@@ -118,9 +182,20 @@ def create_invoice():
     from portal_client_invoices import diff_options_json, parse_extra_lines
     diffs_json = diff_options_json(company, label_style="admin")
 
+    # Interpreters creating a fresh invoice can link it to one of their own
+    # unbilled assignments — this auto-fills date/time and, once saved, keeps
+    # that job out of the /portal/pay master-invoice list (job_id unique index,
+    # migration 019) so the same work is never billed through both paths.
+    billable_jobs = []
+    if not is_admin and invoice_id is None:
+        from portal_interpreter_invoices import billable_jobs_for_interpreter
+        billable_jobs = billable_jobs_for_interpreter(company, uid)
+
     if request.method == "GET":
         return render_template("portal_admin_invoice_create.html",
-                               interpreters=interpreters, diff_options_json=diffs_json)
+                               interpreters=interpreters, diff_options_json=diffs_json,
+                               inv=inv, company_id=company, billable_jobs=billable_jobs,
+                               expense_categories=EXPENSE_CATEGORIES)
 
     amount_raw      = (request.form.get("amount") or "").strip()
     description     = (request.form.get("description") or "").strip()
@@ -146,8 +221,7 @@ def create_invoice():
         duration_hours = None
     rate_applied = (base_rate or 0) + diff_val if base_rate is not None else None
 
-    # Collect dynamic extra lines
-    import json as _json
+    # Collect dynamic extra (differential) lines and Expenses lines.
     extra_lines = parse_extra_lines(
         request.form,
         ("extra_differential_", "extra_duration_", "extra_amount_",
@@ -155,20 +229,25 @@ def create_invoice():
         company, main_date=date_of_service)
     interpreter_rates = _json.dumps(extra_lines) if extra_lines else None
 
+    expense_lines = parse_expenses(request.form)
+    expenses = _json.dumps(expense_lines) if expense_lines else None
+
+    def _rerender(error):
+        return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
+                               diff_options_json=diffs_json, inv=inv, company_id=company,
+                               billable_jobs=billable_jobs,
+                               expense_categories=EXPENSE_CATEGORIES, error=error)
+
     if is_admin:
-        user_id = request.form.get("user_id") or ""
+        user_id = request.form.get("user_id") or (str(inv["user_id"]) if inv else "")
         if not user_id:
-            return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
-                                   diff_options_json=diffs_json,
-                                   error="Please select an interpreter.")
+            return _rerender("Please select an interpreter.")
         target = portal_db.query_one(
             "SELECT id FROM portal_users WHERE id = %s AND company = %s AND role = 'employee'",
             (int(user_id), company),
         )
         if not target:
-            return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
-                                   diff_options_json=diffs_json,
-                                   error="Invalid interpreter.")
+            return _rerender("Invalid interpreter.")
         recipient_id = int(user_id)
     else:
         recipient_id = int(g.user["sub"])
@@ -178,27 +257,61 @@ def create_invoice():
         if amount <= 0:
             raise ValueError
     except ValueError:
-        return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
-                               diff_options_json=diffs_json,
-                               error="Amount must be a positive number.")
+        return _rerender("Amount must be a positive number.")
 
-    portal_db.execute(
-        "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, notes, "
-        "  date_of_service, service_start_time, service_end_time, duration_hours, "
-        "  base_rate, differential, rate_applied) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-        (recipient_id, amount, description or None, due_date or None,
-         interpreter_rates, notes or None,
-         date_of_service or None, start_time, end_time, duration_hours,
-         base_rate, diff_raw or None, rate_applied),
-    )
+    # Optional job link (new invoices, interpreter self-create only). Blank or
+    # foreign job ids are ignored rather than erroring the whole submission.
+    job_id = None
+    if inv is None and not is_admin:
+        raw_job_id = request.form.get("job_id") or ""
+        if raw_job_id:
+            try:
+                candidate = int(raw_job_id)
+            except ValueError:
+                candidate = None
+            if candidate is not None and any(j["id"] == candidate for j in billable_jobs):
+                job_id = candidate
+
+    if inv is not None:
+        portal_db.execute(
+            "UPDATE invoices SET user_id = %s, amount = %s, description = %s, due_date = %s, "
+            "  interpreter_rates = %s, notes = %s, expenses = %s, "
+            "  date_of_service = %s, service_start_time = %s, service_end_time = %s, "
+            "  duration_hours = %s, base_rate = %s, differential = %s, rate_applied = %s "
+            "WHERE id = %s",
+            (recipient_id, amount, description or None, due_date or None,
+             interpreter_rates, notes or None, expenses,
+             date_of_service or None, start_time, end_time, duration_hours,
+             base_rate, diff_raw or None, rate_applied, invoice_id),
+        )
+        audit_log(
+            "invoice_update",
+            target=f"invoice:{invoice_id}",
+            metadata={"amount": amount, "due_date": due_date or None},
+        )
+        flash("Invoice updated.", "success")
+        return redirect(f"/portal/invoices/{invoice_id}")
+
+    try:
+        new_row = portal_db.execute(
+            "INSERT INTO invoices (user_id, amount, description, due_date, interpreter_rates, "
+            "  notes, expenses, date_of_service, service_start_time, service_end_time, "
+            "  duration_hours, base_rate, differential, rate_applied, job_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            (recipient_id, amount, description or None, due_date or None,
+             interpreter_rates, notes or None, expenses,
+             date_of_service or None, start_time, end_time, duration_hours,
+             base_rate, diff_raw or None, rate_applied, job_id),
+        )
+    except psycopg2.IntegrityError:
+        return _rerender("That assignment already has an invoice.")
+
     audit_log(
         "invoice_create",
         target=f"user:{recipient_id}",
         metadata={"amount": amount, "due_date": due_date or None, "self_submitted": not is_admin},
     )
-    return render_template("portal_admin_invoice_create.html", interpreters=interpreters,
-                           diff_options_json=diffs_json, success=True)
+    return redirect(f"/portal/invoices/{new_row['id']}")
 
 
 @admin_bp.route("/portal/admin/smtp-test", methods=["POST"])

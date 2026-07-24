@@ -4,15 +4,16 @@
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
   <h1>Invoices</h1>
-  {% if g.user.role == 'admin' %}
+  {% if g.user.role in ['admin', 'employee'] %}
   <a href="/portal/admin/invoices/create" class="btn btn-primary">+ New Invoice</a>
   {% endif %}
 </div>
 
-{% if invoices %}
+{% macro invoice_table(rows, checkable) %}
 <table class="portal-table">
   <thead>
     <tr>
+      {% if checkable %}<th style="width:2.5rem;"><input type="checkbox" class="select-all-cb" aria-label="Select all"/></th>{% endif %}
       <th>#</th>
       {% if g.user.role == 'admin' %}<th>Client</th>{% endif %}
       <th>Amount</th>
@@ -22,9 +23,12 @@
     </tr>
   </thead>
   <tbody>
-    {% for inv in invoices %}
-    <tr style="cursor:pointer;" data-href="/portal/invoices/{{ inv.id }}">
-      <td style="color:var(--muted);">#{{ inv.id }}</td>
+    {% for inv in rows %}
+    <tr {% if not checkable %}style="cursor:pointer;" data-href="/portal/invoices/{{ inv.id }}"{% endif %}>
+      {% if checkable %}
+      <td><input type="checkbox" name="invoice_ids" value="{{ inv.id }}" class="row-cb" form="batchSubmitForm" aria-label="Select invoice {{ inv.id }}"/></td>
+      {% endif %}
+      <td style="color:var(--muted);{% if checkable %}cursor:pointer;{% endif %}" {% if checkable %}data-href="/portal/invoices/{{ inv.id }}"{% endif %}>#{{ inv.id }}</td>
       {% if g.user.role == 'admin' %}
       <td>{{ inv.full_name or inv.email or '—' }}</td>
       {% endif %}
@@ -36,7 +40,61 @@
     {% endfor %}
   </tbody>
 </table>
+{% endmacro %}
+
+{% if g.user.role == 'employee' %}
+
+  <form method="POST" action="/portal/invoices/submit-batch" id="batchSubmitForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  </form>
+
+  <h2 style="font-size:.95rem;margin-bottom:.75rem;">Not Yet Submitted</h2>
+  {% if open_invoices %}
+    {{ invoice_table(open_invoices, true) }}
+    <div style="margin:1rem 0 2.5rem;">
+      <button type="submit" form="batchSubmitForm" class="btn btn-primary" id="batchSubmitBtn" disabled>Submit Selected for Review</button>
+    </div>
+  {% else %}
+    <p style="color:var(--muted);font-size:.78rem;margin-bottom:2.5rem;">No open invoices.</p>
+  {% endif %}
+
+  <h2 style="font-size:.95rem;margin-bottom:.75rem;">Past (Submitted)</h2>
+  {% if submitted_invoices %}
+    {{ invoice_table(submitted_invoices, false) }}
+  {% else %}
+    <p style="color:var(--muted);font-size:.78rem;">No submitted invoices yet.</p>
+  {% endif %}
+
+{% elif invoices %}
+  {{ invoice_table(invoices, false) }}
 {% else %}
 <p style="color:var(--muted);font-size:.78rem;">No invoices yet.</p>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  var selectAll = document.querySelector('.select-all-cb');
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.row-cb'));
+  var submitBtn = document.getElementById('batchSubmitBtn');
+  if (!boxes.length) return;
+
+  function recalc() {
+    if (submitBtn) submitBtn.disabled = !boxes.some(function (b) { return b.checked; });
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener('change', function () {
+      if (!b.checked && selectAll) selectAll.checked = false;
+      recalc();
+    });
+    b.addEventListener('click', function (e) { e.stopPropagation(); });
+  });
+  if (selectAll) selectAll.addEventListener('change', function () {
+    boxes.forEach(function (b) { b.checked = selectAll.checked; });
+    recalc();
+  });
+  recalc();
+})();
+</script>
 {% endblock %}

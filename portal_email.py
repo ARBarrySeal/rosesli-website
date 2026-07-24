@@ -254,6 +254,22 @@ def send_master_invoice_email(to_email: str, interpreter_name: str, invoice_id: 
     return _send(to_email, subject, body)
 
 
+def send_invoice_submitted_email(to_email: str, interpreter_name: str, invoice_id: int,
+                                 amount: float, link_url: str, company_name: str) -> bool:
+    """Notify the coordinator that an interpreter locked and submitted an
+    individual invoice for review (Interpreter Invoices — Submit for Review)."""
+    subject = f"Invoice submitted for review — {interpreter_name} (${amount:.2f})"
+    body = (
+        f"{interpreter_name} submitted invoice #{invoice_id} for review "
+        f"(${amount:.2f}). It is now locked from further edits.\n\n"
+        f"Review it in the portal:\n\n"
+        f"{link_url}\n\n"
+        f"— {company_name}\n"
+    )
+    to_email, body = _route_recipient(to_email, body)
+    return _send(to_email, subject, body)
+
+
 def send_invoice_paid_email(to_email: str, interpreter_name: str, invoice_id: int,
                             amount: float, link_url: str, company_name: str) -> bool:
     """Close the loop: tell the interpreter their submitted invoice was paid."""

@@ -913,6 +913,11 @@ def invoices():
             (uid,),
         )
         interpreters = []
+    if role == "employee":
+        open_invoices = [r for r in rows if not r["submitted"]]
+        submitted_invoices = [r for r in rows if r["submitted"]]
+        return render_template("portal_invoices.html", invoices=rows, interpreters=interpreters,
+                               open_invoices=open_invoices, submitted_invoices=submitted_invoices)
     return render_template("portal_invoices.html", invoices=rows, interpreters=interpreters)
 
 
@@ -961,6 +966,10 @@ def invoice_detail(invoice_id):
 
     if not inv:
         abort(404)
+    try:
+        expenses = json.loads(inv["expenses"]) if inv.get("expenses") else []
+    except (TypeError, ValueError):
+        expenses = []
     attachments = portal_db.query_all(
         "SELECT id, original_name, size_bytes, created_at FROM invoice_attachments "
         "WHERE invoice_id = %s ORDER BY created_at",
@@ -975,7 +984,7 @@ def invoice_detail(invoice_id):
         (invoice_id,),
     )
     return render_template("portal_invoice.html", inv=inv, attachments=attachments,
-                           lines=lines)
+                           lines=lines, expenses=expenses)
 
 
 @pages_bp.route("/portal/invoices/<int:invoice_id>/attachments", methods=["POST"])
@@ -1098,23 +1107,38 @@ def delete_invoice_attachment(invoice_id, att_id):
     return redirect(f"/portal/invoices/{invoice_id}")
 
 
+def _notify_invoice_submitted(company, invoice_id, amount):
+    """Email coordinators that an individual invoice was locked + submitted
+    for review (best-effort — must never block the submit itself)."""
+    try:
+        interpreter_name = g.user.get("name") or g.user.get("email") or "An interpreter"
+        link = request.url_root.rstrip("/") + "/portal/admin/interpreter-review"
+        company_name = COMPANY_NAMES.get(company, company)
+        for email in portal_email.coordinator_recipients(company):
+            portal_email.send_invoice_submitted_email(
+                email, interpreter_name, invoice_id, amount, link, company_name)
+    except Exception:
+        pass
+
+
 @pages_bp.route("/portal/invoices/<int:invoice_id>/submit", methods=["POST"])
 @login_required
 def submit_invoice(invoice_id):
-    """Interpreter submits their invoice to admin for approval."""
-    uid  = g.user["sub"]
-    role = g.user["role"]
+    """Interpreter submits their invoice to admin for approval; locks it from
+    further interpreter edits and emails the coordinators (Interpreter Review)."""
+    uid     = g.user["sub"]
+    role    = g.user["role"]
+    company = g.user["company"]
     if role == "client":
         abort(403)
     if role == "employee":
         inv = portal_db.query_one(
-            "SELECT id FROM invoices WHERE id = %s AND user_id = %s",
+            "SELECT id, amount FROM invoices WHERE id = %s AND user_id = %s",
             (invoice_id, uid),
         )
     else:
-        company = g.user["company"]
         inv = portal_db.query_one(
-            "SELECT i.id FROM invoices i JOIN portal_users u ON u.id = i.user_id "
+            "SELECT i.id, i.amount FROM invoices i JOIN portal_users u ON u.id = i.user_id "
             "WHERE i.id = %s AND u.company = %s",
             (invoice_id, company),
         )
@@ -1124,8 +1148,49 @@ def submit_invoice(invoice_id):
         "UPDATE invoices SET submitted = TRUE, submitted_at = NOW() WHERE id = %s",
         (invoice_id,),
     )
-    flash("Invoice submitted for approval.", "success")
+    if role == "employee":
+        _notify_invoice_submitted(company, invoice_id, float(inv["amount"]))
+    flash("Invoice submitted for review.", "success")
     return redirect(f"/portal/invoices/{invoice_id}")
+
+
+@pages_bp.route("/portal/invoices/submit-batch", methods=["POST"])
+@login_required
+def submit_invoices_batch():
+    """Interpreter selects multiple not-yet-submitted invoices from the
+    Interpreter Invoices list and submits them all for review in one action."""
+    uid     = g.user["sub"]
+    role    = g.user["role"]
+    company = g.user["company"]
+    if role != "employee":
+        abort(403)
+    ids_raw = request.form.getlist("invoice_ids")
+    try:
+        ids = [int(i) for i in ids_raw]
+    except (TypeError, ValueError):
+        ids = []
+    if not ids:
+        flash("Select at least one invoice to submit.", "error")
+        return redirect("/portal/invoices")
+
+    rows = portal_db.query_all(
+        "SELECT id, amount FROM invoices "
+        "WHERE id = ANY(%s) AND user_id = %s AND COALESCE(submitted, FALSE) = FALSE",
+        (ids, uid),
+    )
+    if not rows:
+        flash("Nothing eligible to submit.", "error")
+        return redirect("/portal/invoices")
+
+    submitted_ids = [r["id"] for r in rows]
+    portal_db.execute(
+        "UPDATE invoices SET submitted = TRUE, submitted_at = NOW() WHERE id = ANY(%s)",
+        (submitted_ids,),
+    )
+    total = round(sum(float(r["amount"]) for r in rows), 2)
+    _notify_invoice_submitted(company, submitted_ids[0], total)
+    flash(f"{len(submitted_ids)} invoice(s) submitted for review.", "success")
+    return redirect("/portal/invoices")
 
 
 @pages_bp.route("/portal/admin/invoices/<int:invoice_id>/mark-unpaid", methods=["POST"])

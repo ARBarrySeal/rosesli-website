@@ -56,7 +56,7 @@
   {# ── Extra rate lines ── #}
   {% if inv.interpreter_rates %}
   <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
-    <div class="field-label" style="margin-bottom:.6rem;">Additional Rate Lines</div>
+    <div class="field-label" style="margin-bottom:.6rem;">Differential Lines</div>
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
       <thead>
         <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
@@ -68,9 +68,39 @@
       </thead>
       <tbody id="extra-lines-body"
              data-main-date="{{ inv.date_of_service or '' }}"></tbody>
+      <tfoot>
+        <tr style="font-weight:600;border-top:1px solid var(--border);">
+          <td colspan="2" style="padding:.4rem .5rem;">Total</td>
+          <td id="extra-lines-total-hrs" style="text-align:right;padding:.4rem .5rem;">—</td>
+          <td id="extra-lines-total-amt" style="text-align:right;padding:.4rem .5rem;">—</td>
+        </tr>
+      </tfoot>
     </table>
   </div>
   <script id="extra-lines-data" type="application/json">{{ inv.interpreter_rates | safe }}</script>
+  {% endif %}
+
+  {# ── Expenses (informational only — not billed on this invoice) ── #}
+  {% if expenses %}
+  <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">
+    <div class="field-label" style="margin-bottom:.6rem;">Expenses <span style="text-transform:none;">(for reimbursement tracking — not billed)</span></div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="color:var(--muted);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;">
+          <th style="text-align:left;padding:.3rem .5rem;">Type</th>
+          <th style="text-align:left;padding:.3rem .5rem;">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in expenses %}
+        <tr>
+          <td style="padding:.3rem .5rem;">{{ x.category or '—' }}</td>
+          <td style="padding:.3rem .5rem;">{{ x.note or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% endif %}
 
   {# ── Bundled assignments (master invoice) ── #}
@@ -151,20 +181,22 @@
   </div>
 
   {% if g.user.role in ['employee'] and not inv.submitted %}
-  <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
+  <div style="display:flex;gap:.75rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+    <a href="/portal/invoices/{{ inv.id }}/edit" class="btn">Edit Invoice</a>
     <form method="POST" action="/portal/invoices/{{ inv.id }}/submit">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <button type="submit" class="btn btn-primary">Submit Invoice for Approval</button>
+      <button type="submit" class="btn btn-primary">Submit for Review</button>
     </form>
   </div>
   {% elif inv.submitted and g.user.role == 'employee' %}
   <div style="padding-top:1.5rem;border-top:1px solid var(--border);">
-    <span style="font-size:.78rem;color:var(--muted);">✓ Submitted for admin review</span>
+    <span style="font-size:.78rem;color:var(--muted);">✓ Submitted for review — locked from further edits</span>
   </div>
   {% endif %}
 
   {% if g.user.role == 'admin' %}
   <div style="display:flex;gap:.75rem;flex-wrap:wrap;padding-top:1.5rem;border-top:1px solid var(--border);">
+    <a href="/portal/invoices/{{ inv.id }}/edit" class="btn">Edit Invoice</a>
     {% if inv.status != 'paid' %}
     <form method="POST" action="/portal/admin/invoices/{{ inv.id }}/mark-paid" style="display:flex;gap:.5rem;align-items:center;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -190,26 +222,34 @@
 </style>
 <script nonce="{{ csp_nonce() }}">
 (function () {
+  function cell(text, align) {
+    var td = document.createElement('td');
+    td.style.padding = '.3rem .5rem';
+    if (align) td.style.textAlign = align;
+    td.textContent = text;
+    return td;
+  }
+
   var dataEl = document.getElementById('extra-lines-data');
   var tbody  = document.getElementById('extra-lines-body');
   if (!dataEl || !tbody) return;
   try {
     var lines = JSON.parse(dataEl.textContent);
+    var hrsTotal = 0, amtTotal = 0;
     lines.forEach(function (l) {
       var tr = document.createElement('tr');
-      function cell(text, align) {
-        var td = document.createElement('td');
-        td.style.padding = '.3rem .5rem';
-        if (align) td.style.textAlign = align;
-        td.textContent = text;
-        return td;
-      }
       tr.appendChild(cell(l.date || tbody.getAttribute('data-main-date') || '—', ''));
       tr.appendChild(cell(l.specialty || l.differential || '—', ''));
       tr.appendChild(cell(String(l.duration || 0), 'right'));
       tr.appendChild(cell('$' + parseFloat(l.amount || 0).toFixed(2), 'right'));
       tbody.appendChild(tr);
+      hrsTotal += parseFloat(l.duration || 0);
+      amtTotal += parseFloat(l.amount || 0);
     });
+    var hrsEl = document.getElementById('extra-lines-total-hrs');
+    var amtEl = document.getElementById('extra-lines-total-amt');
+    if (hrsEl) hrsEl.textContent = hrsTotal.toFixed(2);
+    if (amtEl) amtEl.textContent = '$' + amtTotal.toFixed(2);
   } catch (e) {}
 })();
 </script>

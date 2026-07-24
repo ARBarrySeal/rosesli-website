@@ -1,21 +1,38 @@
 {% extends "portal_base.html" %}
-{% block title %}Create Interpreter Invoice — Portal{% endblock %}
+{% block title %}{{ 'Edit Invoice' if inv else 'Create Interpreter Invoice' }} — Portal{% endblock %}
 
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
-  <h1>Create Interpreter Invoice</h1>
-  <a href="/portal/invoices" style="font-size:.78rem;color:var(--muted);">← All Invoices</a>
+  <h1>{{ 'Edit Invoice #' ~ inv.id if inv else 'Create Interpreter Invoice' }}</h1>
+  <a href="{{ '/portal/invoices/' ~ inv.id if inv else '/portal/invoices' }}" style="font-size:.78rem;color:var(--muted);">← {{ 'Back to Invoice' if inv else 'All Invoices' }}</a>
 </div>
 
-{% if success %}
-<p class="success" style="margin-bottom:1.5rem;font-size:.78rem;">Invoice created successfully.</p>
-{% endif %}
 {% if error %}
 <p class="error" style="margin-bottom:1.5rem;font-size:.78rem;">{{ error }}</p>
 {% endif %}
 
 <form method="POST" style="max-width:520px;display:flex;flex-direction:column;gap:1.1rem;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+  {% if billable_jobs %}
+  <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
+    Assignment <span style="text-transform:none;font-size:.65rem;">(optional — auto-fills date/time below)</span>
+    <select name="job_id" id="job-select"
+            style="background:var(--bg);border:1px solid var(--border);color:var(--text);
+                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
+      <option value="">— manual entry —</option>
+      {% for j in billable_jobs %}
+      <option value="{{ j.id }}"
+              data-date="{{ j.event_date.isoformat() if j.event_date else '' }}"
+              data-start="{{ j.start_time.strftime('%H:%M') if j.start_time else '' }}"
+              data-end="{{ j.end_time.strftime('%H:%M') if j.end_time else '' }}"
+              data-rate="{{ j.rate or '' }}">
+        {{ j.event_date.strftime('%b %d, %Y') if j.event_date else '—' }} — {{ j.setting or j.job_number or ('Job #' ~ j.id) }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
 
   {% if g.user.role == 'admin' %}
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
@@ -25,8 +42,8 @@
                    font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;">
       <option value="">— select interpreter —</option>
       {% for u in interpreters %}
-      <option value="{{ u.id }}"
-              data-rate="{{ u.interpreter_rate or '' }}">
+      <option value="{{ u.id }}" data-rate="{{ u.interpreter_rate or '' }}"
+              {% if inv and inv.user_id == u.id %}selected{% endif %}>
         {{ u.full_name or u.email }}{% if u.full_name %} ({{ u.email }}){% endif %}{% if u.interpreter_rate %} — ${{ '%.2f'|format(u.interpreter_rate) }}/hr{% endif %}
       </option>
       {% endfor %}
@@ -44,6 +61,7 @@
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Date of Service
       <input type="date" name="date_of_service" id="date-of-service"
+             value="{{ inv.date_of_service.isoformat() if inv and inv.date_of_service else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
@@ -52,19 +70,20 @@
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Start Time
-      <input type="time" name="start_time" id="start-time"
+      <input type="time" name="start_time" id="start-time" value="{{ inv.service_start_time or '' if inv else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       End Time
-      <input type="time" name="end_time" id="end-time"
+      <input type="time" name="end_time" id="end-time" value="{{ inv.service_end_time or '' if inv else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Duration (hrs)
       <input type="number" name="duration_hours" id="duration-hours" step="0.25" min="0" placeholder="0.00"
+             value="{{ inv.duration_hours if inv and inv.duration_hours is not none else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
@@ -74,6 +93,7 @@
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Base Rate ($/hr)
       <input type="number" name="base_rate" id="base-rate" step="0.01" min="0" placeholder="0.00"
+             value="{{ inv.base_rate if inv and inv.base_rate is not none else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
@@ -111,25 +131,45 @@
     <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
       Amount ($)
       <input type="number" name="amount" id="amount" step="0.01" min="0.01" placeholder="0.00" required
+             value="{{ inv.amount if inv and inv.amount is not none else '' }}"
              style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                     font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
     </label>
   </div>
 
-  {# Additional rate lines — each line has its own differential + duration + amount #}
-  <div id="extra-lines"></div>
+  {# Additional rate (differential) lines — auto-generated from Date/Start/End on rosesli, always editable/removable #}
+  <div>
+    <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Differential Lines</div>
+    <div id="extra-lines"></div>
+  </div>
   <button type="button" id="add-line-btn"
           style="align-self:flex-start;background:none;border:1px dashed var(--border);color:var(--muted);
                  font-family:var(--font);padding:.4rem .85rem;border-radius:var(--radius);cursor:pointer;font-size:.78rem;">
     + Add Line
   </button>
 
+  {# Expenses — Parking / Mileage / Travel Time / Other + a note. Informational
+     only: never priced, never rolled into the invoice total. #}
+  <div>
+    <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Expenses <span style="text-transform:none;font-size:.65rem;">(for reimbursement tracking — not billed on this invoice)</span></div>
+    <div id="expense-lines"></div>
+  </div>
+  <button type="button" id="add-expense-btn"
+          style="align-self:flex-start;background:none;border:1px dashed var(--border);color:var(--muted);
+                 font-family:var(--font);padding:.4rem .85rem;border-radius:var(--radius);cursor:pointer;font-size:.78rem;">
+    + Add Expense
+  </button>
+
+  <div id="grand-total" style="font-size:.9rem;font-weight:600;padding-top:.5rem;border-top:1px solid var(--border);">
+    Total: <span id="grand-total-hours">0.00</span> hrs · $<span id="grand-total-amount">0.00</span>
+  </div>
+
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Job Notes <span style="text-transform:none;font-size:.65rem;">(optional)</span>
     <textarea name="description" id="description-field" rows="3" maxlength="1000" placeholder="Services rendered…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
-                     font-size:13px;resize:vertical;"></textarea>
+                     font-size:13px;resize:vertical;">{{ inv.description or '' if inv else '' }}</textarea>
   </label>
 
   {% if g.user.role == 'admin' %}
@@ -138,25 +178,32 @@
     <textarea name="notes" rows="2" maxlength="1000" placeholder="Internal notes…"
               style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                      font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);
-                     font-size:13px;resize:vertical;"></textarea>
+                     font-size:13px;resize:vertical;">{{ inv.notes or '' if inv else '' }}</textarea>
   </label>
   {% endif %}
 
   <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">
     Due Date
     <input type="date" name="due_date" id="due-date"
+           value="{{ inv.due_date.isoformat() if inv and inv.due_date else '' }}"
            style="background:var(--bg);border:1px solid var(--border);color:var(--text);
                   font-family:var(--font);padding:.5rem .75rem;border-radius:var(--radius);font-size:13px;"/>
   </label>
 
   <div style="display:flex;gap:.75rem;align-items:center;">
-    <button type="submit" class="btn btn-primary">Create Invoice</button>
-    <a href="/portal/invoices" class="btn" style="text-decoration:none;">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ 'Save Changes' if inv else 'Create Invoice' }}</button>
+    <a href="{{ '/portal/invoices/' ~ inv.id if inv else '/portal/invoices' }}" class="btn" style="text-decoration:none;">Cancel</a>
   </div>
 </form>
 
+{% if inv %}
+<script id="existing-lines-data" type="application/json">{{ (inv.interpreter_rates or '[]') | safe }}</script>
+<script id="existing-expenses-data" type="application/json">{{ (inv.expenses or '[]') | safe }}</script>
+{% endif %}
+
 <script nonce="{{ csp_nonce() }}">
 (function () {
+  var jobSel     = document.getElementById('job-select');
   var interpSel  = document.getElementById('interp-select');
   var baseRate   = document.getElementById('base-rate');
   var diffSel    = document.getElementById('differential');
@@ -166,14 +213,22 @@
   var descField  = document.getElementById('description-field');
   var startTime  = document.getElementById('start-time');
   var endTime    = document.getElementById('end-time');
+  var dateOfSvc  = document.getElementById('date-of-service');
   var dueDateIn  = document.getElementById('due-date');
   var addLineBtn = document.getElementById('add-line-btn');
   var extraLines = document.getElementById('extra-lines');
+  var addExpBtn  = document.getElementById('add-expense-btn');
+  var expenseLines = document.getElementById('expense-lines');
+  var grandHrs   = document.getElementById('grand-total-hours');
+  var grandAmt   = document.getElementById('grand-total-amount');
+  var isEdit     = {{ 'true' if inv else 'false' }};
 
   // Server-rendered from the differentials table (mig 015) + XCL rows.
   var DIFF_OPTIONS = {{ diff_options_json|default('[]')|safe }};
-  // Per-line Date field is a rosesli feature; dod keeps its pre-Phase-8 layout.
+  // Per-line Date field + auto differential-band splitting are rosesli features;
+  // dod keeps its pre-Phase-8 layout.
   var HAS_LINE_DATES = {{ 'true' if company_id == 'rosesli' else 'false' }};
+  var EXPENSE_CATEGORIES = {{ expense_categories|default(['Parking', 'Mileage', 'Travel Time', 'Other'])|tojson }};
 
   function fmt2(n) { return n.toFixed(2); }
 
@@ -193,16 +248,29 @@
     return (hrs > 0 && hrs < 2) ? 2 : hrs;
   }
 
+  function hasAutoLines() {
+    return !!(extraLines && extraLines.querySelector('.extra-line[data-auto="true"]'));
+  }
+
   function recompute() {
     var rate    = getRate();
     var billHrs = getDur();
     if (rateDisp) rateDisp.textContent = isXcl(diffSel) ? '$0 (XCL)' : rate > 0 ? '$' + fmt2(rate) + '/hr' : '—';
-    if (amountIn && billHrs > 0 && (rate > 0 || isXcl(diffSel))) amountIn.value = fmt2(billHrs * rate);
+    // When the differential lines were auto-generated from the time span, the
+    // full-span hours are already billed across those lines — the main line
+    // must not ALSO bill duration x rate on top, or hours get double-counted.
+    if (amountIn && !hasAutoLines() && billHrs > 0 && (rate > 0 || isXcl(diffSel))) {
+      amountIn.value = fmt2(billHrs * rate);
+    }
     recomputeLines();
   }
 
   function recomputeLines() {
-    var total = parseFloat(amountIn ? amountIn.value : 0) || 0;
+    var mainAmt  = hasAutoLines() ? 0 : (parseFloat(amountIn ? amountIn.value : 0) || 0);
+    var mainHrs  = hasAutoLines() ? 0 : getDur();
+    var total    = mainAmt;
+    var hrsTotal = mainHrs;
+
     extraLines && extraLines.querySelectorAll('.extra-line').forEach(function (line) {
       var ls = line.querySelector('.line-diff');
       var ld = line.querySelector('.line-dur');
@@ -213,18 +281,29 @@
       var addon = parseFloat(ls.value) || 0;
       var ldur  = parseFloat(ld.value) || 0;
       if (code.indexOf('specialty_') === 0) {
-        // Specialty is a surcharge on hours already billed at the base rate —
-        // no base rate in the line and no 2-hour minimum.
         la.value = ldur > 0 ? fmt2(ldur * addon) : '';
         total += parseFloat(la.value) || 0;
+        hrsTotal += ldur;
         return;
       }
       var base  = parseFloat(baseRate ? baseRate.value : 0) || 0;
       var lrate = isXcl(ls) ? 0 : base + addon;
-      ldur = (ldur > 0 && ldur < 2) ? 2 : ldur;
-      la.value = ldur > 0 ? fmt2(ldur * lrate) : '';
+      // The 2-hour minimum is a per-ASSIGNMENT floor, not per-band-segment —
+      // auto-split lines are pieces of one job's hours (already scaled to the
+      // minimum server-side by compute_time_band_hours), so each piece bills
+      // its actual duration; only a genuinely separate manually-added line
+      // (a second mini-assignment) gets padded up to the 2-hour minimum.
+      var isAuto = line.getAttribute('data-auto') === 'true';
+      var billableDur = (!isAuto && ldur > 0 && ldur < 2) ? 2 : ldur;
+      la.value = billableDur > 0 ? fmt2(billableDur * lrate) : '';
       total += parseFloat(la.value) || 0;
+      hrsTotal += ldur;
     });
+
+    // Expenses are informational only — never added to the billed total.
+    if (amountIn && hasAutoLines()) amountIn.value = fmt2(total);
+    if (grandHrs) grandHrs.textContent = fmt2(hrsTotal);
+    if (grandAmt) grandAmt.textContent = fmt2(total);
   }
 
   function autoFillDuration() {
@@ -232,21 +311,22 @@
     var s = startTime.value.split(':').map(Number);
     var e = endTime.value.split(':').map(Number);
     var diff = (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
-    if (diff > 0 && durHrs) { durHrs.value = fmt2(diff / 60); recompute(); }
+    if (diff <= 0) diff += 1440;
+    if (durHrs) { durHrs.value = fmt2(diff / 60); }
+    autoSplitLines();
+    recompute();
   }
 
   function autoFillDueDate() {
-    if (!dueDateIn) return;
+    if (!dueDateIn || dueDateIn.value) return;
     var now = new Date();
     var d   = now.getDate();
     var y   = now.getFullYear();
     var m   = now.getMonth(); // 0-indexed
     var due;
     if (d >= 1 && d <= 15) {
-      // last day of current month
       due = new Date(y, m + 1, 0);
     } else {
-      // 15th of next month
       due = new Date(y, m + 1, 15);
     }
     var yy = due.getFullYear();
@@ -283,72 +363,175 @@
     }
   }
 
+  function reindexExpenses() {
+    var lines = expenseLines.querySelectorAll('.expense-line');
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].querySelector('.expense-cat').name = 'expense_category_' + i;
+      lines[i].querySelector('.expense-note').name = 'expense_note_' + i;
+    }
+  }
+
+  // opts: { hours, dateVal, code, amount, auto }
+  function addExtraLineRow(opts) {
+    opts = opts || {};
+    var idx = extraLines.querySelectorAll('.extra-line').length;
+    var div = document.createElement('div');
+    div.className = 'extra-line';
+    if (opts.auto) div.setAttribute('data-auto', 'true');
+    div.style.cssText = 'display:grid;grid-template-columns:' +
+      (HAS_LINE_DATES ? '2fr 1fr .8fr 1fr auto' : '2fr 1fr 1fr auto') +
+      ';gap:.5rem;align-items:end;margin-top:.5rem;';
+
+    var codeIn = document.createElement('input');
+    codeIn.type = 'hidden'; codeIn.name = 'extra_code_' + idx; codeIn.className = 'line-code';
+
+    var diffWrap = document.createElement('label');
+    diffWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    diffWrap.textContent = 'Differential';
+    var diffSel2 = makeDiffSelect('line-diff');
+    diffSel2.name = 'extra_differential_' + idx;
+    if (opts.code) {
+      for (var oi = 0; oi < diffSel2.options.length; oi++) {
+        if (diffSel2.options[oi].getAttribute('data-code') === opts.code) { diffSel2.selectedIndex = oi; break; }
+      }
+    }
+    function syncCode() {
+      var opt = diffSel2.options[diffSel2.selectedIndex];
+      codeIn.value = opt ? (opt.getAttribute('data-code') || '') : '';
+    }
+    syncCode();
+    diffSel2.addEventListener('change', function () { syncCode(); recomputeLines(); });
+    diffWrap.appendChild(diffSel2);
+
+    var dateWrap = null;
+    if (HAS_LINE_DATES) {
+      dateWrap = document.createElement('label');
+      dateWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+      dateWrap.textContent = 'Date';
+      var dateIn2 = document.createElement('input');
+      dateIn2.type = 'date'; dateIn2.name = 'extra_date_' + idx; dateIn2.className = 'line-date';
+      dateIn2.value = opts.dateVal || (dateOfSvc && dateOfSvc.value ? dateOfSvc.value : '');
+      dateIn2.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+      dateWrap.appendChild(dateIn2);
+    }
+
+    var durWrap = document.createElement('label');
+    durWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    durWrap.textContent = 'Hrs';
+    var durIn = document.createElement('input');
+    durIn.type = 'number'; durIn.step = '0.25'; durIn.min = '0'; durIn.placeholder = '0.00';
+    if (opts.hours !== undefined) durIn.value = fmt2(opts.hours);
+    durIn.name = 'extra_duration_' + idx; durIn.className = 'line-dur';
+    durIn.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    durIn.addEventListener('input', recomputeLines);
+    durWrap.appendChild(durIn);
+
+    var amtWrap = document.createElement('label');
+    amtWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    amtWrap.textContent = 'Amount';
+    var amtIn = document.createElement('input');
+    amtIn.type = 'number'; amtIn.step = '0.01'; amtIn.readOnly = true;
+    if (opts.amount !== undefined) amtIn.value = fmt2(opts.amount);
+    amtIn.name = 'extra_amount_' + idx; amtIn.className = 'line-amt';
+    amtIn.style.cssText = 'background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    amtWrap.appendChild(amtIn);
+
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button'; rmBtn.textContent = '✕';
+    rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
+    rmBtn.addEventListener('click', function () { div.remove(); reindexLines(); recompute(); });
+
+    div.appendChild(codeIn); div.appendChild(diffWrap);
+    if (dateWrap) div.appendChild(dateWrap);
+    div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
+    extraLines.appendChild(div);
+    return div;
+  }
+
+  function addExpenseRow(opts) {
+    opts = opts || {};
+    var idx = expenseLines.querySelectorAll('.expense-line').length;
+    var div = document.createElement('div');
+    div.className = 'expense-line';
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 2fr auto;gap:.5rem;align-items:end;margin-top:.5rem;';
+
+    var catWrap = document.createElement('label');
+    catWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    catWrap.textContent = 'Type';
+    var catSel = document.createElement('select');
+    catSel.className = 'expense-cat'; catSel.name = 'expense_category_' + idx;
+    catSel.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    EXPENSE_CATEGORIES.forEach(function (c) {
+      var o = document.createElement('option'); o.value = c; o.textContent = c;
+      if (opts.category === c) o.selected = true;
+      catSel.appendChild(o);
+    });
+    catWrap.appendChild(catSel);
+
+    var noteWrap = document.createElement('label');
+    noteWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
+    noteWrap.textContent = 'Note';
+    var noteIn = document.createElement('input');
+    noteIn.type = 'text'; noteIn.maxLength = 200; noteIn.className = 'expense-note';
+    noteIn.name = 'expense_note_' + idx; noteIn.value = opts.note || '';
+    noteIn.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
+    noteWrap.appendChild(noteIn);
+
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button'; rmBtn.textContent = '✕';
+    rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
+    rmBtn.addEventListener('click', function () { div.remove(); reindexExpenses(); });
+
+    div.appendChild(catWrap); div.appendChild(noteWrap); div.appendChild(rmBtn);
+    expenseLines.appendChild(div);
+    return div;
+  }
+
+  // Auto-split the shift into per-differential-band lines using the same
+  // portal_rates.compute_time_band_hours the server relies on elsewhere —
+  // avoids reimplementing (and drifting from) the boundary/midnight/weekend
+  // math in JS. Debounced-by-nature: fires on date/start/end change only.
+  function autoSplitLines() {
+    if (!HAS_LINE_DATES || !extraLines) return;
+    var dateVal = dateOfSvc ? dateOfSvc.value : '';
+    var sVal = startTime ? startTime.value : '';
+    var eVal = endTime ? endTime.value : '';
+    if (!dateVal || !sVal || !eVal) return;
+    fetch('/portal/api/time-bands?date=' + encodeURIComponent(dateVal) +
+          '&start=' + encodeURIComponent(sVal) + '&end=' + encodeURIComponent(eVal))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var bands = data.bands || {};
+        var codes = Object.keys(bands);
+        extraLines.querySelectorAll('.extra-line[data-auto="true"]').forEach(function (l) { l.remove(); });
+        if (!codes.length) { reindexLines(); recompute(); return; }
+        codes.forEach(function (code) {
+          addExtraLineRow({ code: code, hours: bands[code], dateVal: dateVal, auto: true });
+        });
+        reindexLines();
+        recompute();
+      })
+      .catch(function () {});
+  }
+
   if (addLineBtn && extraLines) {
-    addLineBtn.addEventListener('click', function () {
-      var idx = extraLines.querySelectorAll('.extra-line').length;
-      var div = document.createElement('div');
-      div.className = 'extra-line';
-      div.style.cssText = 'display:grid;grid-template-columns:' +
-        (HAS_LINE_DATES ? '2fr 1fr .8fr 1fr auto' : '2fr 1fr 1fr auto') +
-        ';gap:.5rem;align-items:end;margin-top:.5rem;';
+    addLineBtn.addEventListener('click', function () { addExtraLineRow({}); recompute(); });
+  }
+  if (addExpBtn && expenseLines) {
+    addExpBtn.addEventListener('click', function () { addExpenseRow({}); });
+  }
 
-      var codeIn = document.createElement('input');
-      codeIn.type = 'hidden'; codeIn.name = 'extra_code_' + idx; codeIn.className = 'line-code';
-
-      var diffWrap = document.createElement('label');
-      diffWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      diffWrap.textContent = 'Differential';
-      var diffSel2 = makeDiffSelect('line-diff');
-      diffSel2.name = 'extra_differential_' + idx;
-      function syncCode() {
-        var opt = diffSel2.options[diffSel2.selectedIndex];
-        codeIn.value = opt ? (opt.getAttribute('data-code') || '') : '';
-      }
-      syncCode();
-      diffSel2.addEventListener('change', function () { syncCode(); recomputeLines(); });
-      diffWrap.appendChild(diffSel2);
-
-      var dateWrap = null;
-      if (HAS_LINE_DATES) {
-        dateWrap = document.createElement('label');
-        dateWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-        dateWrap.textContent = 'Date';
-        var dateIn2 = document.createElement('input');
-        dateIn2.type = 'date'; dateIn2.name = 'extra_date_' + idx; dateIn2.className = 'line-date';
-        var mainDate = document.getElementById('date-of-service');
-        dateIn2.value = mainDate && mainDate.value ? mainDate.value : '';
-        dateIn2.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-        dateWrap.appendChild(dateIn2);
-      }
-
-      var durWrap = document.createElement('label');
-      durWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      durWrap.textContent = 'Hrs';
-      var durIn = document.createElement('input');
-      durIn.type = 'number'; durIn.step = '0.25'; durIn.min = '0'; durIn.placeholder = '0.00';
-      durIn.name = 'extra_duration_' + idx; durIn.className = 'line-dur';
-      durIn.style.cssText = 'background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-      durIn.addEventListener('input', recomputeLines);
-      durWrap.appendChild(durIn);
-
-      var amtWrap = document.createElement('label');
-      amtWrap.style.cssText = 'display:flex;flex-direction:column;gap:.25rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);';
-      amtWrap.textContent = 'Amount';
-      var amtIn = document.createElement('input');
-      amtIn.type = 'number'; amtIn.step = '0.01'; amtIn.readOnly = true;
-      amtIn.name = 'extra_amount_' + idx; amtIn.className = 'line-amt';
-      amtIn.style.cssText = 'background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);font-family:var(--font);padding:.4rem .6rem;border-radius:var(--radius);font-size:13px;';
-      amtWrap.appendChild(amtIn);
-
-      var rmBtn = document.createElement('button');
-      rmBtn.type = 'button'; rmBtn.textContent = '✕';
-      rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.4rem;align-self:flex-end;';
-      rmBtn.addEventListener('click', function () { div.remove(); reindexLines(); recomputeLines(); });
-
-      div.appendChild(codeIn); div.appendChild(diffWrap);
-      if (dateWrap) div.appendChild(dateWrap);
-      div.appendChild(durWrap); div.appendChild(amtWrap); div.appendChild(rmBtn);
-      extraLines.appendChild(div);
+  if (jobSel) {
+    jobSel.addEventListener('change', function () {
+      var opt = jobSel.options[jobSel.selectedIndex];
+      if (!opt || !opt.value) return;
+      var d = opt.getAttribute('data-date'), s = opt.getAttribute('data-start'),
+          e = opt.getAttribute('data-end'), r = opt.getAttribute('data-rate');
+      if (d && dateOfSvc) dateOfSvc.value = d;
+      if (s && startTime) startTime.value = s;
+      if (e && endTime) endTime.value = e;
+      if (r && baseRate) baseRate.value = r;
+      autoFillDuration();
     });
   }
 
@@ -368,8 +551,7 @@
     if (interpSel && interpSel.selectedIndex > 0) {
       interpName = interpSel.options[interpSel.selectedIndex].text.split(' (')[0].split(' — ')[0];
     }
-    var dateVal = document.getElementById('date-of-service');
-    dateVal = dateVal ? dateVal.value : '';
+    var dateVal = dateOfSvc ? dateOfSvc.value : '';
     if (interpName && dateVal) descField.value = interpName + ' — ' + dateVal;
   }
 
@@ -379,8 +561,24 @@
   if (startTime) startTime.addEventListener('change', autoFillDuration);
   if (endTime)   endTime.addEventListener('change', autoFillDuration);
 
-  // Auto-fill due date on page load
+  // Rehydrate saved differential + expense lines when editing an existing invoice.
+  if (isEdit) {
+    try {
+      var savedLines = JSON.parse(document.getElementById('existing-lines-data').textContent || '[]');
+      savedLines.forEach(function (l) {
+        addExtraLineRow({ code: l.code, hours: l.duration, amount: l.amount, dateVal: l.date });
+      });
+    } catch (e) {}
+    try {
+      var savedExpenses = JSON.parse(document.getElementById('existing-expenses-data').textContent || '[]');
+      savedExpenses.forEach(function (x) {
+        addExpenseRow({ category: x.category, note: x.note });
+      });
+    } catch (e) {}
+  }
+
   autoFillDueDate();
+  recomputeLines();
 })();
 </script>
 {% endblock %}

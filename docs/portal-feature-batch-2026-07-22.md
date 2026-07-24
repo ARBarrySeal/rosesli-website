@@ -33,14 +33,16 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 ## Phase 1 — Interpreter Invoice lifecycle + Expenses
 | # | Requirement | Status |
 |---|---|---|
-| 1.1 | Per individual invoice: auto-create a separate line under "rate applied" for each differential that applies to the job's hours; auto-apply the differential to the correct hours (not a manual add) | ⬜ |
-| 1.2 | Total line: sum all hours + sum all dollars across the invoice's lines | ⬜ |
-| 1.3 | "Edit Invoice" button → links back to invoice creation/edit page | ⬜ |
-| 1.4 | "Submit for Review" button: locks the invoice from further interpreter edits; notifies admin's Interpreter Review page (email + appears there) | ⬜ |
-| 1.5 | Individual invoice: add "Expenses" section — dropdown (Parking / Mileage / Travel Time / Other) + free-text box next to it | ⬜ |
-| 1.6 | Interpreter Invoices list page: split into top section (not-yet-submitted, editable) and bottom section (past/submitted, read-only) | ⬜ |
-| 1.7 | Master invoice list: checkboxes per invoice, multi-select, "Submit" button submits all checked invoices at once | ⬜ |
-| 1.8 | "Create Invoice" action → new invoice flows into the not-yet-submitted (top) section | ⬜ |
+| 1.1 | Per individual invoice: auto-create a separate line under "rate applied" for each differential that applies to the job's hours; auto-apply the differential to the correct hours (not a manual add) | ✅ new `/portal/api/time-bands` endpoint wraps `portal_rates.compute_time_band_hours`; form auto-splits Date/Start/End into differential lines, tagged `data-auto` so re-splitting only touches auto lines |
+| 1.2 | Total line: sum all hours + sum all dollars across the invoice's lines | ✅ fixed pre-existing bug where line totals never wrote back to Amount; added visible Total row (hrs + $) on create/edit and detail view |
+| 1.3 | "Edit Invoice" button → links back to invoice creation/edit page | ✅ `/portal/invoices/<id>/edit` (owner-employee while unsubmitted, admin always) merged into `create_invoice()` |
+| 1.4 | "Submit for Review" button: locks the invoice from further interpreter edits; notifies admin's Interpreter Review page (email + appears there) | ✅ edit route blocks non-admins once `submitted`; submit + submit-batch both email coordinators (`send_invoice_submitted_email`) |
+| 1.5 | Individual invoice: add "Expenses" section — dropdown (Parking / Mileage / Travel Time / Other) + free-text box next to it | ✅ dropdown + note, stored as JSON in `invoices.expenses` (migration 019, this session's origin commit) — informational only, never priced/rolled into total per that commit's explicit decision |
+| 1.6 | Interpreter Invoices list page: split into top section (not-yet-submitted, editable) and bottom section (past/submitted, read-only) | ✅ employee view only |
+| 1.7 | Master invoice list: checkboxes per invoice, multi-select, "Submit" button submits all checked invoices at once | ✅ new `/portal/invoices/submit-batch`, scoped to caller's own open invoices |
+| 1.8 | "Create Invoice" action → new invoice flows into the not-yet-submitted (top) section | ✅ create redirects straight to the new invoice's detail page; employees can optionally link one of their unbilled jobs (`job_id`, mirrors the master-invoice exclusion so the same job can't be billed both ways) |
+
+**Built 2026-07-23.** 24 tests in `tests/test_phase9_invoice_lifecycle.py` (schema/time-band-splitter tests were already present from the earlier same-day commit; this session added the route/UI-wiring tests). Full suite 242 passed / 3 pre-existing unrelated fails (2 known MFA reds + 1 stale hardcoded-date test). Migration 019 (`019_invoice_job_link.sql`) already on prod per that earlier commit — no new migration this session. Not yet committed/pushed/deployed.
 
 ## Phase 2 — Client Review page (new)
 | # | Requirement | Status |
