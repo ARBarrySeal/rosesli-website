@@ -46,6 +46,12 @@
 
 {% if g.user.role == 'employee' %}
 
+  <p style="color:var(--muted);font-size:.75rem;max-width:640px;margin-bottom:1.5rem;">
+    Bill one job at a time here — needed for differentials, expenses, or a running total on a
+    single assignment. To bundle several jobs into one payment instead, use
+    <a href="/portal/pay/review" style="color:var(--accent);">Submit for Payment</a>.
+  </p>
+
   <form method="POST" action="/portal/invoices/submit-batch" id="batchSubmitForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   </form>
