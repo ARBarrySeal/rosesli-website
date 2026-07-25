@@ -1,7 +1,7 @@
 # Local SEO Design — rosesli.com + dodcyberconsulting.com
 
 **Date:** 2026-07-25
-**Scope:** Full local SEO for both sites. Rose SLI gets priority. Phases run A → B → C.
+**Scope:** Full local SEO for both sites. Rose SLI gets priority. Phases A and C execute now (deploy authorized); **Phase B is DEFERRED — marked for later** (per Charles 2026-07-25).
 **Execution model:** Claude makes all website changes and may commit, push, and deploy as work completes (per Charles 2026-07-25: "you can deploy this"), reporting each step. Human-only steps (GBP verification, directory signups, appeals) are delivered as step-by-step packets — Word/markdown docs on Charles's Desktop, one per business.
 
 ## Context
@@ -28,7 +28,7 @@ Both sites already have solid technical SEO from May–June 2026 passes: titles,
 3. **Citations checklist** — Bing Places, BBB, Clutch, SDMAC directory. Cyber AB RPO registration presented as a paid decision for Charles, not executed.
 4. **Review kit** — ask-templates for past/current clients.
 
-## Phase B — Content
+## Phase B — Content (DEFERRED — for later, do not execute this round)
 
 ### Rose SLI
 1. **Service landing pages** (moved from Phase A): medical, legal, and educational interpreting pages targeting "medical ASL interpreter San Diego"-style searches, with FAQ schema and internal links. Added to nav + sitemap. Respects the blog architecture rule: generated blog files are never hand-edited; `scripts/gen_blog.py` is the only writer of `/blog/<slug>` pages.
