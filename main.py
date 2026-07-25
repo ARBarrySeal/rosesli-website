@@ -254,6 +254,24 @@ def vri():
     return send_from_directory(BASE_DIR, "vri.html")
 
 
+@app.route("/medical-interpreting.html")
+@app.route("/medical-interpreting")
+def medical_interpreting():
+    return send_from_directory(BASE_DIR, "medical-interpreting.html")
+
+
+@app.route("/legal-interpreting.html")
+@app.route("/legal-interpreting")
+def legal_interpreting():
+    return send_from_directory(BASE_DIR, "legal-interpreting.html")
+
+
+@app.route("/educational-interpreting.html")
+@app.route("/educational-interpreting")
+def educational_interpreting():
+    return send_from_directory(BASE_DIR, "educational-interpreting.html")
+
+
 @app.route("/request.html")
 @app.route("/request")
 def request_page():
