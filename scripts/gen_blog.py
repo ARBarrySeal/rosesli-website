@@ -12,8 +12,10 @@ Run it whenever an article body changes or the shared chrome is updated:
 
     python scripts/gen_blog.py
 
-To add a future monthly post: add an <article> block to blog.html plus an entry
-to SLUGS below, then re-run. The script also prints the sitemap <url> blocks for
+To add a future monthly post: add an <article> block to scripts/articles-src.html
+(the article source of truth since 2026-07-25; blog.html is a cards-only hub whose
+inline bodies were removed) plus an entry to SLUGS below, then re-run. Also add an
+excerpt card for the new post to blog.html by hand. The script also prints the sitemap <url> blocks for
 the generated pages so they can be pasted into sitemap.xml.
 """
 import os
@@ -21,12 +23,16 @@ import re
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLOG_DIR = os.path.join(BASE_DIR, "blog")
-SRC = os.path.join(BASE_DIR, "blog.html")
+SRC = os.path.join(BASE_DIR, "scripts", "articles-src.html")
 SITE = "https://rosesli.com"
 
 # anchor id in blog.html -> (url slug, SEO meta description)
 # Order is newest-first; it drives the Newer/Older navigation between articles.
 SLUGS = [
+    ("who-pays", "who-pays-asl-interpreter-ada",
+     "Who pays for an ASL interpreter under the ADA? The business or provider does - never the Deaf customer. What San Diego businesses need to know, including the small-business tax credit."),
+    ("medical-request", "request-asl-interpreter-medical-appointment",
+     "How to request an ASL interpreter for a medical appointment in San Diego: who to ask, what to say, what the ADA requires of providers, and when to insist on on-site over video."),
     ("graduation", "graduation-asl-access-san-diego",
      "Planning a San Diego graduation? How schools and colleges provide qualified ASL interpreters at commencement — and why booking early is everything."),
     ("ai", "ai-sign-language-interpreters",
@@ -351,7 +357,7 @@ def main():
 
     for i, (anchor, slug, desc) in enumerate(SLUGS):
         if anchor not in parsed:
-            raise SystemExit(f"Article id '{anchor}' not found in blog.html")
+            raise SystemExit(f"Article id '{anchor}' not found in articles-src.html")
         a = parsed[anchor]
         url = f"{SITE}/blog/{slug}"
         date_iso = iso_date(a["date_display"])
