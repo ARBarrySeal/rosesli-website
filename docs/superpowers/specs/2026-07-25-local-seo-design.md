@@ -28,7 +28,13 @@ Both sites already have solid technical SEO from May–June 2026 passes: titles,
 3. **Citations checklist** — Bing Places, BBB, Clutch, SDMAC directory. Cyber AB RPO registration presented as a paid decision for Charles, not executed.
 4. **Review kit** — ask-templates for past/current clients.
 
-## Phase B — Content (DEFERRED — for later, do not execute this round)
+## Phase B — Content (BUILT 2026-07-25 — DEPLOY PENDING)
+
+> Status: all Phase B items below are built, verified locally, and committed.
+> **Nothing is deployed.** rosesli commits are LOCAL-ONLY (pushing auto-deploys
+> via the repo's GitHub trigger — do not push until deploy is wanted). DOD
+> commits are pushed to GitHub but not deployed (no trigger; ships on next
+> `gcloud builds submit`).
 
 ### Rose SLI
 1. **Service landing pages** (moved from Phase A): medical, legal, and educational interpreting pages targeting "medical ASL interpreter San Diego"-style searches, with FAQ schema and internal links. Added to nav + sitemap. Respects the blog architecture rule: generated blog files are never hand-edited; `scripts/gen_blog.py` is the only writer of `/blog/<slug>` pages.
