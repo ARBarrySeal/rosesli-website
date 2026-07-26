@@ -1425,7 +1425,7 @@ def _job_or_404(job_id, company):
 def upload_job_documents(job_id):
     company = g.user["company"]
     uid     = g.user["sub"]
-    dest    = f"/portal/admin/assignments/{job_id}"
+    dest    = f"/portal/assignments/{job_id}"
     _job_or_404(job_id, company)
 
     files = [f for f in request.files.getlist("files") if f and f.filename]
@@ -1496,4 +1496,4 @@ def delete_job_document(job_id, doc_id):
     audit_log("job_doc_delete", target=f"doc:{doc_id}",
               metadata={"job_id": job_id, "original_name": doc["original_name"]})
     flash("File deleted.", "success")
-    return redirect(f"/portal/admin/assignments/{job_id}")
+    return redirect(f"/portal/assignments/{job_id}")

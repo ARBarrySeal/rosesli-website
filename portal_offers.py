@@ -160,7 +160,7 @@ def offer_job(job_id):
     ids = request.form.getlist("interpreter_id", type=int)
     if not ids:
         flash("Select at least one interpreter to offer.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
+        return redirect(f"/portal/assignments/{job_id}")
 
     note = (request.form.get("note") or "").strip() or None
     offered, skipped = _offer_to_ids(job_id, company, job, ids, note, portal_email.send_offer_email)
@@ -173,7 +173,7 @@ def offer_job(job_id):
     if skipped:
         names = ", ".join(f"{_name_for(i, company) or f'#{i}'} ({why})" for i, why in skipped)
         flash(f"Skipped {len(skipped)}: {names}.", "error")
-    return redirect(f"/portal/admin/assignments/{job_id}")
+    return redirect(f"/portal/assignments/{job_id}")
 
 
 @offers_bp.route("/portal/admin/assignments/<int:job_id>/broadcast", methods=["POST"])
@@ -192,7 +192,7 @@ def broadcast_offer_job(job_id):
     ids = [r["id"] for r in active_interpreter_emails(company)]
     if not ids:
         flash("No active interpreters to broadcast to.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
+        return redirect(f"/portal/assignments/{job_id}")
 
     offered, skipped = _offer_to_ids(
         job_id, company, job, ids, None, portal_email.send_broadcast_offer_email)
@@ -204,7 +204,7 @@ def broadcast_offer_job(job_id):
         flash(f"Broadcast to {len(offered)} interpreter(s).", "success")
     if skipped:
         flash(f"Skipped {len(skipped)} (already booked or unavailable that day).", "error")
-    return redirect(f"/portal/admin/assignments/{job_id}")
+    return redirect(f"/portal/assignments/{job_id}")
 
 
 @offers_bp.route("/portal/admin/offers/<int:offer_id>/withdraw", methods=["POST"])
@@ -237,7 +237,7 @@ def withdraw_offer(offer_id):
         )
 
     flash("Offer withdrawn.", "success")
-    return redirect(f"/portal/admin/assignments/{offer['job_id']}")
+    return redirect(f"/portal/assignments/{offer['job_id']}")
 
 
 @offers_bp.route("/portal/admin/assignments/<int:job_id>/confirm", methods=["POST"])
@@ -251,7 +251,7 @@ def confirm_interpreter(job_id):
     iid = request.form.get("interpreter_id", type=int)
     if not iid:
         flash("Pick an interpreter to confirm.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
+        return redirect(f"/portal/assignments/{job_id}")
 
     # Must have accepted (idempotent: confirming an already-confirmed person is fine).
     offer = portal_db.query_one(
@@ -261,11 +261,11 @@ def confirm_interpreter(job_id):
     )
     if not offer or offer["status"] not in ("accepted", "offered"):
         flash("That interpreter has no accepted offer to confirm.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
+        return redirect(f"/portal/assignments/{job_id}")
 
     if _confirmed_elsewhere(iid, company, job.get("event_date"), exclude_job_id=job_id):
         flash("That interpreter is already confirmed on another job that day.", "error")
-        return redirect(f"/portal/admin/assignments/{job_id}")
+        return redirect(f"/portal/assignments/{job_id}")
 
     name = _name_for(iid, company)
     # Staff at the next open slot (never overwrites anyone already confirmed),
@@ -314,7 +314,7 @@ def confirm_interpreter(job_id):
         flash(f"Confirmed {name}. Job fully staffed ({filled} of {required}).", "success")
     else:
         flash(f"Confirmed {name} ({filled} of {required} slots filled).", "success")
-    return redirect(f"/portal/admin/assignments/{job_id}")
+    return redirect(f"/portal/assignments/{job_id}")
 
 
 # ── Interpreter side (employee) ───────────────────────────────────────────────
@@ -412,7 +412,7 @@ def _respond(offer_id: int, decision: str):
     job = _job(offer["job_id"], company)
     verb = "accepted" if decision == "accepted" else "declined"
     me = _name_for(uid, company) or "An interpreter"
-    link = _abs_url(f"/portal/admin/assignments/{offer['job_id']}")
+    link = _abs_url(f"/portal/assignments/{offer['job_id']}")
     for email in portal_email.coordinator_recipients(company):
         portal_email.send_offer_response_email(
             email, me, verb, job or {}, link, _company_name(company)
