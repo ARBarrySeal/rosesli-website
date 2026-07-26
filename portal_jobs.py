@@ -462,6 +462,20 @@ def assignment_detail(job_id):
 
 # ── Requests (client view of own jobs; admin public-request inbox) ────────────
 
+def pending_request_count(company: str) -> int:
+    """Unactioned public interpreter requests waiting in the admin inbox.
+
+    The /api/request handler always persists the job even when the notification
+    email fails, so this count is the only signal that survives a mail outage.
+    """
+    row = portal_db.query_one(
+        "SELECT COUNT(*) AS n FROM jobs "
+        "WHERE company = %s AND source = 'public_request' AND status = 'pending'",
+        (company,),
+    )
+    return int(row["n"]) if row else 0
+
+
 @jobs_bp.route("/portal/requests")
 @login_required
 def requests_list():

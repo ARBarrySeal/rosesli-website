@@ -153,7 +153,11 @@ def test_interpreter_invoices_client_invoices_and_profile_in_admin_section(app, 
 def test_interpreter_invoices_near_incoming_requests(app, world):
     admin = _client(app, ADMIN_EMAIL)
     html = admin.get("/portal").data.decode()
-    ir_pos, ii_pos = _nav_order(html, ["Incoming Requests</a>", "Interpreter Invoices</a>"])
+    # Match the label alone, not "…</a>": Incoming Requests carries a pending
+    # count badge between its text and the closing tag (as Job Offers does).
+    # The ordering and adjacency this test guards are unaffected — the badge
+    # span has no href, so the between-links count below still holds.
+    ir_pos, ii_pos = _nav_order(html, ["Incoming Requests", "Interpreter Invoices</a>"])
     assert ir_pos < ii_pos
     between = html[ir_pos:ii_pos]
     assert between.count("href=") == 1  # just Interpreter Invoices' own link

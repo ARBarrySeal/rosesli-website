@@ -127,6 +127,11 @@ def dashboard():
                 "WHERE u.company = %s AND i.status = 'unpaid'",
                 (company,),
             )["n"],
+            "requests": portal_db.query_one(
+                "SELECT COUNT(*) AS n FROM jobs "
+                "WHERE company = %s AND source = 'public_request' AND status = 'pending'",
+                (company,),
+            )["n"],
         }
         invoices = portal_db.query_all(
             "SELECT i.id, u.full_name, u.email, i.amount, i.status, i.due_date "

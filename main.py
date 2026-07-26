@@ -131,15 +131,24 @@ def _hours_minutes(value):
 
 @app.context_processor
 def _inject_offer_badge():
-    """Pending-offer count for the nav badge (interpreters/admins only)."""
+    """Nav badge counts: pending offers (interpreters/admins), plus the
+    unactioned public-request inbox (admins only)."""
     user = getattr(g, "user", None)
     if not user or user.get("role") not in ("admin", "employee"):
         return {}
+    counts = {}
     try:
         from portal_offers import pending_offer_count
-        return {"pending_offers": pending_offer_count(int(user["sub"]), user["company"])}
+        counts["pending_offers"] = pending_offer_count(int(user["sub"]), user["company"])
     except Exception:
-        return {"pending_offers": 0}
+        counts["pending_offers"] = 0
+    if user.get("role") == "admin":
+        try:
+            from portal_jobs import pending_request_count
+            counts["pending_requests"] = pending_request_count(user["company"])
+        except Exception:
+            counts["pending_requests"] = 0
+    return counts
 
 
 _CSRF_EXEMPT = {"/api/request"}

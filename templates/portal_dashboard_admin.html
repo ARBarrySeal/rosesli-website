@@ -5,6 +5,10 @@
 <h1>Admin Dashboard</h1>
 
 <div class="stat-cards">
+  <a href="/portal/requests" class="stat-card" style="text-decoration:none;cursor:pointer;">
+    <div class="label">New Requests</div>
+    <div class="value" style="{{ 'color:#ffaa33' if stats.requests > 0 else 'color:var(--success)' }}">{{ stats.requests }}</div>
+  </a>
   <a href="/portal/admin/assignments/new" class="stat-card" style="text-decoration:none;cursor:pointer;">
     <div class="label">Administrative Assignments</div>
     <div class="value">+ New</div>

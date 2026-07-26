@@ -68,7 +68,9 @@
     {% if g.user.company == 'rosesli' %}
     <a href="/portal/assignments" class="{{ 'active' if request.path.startswith('/portal/assignments') else '' }}">Admin Assignments</a>
     {% endif %}
-    <a href="/portal/requests"              class="{{ 'active' if request.path.startswith('/portal/requests') else '' }}">Incoming Requests</a>
+    <a href="/portal/requests"              class="{{ 'active' if request.path.startswith('/portal/requests') else '' }}">
+      Incoming Requests{% if pending_requests %} <span class="badge badge-pending">{{ pending_requests }}</span>{% endif %}
+    </a>
     <a href="/portal/invoices"  class="{{ 'active' if request.path.startswith('/portal/invoices') else '' }}">Interpreter Invoices</a>
     {% if g.user.company == 'rosesli' %}
     <a href="/portal/admin/interpreter-review" class="{{ 'active' if request.path.startswith('/portal/admin/interpreter-review') else '' }}">Interpreter Review</a>
