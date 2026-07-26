@@ -128,7 +128,8 @@ footer{background:var(--ink);color:#9ba9bb;padding:48px 28px 24px;}
 
 @media(max-width:700px){
   .topbar .left,.topbar .right{flex-direction:column;gap:0;}
-  .topbar .left span,.topbar .right span{display:block;white-space:nowrap;padding:2px 0;}
+  .topbar .left span,.topbar .right span{display:block;white-space:normal;text-align:center;padding:2px 0;}
+  .foot-creds{flex-direction:column;align-items:flex-start;gap:10px;}
   .topbar-request-pill{display:block;}
   .nav-links,#nav-auth{display:none!important;}
   .nav-hamburger{display:flex;}

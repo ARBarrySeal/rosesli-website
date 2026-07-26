@@ -252,21 +252,21 @@
         <div class="field-row">
           <label class="field">
             <span class="field-lbl">Your name</span>
-            <input type="text" name="name" required placeholder="Jane Smith">
+            <input type="text" name="name" autocomplete="name" required placeholder="Jane Smith">
           </label>
           <label class="field">
             <span class="field-lbl">Organization</span>
-            <input type="text" name="org" placeholder="Hospital, agency, firm&hellip;">
+            <input type="text" name="org" autocomplete="organization" placeholder="Hospital, agency, firm&hellip;">
           </label>
         </div>
         <div class="field-row" style="margin-top:14px;">
           <label class="field">
             <span class="field-lbl">Email</span>
-            <input type="email" name="email" required placeholder="you@org.com">
+            <input type="email" name="email" autocomplete="email" required placeholder="you@org.com">
           </label>
           <label class="field">
             <span class="field-lbl">Phone</span>
-            <input type="tel" name="phone" placeholder="(619) 555–0100">
+            <input type="tel" name="phone" autocomplete="tel" placeholder="(619) 555–0100">
           </label>
         </div>
       </div>
@@ -324,20 +324,20 @@
         <div class="form-section-h"><span class="num">03</span> When &amp; where</div>
         <label class="field" style="margin-bottom:14px;">
           <span class="field-lbl">Street address (optional)</span>
-          <input type="text" name="street" placeholder="123 Main St, Suite 200">
+          <input type="text" name="street" autocomplete="address-line1" placeholder="123 Main St, Suite 200">
         </label>
         <div class="field-row field-row-3" style="margin-bottom:14px;">
           <label class="field">
             <span class="field-lbl">City (optional)</span>
-            <input type="text" name="city" placeholder="San Diego">
+            <input type="text" name="city" autocomplete="address-level2" placeholder="San Diego">
           </label>
           <label class="field">
             <span class="field-lbl">State (optional)</span>
-            <input type="text" name="state" maxlength="2" pattern="[A-Za-z]{2}" placeholder="CA" style="text-transform:uppercase;">
+            <input type="text" name="state" autocomplete="address-level1" maxlength="2" pattern="[A-Za-z]{2}" placeholder="CA" style="text-transform:uppercase;">
           </label>
           <label class="field">
             <span class="field-lbl">Event ZIP code</span>
-            <input type="text" name="zip" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="92101">
+            <input type="text" name="zip" autocomplete="postal-code" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="92101">
           </label>
         </div>
         <div class="date-block" id="date-block">
