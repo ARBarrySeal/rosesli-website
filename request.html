@@ -92,7 +92,8 @@
   .field{display:flex;flex-direction:column;gap:6px;}
   .field-lbl{font-size:15px;letter-spacing:.04em;color:var(--ink2);font-weight:600;}
   .field-lbl .opt{font-weight:400;color:var(--mute);text-transform:none;letter-spacing:0;font-style:italic;font-family:'Instrument Serif',serif;}
-  .req-form input,.req-form select,.req-form textarea{font-family:'Inter',sans-serif;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;transition:border-color .15s,box-shadow .15s;width:100%;}
+  /* 16px minimum: iOS Safari auto-zooms the page on focus below that. */
+  .req-form input,.req-form select,.req-form textarea{font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;transition:border-color .15s,box-shadow .15s;width:100%;}
   .req-form input:focus,.req-form select:focus,.req-form textarea:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(26,86,219,.15);}
   .req-form textarea{resize:vertical;font-family:inherit;}
   .radio-group{display:flex;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:4px;background:var(--paper);}

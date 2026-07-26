@@ -26,7 +26,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .auth-box p a { color: var(--accent); }
 .auth-box form { display: flex; flex-direction: column; gap: 1rem; }
 .auth-box label { display: flex; flex-direction: column; gap: .3rem; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.auth-box input, .auth-box select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 14px; padding: .65rem .8rem; border-radius: var(--radius); outline: none; }
+/* 16px minimum: iOS Safari auto-zooms the page on focus below that. */
+.auth-box input, .auth-box select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 16px; padding: .65rem .8rem; border-radius: var(--radius); outline: none; }
 .auth-box input:focus, .auth-box select:focus { border-color: var(--accent); }
 .auth-box button { background: var(--accent); color: var(--bg); border: none; font-family: var(--font); font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: .75rem 1.2rem; border-radius: var(--radius); cursor: pointer; margin-top: .25rem; min-height: 44px; }
 .auth-box button:hover { opacity: .85; }

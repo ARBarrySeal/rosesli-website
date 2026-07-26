@@ -13,7 +13,8 @@
     h1{font-size:1.35rem;font-weight:700;color:#111;margin-bottom:6px;text-align:center;}
     .sub{font-size:.82rem;color:#6b7280;text-align:center;margin-bottom:24px;}
     label{display:flex;flex-direction:column;gap:5px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:14px;}
-    input[type=email],input[type=password]{background:#f8f9fb;border:1px solid #d1d5db;color:#111;font-size:14px;padding:9px 12px;border-radius:7px;outline:none;transition:border .15s;}
+    /* 16px minimum: iOS Safari auto-zooms the page on focus below that. */
+    input[type=email],input[type=password]{background:#f8f9fb;border:1px solid #d1d5db;color:#111;font-size:16px;padding:9px 12px;border-radius:7px;outline:none;transition:border .15s;}
     input:focus{border-color:#1a56db;}
     .btn{width:100%;background:#1a56db;color:#fff;border:none;border-radius:7px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.02em;margin-top:4px;transition:background .15s;}
     .btn:hover{background:#1447c0;}

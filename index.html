@@ -300,25 +300,28 @@
   .nav-mobile-menu a:last-child{border-bottom:none;color:var(--blue);}
   .topbar-request-pill{display:none;}
 
-  @media(max-width:700px){
-    .topbar .left,.topbar .right{flex-direction:column;gap:0;}
-    .topbar .left span,.topbar .right span{display:block;white-space:nowrap;padding:2px 0;}
-    .topbar-request-pill{display:block!important;}
-    .nav-links,#nav-auth,.nav-auth-li{display:none!important;}
-    .nav-hamburger{display:flex;}
-  }
-
   @media(max-width:960px){
-    .topbar{flex-direction:column;gap:4px;font-size:12px;padding:8px 14px;align-items:center;}
-    .topbar .left,.topbar .right{flex-direction:column;align-items:center;gap:2px;white-space:normal;text-align:center;}
-    .topbar .right span{white-space:nowrap;}
-    nav.main{flex-wrap:wrap;gap:10px;padding:10px 14px;}
-    .nav-links{flex-wrap:wrap;gap:10px;justify-content:flex-end;flex:1;align-items:center;}
-    .nav-auth-li{order:5;flex-basis:100%;display:flex;justify-content:center;}
-    .nav-auth-fields{flex:1;}
-    .nav-auth-fields input{width:100%;}
-    .nav-links > li:not(.nav-auth-li):not(.nav-links-cta){display:none;}
-    .nav-links-cta{order:6;}
+    /* Compact single-row topbar, pinned at a known 44px so the sticky nav
+       below it always sits at a predictable offset. */
+    .topbar{position:sticky;top:0;z-index:51;flex-direction:row;align-items:center;justify-content:center;gap:18px;height:44px;padding:0 12px;font-size:13px;overflow:hidden;}
+    .topbar .left{display:none;}
+    .topbar .right{flex-direction:row;align-items:center;gap:18px;}
+    .topbar .right span:nth-child(1),.topbar .right span:nth-child(3){display:none;}
+    .topbar .right a{display:inline-flex;align-items:center;height:44px;padding:0 6px;}
+    .topbar-request-pill{display:inline-flex!important;align-items:center;margin-top:0!important;min-height:32px;}
+
+    /* Nav pins directly under the topbar and stays above the drop-down sheet,
+       so the hamburger stays tappable as a close button while the menu is open.
+       The hamburger takes over from 960px down — below that the inline links
+       no longer fit, and without it tablets were left with no navigation. */
+    nav.main{top:44px;z-index:60;height:56px;padding:0 14px;gap:10px;}
+    .nav-links,#nav-auth,.nav-auth-li{display:none!important;}
+    .nav-hamburger{display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;margin-left:8px;}
+
+    /* Sheet drops beneath the 44px topbar + 56px nav at any scroll position. */
+    .nav-mobile-menu{top:44px;padding:60px 20px 20px;max-height:calc(100vh - 44px);overflow-y:auto;}
+    .nav-mobile-menu a{display:flex;align-items:center;min-height:48px;padding:8px 0;}
+    footer a{display:inline-flex;align-items:center;min-height:44px;}
     .hero{grid-template-columns:1fr;gap:40px;padding:36px 18px 40px;}
     .hero h1{font-size:44px;}
     .hero-eyebrow{font-size:11px!important;letter-spacing:.12em!important;white-space:nowrap;}
