@@ -593,8 +593,6 @@ def api_request():
     method = "none"
     delivered = False
     last_error = None
-    _diag_resend_error = None
-    _diag_smtp_error = None
     # Email is best-effort. Each provider gets its own try so a Resend failure
     # still allows the SMTP fallback to run, and a total email failure does not
     # block persisting the lead to the DB or showing the user success.
@@ -604,7 +602,6 @@ def api_request():
             method, delivered = "resend", result
     except Exception as exc:
         last_error = exc
-        _diag_resend_error = str(exc)
         _structured_log("ERROR", message="resend_send_failed", error=str(exc))
     if not delivered:
         try:
@@ -613,23 +610,10 @@ def api_request():
                 method, delivered = "smtp", result
         except Exception as exc:
             last_error = exc
-            _diag_smtp_error = str(exc)
             _structured_log("ERROR", message="smtp_send_failed", error=str(exc))
     _create_job_from_request(form)
     _log_submission(form, delivered, method, error=last_error)
-    resp = {"ok": True, "delivered": delivered}
-    # TEMP diagnostic (2026-08-11): surface provider errors when a matching debug
-    # header is sent, to unblock investigating why delivery is failing without
-    # log/console access. Remove this block once the root cause is fixed.
-    if request.headers.get("X-Diag-Token") == "rosesli-tmp-debug-20260811":
-        resp["diag"] = {
-            "resend_configured": bool(os.environ.get("RESEND_API_KEY")),
-            "smtp_configured": bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASS")),
-            "resend_error": _diag_resend_error,
-            "smtp_error": _diag_smtp_error,
-            "method": method,
-        }
-    return jsonify(**resp)
+    return jsonify(ok=True, delivered=delivered)
 
 
 @app.route("/portal.css")
