@@ -454,7 +454,7 @@ def _send_via_resend(body, reply_to):
         return None
     payload = {
         "from": os.environ.get("RESEND_FROM", "Rose's Li <onboarding@resend.dev>"),
-        "to": [os.environ.get("RESEND_TO", "info@rosesli.com")],
+        "to": [os.environ.get("RESEND_TO", "amandarose@rosesli.com")],
         "subject": "New interpreter request — rosesli.com",
         "text": body,
     }
@@ -494,7 +494,7 @@ def _send_via_smtp(body, reply_to):
     msg = EmailMessage()
     msg["Subject"] = "New interpreter request — rosesli.com"
     msg["From"] = user
-    msg["To"] = os.environ.get("SMTP_TO", "info@rosesli.com")
+    msg["To"] = os.environ.get("SMTP_TO", "amandarose@rosesli.com")
     if reply_to:
         msg["Reply-To"] = reply_to
     msg.set_content(body)
