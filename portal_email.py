@@ -1,6 +1,9 @@
+import json
 import os
 import smtplib
 import ssl
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 
 import portal_db
@@ -21,12 +24,52 @@ def _smtp_config() -> dict | None:
     }
 
 
-def _send_with_detail(to_email: str, subject: str, body: str) -> tuple[bool, str]:
-    """Same as _send but returns (ok, detail) so callers can surface the
-    specific failure reason. detail is safe to display to admins."""
+def _send_via_resend(to_email: str, subject: str, body: str) -> tuple[bool, str] | None:
+    """Send through Resend's HTTP API.
+
+    Returns None when Resend isn't configured so the caller falls through to
+    SMTP. Mirrors the provider call already used by the public request form."""
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        return None
+    payload = {
+        "from": os.environ.get("RESEND_FROM", "Rose's Li <onboarding@resend.dev>"),
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+    }
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Resend's anti-abuse appears to flag urllib's default UA from Cloud Run.
+            "User-Agent": "rosesli-website/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if 200 <= resp.status < 300:
+                return True, f"Sent via Resend as {payload['from']}."
+            return False, f"Resend returned HTTP {resp.status}."
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", errors="replace")[:500]
+        except Exception:
+            pass
+        return False, f"Resend error (HTTP {exc.code}): {detail}"
+    except (urllib.error.URLError, OSError) as exc:
+        return False, f"Resend connection error: {type(exc).__name__}: {exc}"
+
+
+def _send_via_smtp(to_email: str, subject: str, body: str) -> tuple[bool, str] | None:
+    """Send through SMTP. Returns None when SMTP isn't configured."""
     cfg = _smtp_config()
     if cfg is None:
-        return False, "SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS env vars."
+        return None
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = cfg["from"]
@@ -45,6 +88,35 @@ def _send_with_detail(to_email: str, subject: str, body: str) -> tuple[bool, str
         return False, f"SMTP error: {type(e).__name__}: {e}"
     except (OSError, ssl.SSLError) as e:
         return False, f"Connection error: {type(e).__name__}: {e}"
+
+
+def _log(severity: str, **fields) -> None:
+    """Cloud Run reads single-line JSON on stdout as a structured log entry."""
+    print(json.dumps({"severity": severity, **fields}), flush=True)
+
+
+def _send_with_detail(to_email: str, subject: str, body: str) -> tuple[bool, str]:
+    """Deliver a portal email, preferring Resend and falling back to SMTP.
+
+    Returns (ok, detail); detail is safe to display to admins. Every failure is
+    logged: a silently swallowed SMTP auth error previously made undelivered
+    credential mail indistinguishable from a successful send."""
+    attempts: list[str] = []
+    for provider, sender in (("resend", _send_via_resend), ("smtp", _send_via_smtp)):
+        result = sender(to_email, subject, body)
+        if result is None:
+            continue
+        ok, detail = result
+        if ok:
+            return True, detail
+        attempts.append(f"{provider}: {detail}")
+        _log("ERROR", message=f"{provider}_send_failed", to=to_email, detail=detail)
+    if not attempts:
+        return False, ("Email is not configured. Set RESEND_API_KEY, or "
+                       "SMTP_HOST, SMTP_USER and SMTP_PASS.")
+    summary = " | ".join(attempts)
+    _log("ERROR", message="email_send_failed", to=to_email, detail=summary)
+    return False, summary
 
 
 def _send(to_email: str, subject: str, body: str) -> bool:

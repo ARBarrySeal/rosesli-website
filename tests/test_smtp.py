@@ -39,7 +39,7 @@ def _isolate():
 # ─── Unit tests on send_test_email ────────────────────────────────────────────
 
 def test_send_test_email_returns_not_configured_when_env_unset(monkeypatch):
-    for var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS"):
+    for var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "RESEND_API_KEY"):
         monkeypatch.delenv(var, raising=False)
     ok, detail = portal_email.send_test_email("a@b.test", "TestCo")
     assert ok is False
@@ -149,7 +149,7 @@ def test_smtp_test_route_returns_json_and_logs_audit(client, app, monkeypatch):
     csrf = _inject_admin_session(client, app, uid)
 
     # Force SMTP unconfigured -> route still returns 200 with ok=False.
-    for var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS"):
+    for var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS", "RESEND_API_KEY"):
         monkeypatch.delenv(var, raising=False)
 
     r = client.post(
