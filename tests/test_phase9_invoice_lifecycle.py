@@ -269,6 +269,42 @@ def test_employee_cannot_link_someone_elses_job(app, world):
     assert inv["job_id"] is None
 
 
+def test_job_linked_invoice_ignores_tampered_amount(app, world):
+    # Server recomputes the amount from the assignment + interpreter rate; a
+    # tampered/stale POST amount must not decide what gets paid.
+    jid = _mk_job(world["interp"], date(2026, 8, 5), time(9, 0), time(13, 0))  # 4h pure day
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/admin/invoices/create", data={
+        "csrf_token": _csrf(c), "job_id": str(jid),
+        "amount": "1", "base_rate": "1", "duration_hours": "1",  # all ignored
+    }, follow_redirects=False)
+    assert r.status_code == 302, r.data
+    inv = portal_db.query_one("SELECT * FROM invoices WHERE job_id = %s", (jid,))
+    assert inv is not None
+    assert float(inv["amount"]) == 200.0        # 4h * $50, not the posted $1
+    assert float(inv["base_rate"]) == 50.0      # interp's rate, not posted $1
+    assert float(inv["duration_hours"]) == 4.0
+
+
+def test_job_linked_invoice_auto_splits_differential_bands(app, world):
+    # 4pm-8pm = 1h day + 3h weekday_evening ($5 diff, seeded in migration 015).
+    jid = _mk_job(world["interp"], date(2026, 8, 5), time(16, 0), time(20, 0))
+    c = _client(app, INTERP_EMAIL)
+    r = c.post("/portal/admin/invoices/create", data={
+        "csrf_token": _csrf(c), "job_id": str(jid), "amount": "1",
+    }, follow_redirects=False)
+    assert r.status_code == 302, r.data
+    inv = portal_db.query_one("SELECT * FROM invoices WHERE job_id = %s", (jid,))
+    assert float(inv["base_rate"]) == 50.0
+    assert float(inv["duration_hours"]) == 1.0   # primary band = day (shift starts there)
+    lines = json.loads(inv["interpreter_rates"])
+    assert len(lines) == 1
+    assert lines[0]["duration"] == 3.0           # evening band as an auto extra line
+    assert lines[0]["auto"] is True
+    # total = 1h*$50 (day) + 3h*($50+$5 evening) = $50 + $165 = $215
+    assert float(inv["amount"]) == 215.0
+
+
 # ── 7. Edit route permissions ───────────────────────────────────────────────
 
 def _mk_invoice(uid, amount=100.0, submitted=False):

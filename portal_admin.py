@@ -144,6 +144,26 @@ def time_bands_json():
     return jsonify(bands=bands)
 
 
+def _parse_job_time(raw):
+    """jobs.start_time / jobs.end_time are TEXT columns (stored straight from
+    an HTML <input type="time"> as "HH:MM", though values written via other
+    paths may include seconds) — parse to a datetime.time for the time-band
+    splitter, which needs real time objects, not strings. Returns None on any
+    unparseable value so callers can fall back rather than 500."""
+    if raw is None:
+        return None
+    if hasattr(raw, "hour"):
+        return raw
+    raw = str(raw).strip()
+    if not raw:
+        return None
+    fmt = "%H:%M:%S" if raw.count(":") == 2 else "%H:%M"
+    try:
+        return datetime.strptime(raw, fmt).time()
+    except ValueError:
+        return None
+
+
 @admin_bp.route("/portal/admin/invoices/create", methods=["GET", "POST"])
 @admin_bp.route("/portal/invoices/<int:invoice_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -252,16 +272,10 @@ def create_invoice(invoice_id=None):
     else:
         recipient_id = int(g.user["sub"])
 
-    try:
-        amount = float(amount_raw)
-        if amount <= 0:
-            raise ValueError
-    except ValueError:
-        return _rerender("Amount must be a positive number.")
-
     # Optional job link (new invoices, interpreter self-create only). Blank or
     # foreign job ids are ignored rather than erroring the whole submission.
     job_id = None
+    job = None
     if inv is None and not is_admin:
         raw_job_id = request.form.get("job_id") or ""
         if raw_job_id:
@@ -269,8 +283,61 @@ def create_invoice(invoice_id=None):
                 candidate = int(raw_job_id)
             except ValueError:
                 candidate = None
-            if candidate is not None and any(j["id"] == candidate for j in billable_jobs):
-                job_id = candidate
+            if candidate is not None:
+                job = next((j for j in billable_jobs if j["id"] == candidate), None)
+                if job is not None:
+                    job_id = candidate
+
+    if job_id is not None:
+        # Server-authoritative: a job-linked invoice's payable amount, base
+        # rate, differential breakdown and service date/time are recomputed
+        # here from the assignment + rate/differential tables — never trusted
+        # from the POST. The form auto-fills those fields for the interpreter's
+        # preview, but a stale or tampered submission must not decide what gets
+        # paid. (Notes and Expenses stay as the interpreter entered them.)
+        job_start = _parse_job_time(job.get("start_time"))
+        job_end = _parse_job_time(job.get("end_time"))
+        if not job.get("event_date") or job_start is None or job_end is None:
+            return _rerender("That assignment isn't available to invoice.")
+        rate = portal_rates.rate_for(recipient_id, job["event_date"])
+        try:
+            bands = portal_rates.compute_time_band_hours(job["event_date"], job_start, job_end)
+        except ValueError:
+            # Zero-duration or otherwise unusable shift — don't 500, re-render.
+            return _rerender("That assignment isn't available to invoice.")
+        diff_amounts = {r["code"]: float(r["amount"])
+                        for r in portal_rates.differentials_for(company, job["event_date"])}
+        # Primary band = whichever band the shift starts in. compute_time_band_hours
+        # inserts each code the first time the walk encounters it, so dict
+        # insertion order (stable since 3.7) already gives "first band touched"
+        # — no separate start-time match, which a substring check would get
+        # wrong anyway ("day" is a substring of "weekday_evening"/"weekend_day").
+        primary_code = next(iter(bands))
+        base_rate = rate or 0.0
+        diff_val = diff_amounts.get(primary_code, 0.0)
+        duration_hours = bands.pop(primary_code)
+        rate_applied = base_rate + diff_val
+        amount = round(duration_hours * rate_applied, 2)
+        auto_lines = []
+        for code, hrs in bands.items():
+            addon = diff_amounts.get(code, 0.0)
+            line_amt = round(hrs * (base_rate + addon), 2)
+            auto_lines.append({"differential": addon, "duration": hrs,
+                               "amount": line_amt, "code": code, "auto": True})
+            amount += line_amt
+        interpreter_rates = _json.dumps(auto_lines) if auto_lines else None
+        date_of_service = job["event_date"]
+        start_time = job_start.strftime("%H:%M")
+        end_time = job_end.strftime("%H:%M")
+        description = description or f"Assignment {job.get('job_number') or ('#' + str(job_id))}"
+        diff_raw = str(diff_val)
+    else:
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            return _rerender("Amount must be a positive number.")
 
     if inv is not None:
         portal_db.execute(
