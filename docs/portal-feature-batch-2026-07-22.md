@@ -141,3 +141,21 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done & verified · ❓ needs 
 
 ## Progress log
 - 2026-07-22: Batch doc created after brainstorming + clarifying questions. Phase 0 (phone number) done locally, pending commit/push/deploy approval.
+- 2026-07-23: Phase 1 shipped (Tasks 1-8 of `docs/superpowers/plans/2026-07-23-portal-phase1-invoice-lifecycle.md`).
+  Job-linked invoices with server-computed, proportionally-split time-band
+  differentials (day/evening/overnight x weekday/weekend); 2-hour minimum
+  billing preserved. Expenses are informational only (type + note, no
+  dollar amount — confirmed with Charles 2026-07-23, deviates from a naive
+  literal reading of "sum all dollars" in 1.2 since expenses were never
+  specified to carry an amount). Edit Invoice locks once submitted. Draft
+  vs Submitted split + bulk-submit shipped on the existing `/portal/invoices`
+  employee view; admin's view unchanged (still flat, still has Interpreter
+  Review for oversight). The legacy freeform (no-job) manual invoice
+  creation path is untouched and still available to admins for ad-hoc pay
+  adjustments — Phase 10 (nav restructure) should revisit whether that's
+  still needed once Phase 1-9 are all live.
+- 2026-09-15: Task 4 (server-authoritative job-linked recompute) completed the last
+  dangling piece from July — commits ca87be0 + dc8e511, deployed to Cloud Run.
+  Verified admin create-invoice path is regression-clean; full server-authoritative
+  recompute is interpreter-only and gated behind an interpreter login. Progress-log
+  entry above backfilled today (Task 9) after confirming Tasks 1-8 were already in HEAD.
