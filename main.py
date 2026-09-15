@@ -448,13 +448,19 @@ def _log_submission(form, delivered, method, error=None):
     )
 
 
+def _recipients(env_name):
+    """Comma- or semicolon-separated list of lead recipients from env."""
+    raw = os.environ.get(env_name, "amandarose@rosesli.com")
+    return [addr.strip() for addr in raw.replace(";", ",").split(",") if addr.strip()]
+
+
 def _send_via_resend(body, reply_to):
     api_key = os.environ.get("RESEND_API_KEY")
     if not api_key:
         return None
     payload = {
         "from": os.environ.get("RESEND_FROM", "Rose's Li <onboarding@resend.dev>"),
-        "to": [os.environ.get("RESEND_TO", "amandarose@rosesli.com")],
+        "to": _recipients("RESEND_TO"),
         "subject": "New interpreter request — rosesli.com",
         "text": body,
     }
@@ -494,7 +500,7 @@ def _send_via_smtp(body, reply_to):
     msg = EmailMessage()
     msg["Subject"] = "New interpreter request — rosesli.com"
     msg["From"] = user
-    msg["To"] = os.environ.get("SMTP_TO", "amandarose@rosesli.com")
+    msg["To"] = ", ".join(_recipients("SMTP_TO"))
     if reply_to:
         msg["Reply-To"] = reply_to
     msg.set_content(body)
