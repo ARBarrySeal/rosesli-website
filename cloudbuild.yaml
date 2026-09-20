@@ -88,3 +88,9 @@ images:
 
 # Build + test suite + deploy runs well past the default 10-minute timeout.
 timeout: '1800s'
+
+# The trigger runs as an explicit service account (compute default SA), and
+# GCP requires builds with an explicit service account to also pick a logging
+# destination — otherwise every run of this trigger fails before step 1 runs.
+options:
+  logging: CLOUD_LOGGING_ONLY
