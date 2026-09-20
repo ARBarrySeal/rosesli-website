@@ -10,6 +10,7 @@ to the client until an admin reviews and submits them via the new
   * /portal/admin/client-review lists only drafts, newest first
   * /portal/admin/client-invoices/submit-batch flips selected drafts visible
 """
+import re
 import os
 import secrets
 import datetime as dt
@@ -30,6 +31,13 @@ EMAILS = [ADMIN_EMAIL, CLIENT_EMAIL, CLIENT2_EMAIL, EMPLOYEE_EMAIL]
 
 MARKER = "pytest-p2cr-marker"
 EVENT_DATE = dt.date.today() + dt.timedelta(days=14)
+
+
+def _no_entities(html):
+    """Strip numeric HTML entities (portal_base.html renders &#8592; and
+    &#9776;) so a bare "#<id>" substring check cannot collide with them.
+    Invoice/job ids 8 and 9 are common on a freshly migrated CI database."""
+    return re.sub(r"&#\d+;", "", html)
 
 
 def _cleanup():
@@ -129,7 +137,7 @@ def test_client_list_excludes_drafts(app, world):
     _mk_invoice(world["client"], submitted=False)
     c = _client(app, CLIENT_EMAIL)
     html = c.get("/portal/client-invoices").data.decode()
-    assert f"#{open_id}" in html
+    assert f"#{open_id}" in _no_entities(html)
 
 
 def test_client_cannot_open_draft_detail(app, world):
@@ -153,8 +161,8 @@ def test_client_review_lists_only_drafts(app, world):
     sub_id = _mk_invoice(world["client"], submitted=True)
     admin = _client(app, ADMIN_EMAIL)
     html = admin.get("/portal/admin/client-review").data.decode()
-    assert f"#{draft_id}" in html
-    assert f"#{sub_id}" not in html
+    assert f"#{draft_id}" in _no_entities(html)
+    assert f"#{sub_id}" not in _no_entities(html)
 
 
 def test_client_review_forbidden_for_client_and_employee(app, world):

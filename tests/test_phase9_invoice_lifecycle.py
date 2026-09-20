@@ -1,6 +1,7 @@
 """Phase 1 (2026-07-22 batch) — individual job-linked invoices, auto-split
 differentials, expenses, edit/lock, list split, bulk submit.
 """
+import re
 import json
 import secrets
 from datetime import date, time
@@ -17,6 +18,13 @@ ADMIN_EMAIL = "pytest-p9-admin@example.test"
 INTERP_EMAIL = "pytest-p9-interp@example.test"
 INTERP2_EMAIL = "pytest-p9-interp2@example.test"
 EMAILS = [ADMIN_EMAIL, INTERP_EMAIL, INTERP2_EMAIL]
+
+
+def _no_entities(html):
+    """Strip numeric HTML entities (portal_base.html renders &#8592; and
+    &#9776;) so a bare "#<id>" substring check cannot collide with them.
+    Invoice/job ids 8 and 9 are common on a freshly migrated CI database."""
+    return re.sub(r"&#\d+;", "", html)
 
 
 def _cleanup():
@@ -403,7 +411,8 @@ def test_invoices_list_splits_open_and_submitted(app, world):
     html = c.get("/portal/invoices").get_data(as_text=True)
     assert "Not Yet Submitted" in html
     assert "Past (Submitted)" in html
-    open_pos = html.index(f"#{open_id}")
-    sub_pos = html.index(f"#{sub_id}")
-    split_pos = html.index("Past (Submitted)")
+    clean = _no_entities(html)
+    open_pos = clean.index(f"#{open_id}")
+    sub_pos = clean.index(f"#{sub_id}")
+    split_pos = clean.index("Past (Submitted)")
     assert open_pos < split_pos < sub_pos

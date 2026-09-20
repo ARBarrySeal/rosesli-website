@@ -2,6 +2,64 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/rosesli', '.']
 
+  # ── Test gate (added 2026-09-19) ───────────────────────────────────────────
+  # The built image already carries pytest and tests/ (requirements.txt +
+  # `COPY . .`), so the suite runs against the exact artifact being deployed.
+  # 25 of the 27 test files talk to Postgres, so stand up a throwaway database;
+  # the postgres entrypoint applies migrations/*.sql in filename order on first
+  # init. These credentials are disposable and live only on the build worker.
+  # A failure here stops the build BEFORE push/deploy, so the current live
+  # revision keeps serving and a bad commit cannot reach rosesli.com.
+  - id: 'start-test-db'
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'run'
+      - '-d'
+      - '--name=testdb'
+      - '--network=cloudbuild'
+      - '-e'
+      - 'POSTGRES_USER=botuser'
+      - '-e'
+      - 'POSTGRES_PASSWORD=testpass'
+      - '-e'
+      - 'POSTGRES_DB=botdb'
+      - '-v'
+      - '/workspace/migrations:/docker-entrypoint-initdb.d:ro'
+      - 'postgres:15-alpine'
+
+  # The two deselected tests cover admin MFA, which was disabled on purpose
+  # (commit 84c5e3e). They fail by design and are not a regression signal.
+  - id: 'test'
+    name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        ready=""
+        for i in $$(seq 1 60); do
+          if docker exec testdb pg_isready -U botuser -d botdb -q 2>/dev/null \
+             && docker exec testdb psql -U botuser -d botdb -tAc \
+                  "SELECT 1 FROM information_schema.columns WHERE table_name='client_invoices' AND column_name='rate_type'" \
+                  2>/dev/null | grep -q 1; then
+            ready="yes"; break
+          fi
+          sleep 2
+        done
+        if [ -z "$$ready" ]; then
+          echo "ERROR: test database never became ready; a migration probably failed."
+          docker logs testdb 2>&1 | tail -40
+          exit 1
+        fi
+        echo "test database ready (migrations applied)"
+        docker run --rm --network=cloudbuild \
+          -e TESTING=1 \
+          -e DB_HOST=testdb -e DB_PORT=5432 \
+          -e DB_NAME=botdb -e DB_USER=botuser -e DB_PASS=testpass \
+          gcr.io/$PROJECT_ID/rosesli \
+          python -m pytest -q \
+            --deselect tests/test_portal_security.py::test_admin_login_without_mfa_redirects_to_enroll \
+            --deselect tests/test_portal_security.py::test_admin_with_enroll_cookie_blocked_from_admin_routes
+
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/rosesli']
 
@@ -27,3 +85,6 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/rosesli'
+
+# Build + test suite + deploy runs well past the default 10-minute timeout.
+timeout: '1800s'

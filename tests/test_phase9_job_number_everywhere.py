@@ -7,6 +7,7 @@ job_number to the surfaces that were still missing it: interpreter invoice
 list/detail, client invoice list/detail/review, the calendar's fallback
 label, and the job-related notification emails.
 """
+import re
 import os
 import secrets
 import datetime as dt
@@ -27,6 +28,13 @@ EMAILS = [ADMIN_EMAIL, INT_EMAIL, CLIENT_EMAIL]
 
 MARKER = "pytest-p9-marker"
 EVENT_DATE = dt.date.today() + dt.timedelta(days=55)
+
+
+def _no_entities(html):
+    """Strip numeric HTML entities (portal_base.html renders &#8592; and
+    &#9776;) so a bare "#<id>" substring check cannot collide with them.
+    Invoice/job ids 8 and 9 are common on a freshly migrated CI database."""
+    return re.sub(r"&#\d+;", "", html)
 
 
 def _cleanup():
@@ -153,7 +161,7 @@ def test_calendar_shows_job_number_not_raw_id(app, world):
     admin = _client(app, ADMIN_EMAIL)
     html = admin.get(f"/portal/calendar?year={EVENT_DATE.year}&month={EVENT_DATE.month}").data.decode()
     assert _job_num_str(world) in html
-    assert f"#{world['job']}" not in html
+    assert f"#{world['job']}" not in _no_entities(html)
 
 
 # ── 4. Emails carry Job # ───────────────────────────────────────────────────
