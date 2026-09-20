@@ -188,6 +188,7 @@ def security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
 
     # Two CSPs: strict (nonce-only script-src) for the portal where every
     # inline <script> is under our control and carries the nonce; permissive
@@ -233,22 +234,36 @@ def redirect_to_canonical():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Marketing HTML pages are edited rarely enough that a short client-side cache
+# is safe, but must still revalidate promptly so edits show up fast. Without
+# max_age, Flask sends bare Cache-Control: no-cache, which forces a full
+# round trip to the server on every single page view (a 304, not a full
+# refetch -- ETag/Last-Modified still validate -- but still a network hop
+# that a short max-age avoids entirely for repeat visits).
+_HTML_MAX_AGE = 300
+
+
+def _send_html(filename):
+    response = send_from_directory(BASE_DIR, filename, max_age=_HTML_MAX_AGE)
+    response.cache_control.must_revalidate = True
+    return response
+
 
 @app.route("/")
 def index():
-    return send_from_directory(BASE_DIR, "index.html")
+    return _send_html("index.html")
 
 
 @app.route("/about.html")
 @app.route("/about")
 def about():
-    return send_from_directory(BASE_DIR, "about.html")
+    return _send_html("about.html")
 
 
 @app.route("/testimonials.html")
 @app.route("/testimonials")
 def testimonials():
-    return send_from_directory(BASE_DIR, "testimonials.html")
+    return _send_html("testimonials.html")
 
 
 @app.route("/specialties.html")
@@ -260,43 +275,43 @@ def specialties_redirect():
 @app.route("/vri.html")
 @app.route("/vri")
 def vri():
-    return send_from_directory(BASE_DIR, "vri.html")
+    return _send_html("vri.html")
 
 
 @app.route("/medical-interpreting.html")
 @app.route("/medical-interpreting")
 def medical_interpreting():
-    return send_from_directory(BASE_DIR, "medical-interpreting.html")
+    return _send_html("medical-interpreting.html")
 
 
 @app.route("/legal-interpreting.html")
 @app.route("/legal-interpreting")
 def legal_interpreting():
-    return send_from_directory(BASE_DIR, "legal-interpreting.html")
+    return _send_html("legal-interpreting.html")
 
 
 @app.route("/educational-interpreting.html")
 @app.route("/educational-interpreting")
 def educational_interpreting():
-    return send_from_directory(BASE_DIR, "educational-interpreting.html")
+    return _send_html("educational-interpreting.html")
 
 
 @app.route("/request.html")
 @app.route("/request")
 def request_page():
-    return send_from_directory(BASE_DIR, "request.html")
+    return _send_html("request.html")
 
 
 @app.route("/accessibility-statement.html")
 @app.route("/accessibility-statement")
 def accessibility():
-    return send_from_directory(BASE_DIR, "accessibility-statement.html")
+    return _send_html("accessibility-statement.html")
 
 
 @app.route("/blog.html")
 @app.route("/blog")
 def blog():
-    return send_from_directory(BASE_DIR, "blog.html")
+    return _send_html("blog.html")
 
 
 @app.route("/blog/<slug>")
@@ -308,7 +323,9 @@ def blog_article(slug):
     fname = f"{safe}.html"
     blog_dir = os.path.join(BASE_DIR, "blog")
     if safe and os.path.isfile(os.path.join(blog_dir, fname)):
-        return send_from_directory(blog_dir, fname)
+        response = send_from_directory(blog_dir, fname, max_age=_HTML_MAX_AGE)
+        response.cache_control.must_revalidate = True
+        return response
     return redirect("/blog", code=301)
 
 
@@ -325,8 +342,8 @@ def sitemap():
 # Static, rarely-changed assets (logos, CSS, photos) get a day of browser
 # caching -- previously served with no caching directive at all (Flask's
 # send_file defaults to Cache-Control: no-cache when max_age isn't passed),
-# so every repeat visit re-fetched them from scratch. HTML pages stay
-# uncached since those are edited regularly and should always be fresh.
+# so every repeat visit re-fetched them from scratch. HTML pages get a much
+# shorter cache (_HTML_MAX_AGE above) since those are edited more often.
 _STATIC_ASSET_MAX_AGE = 86400
 
 
