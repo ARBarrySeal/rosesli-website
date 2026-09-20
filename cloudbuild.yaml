@@ -22,7 +22,7 @@ steps:
       - '--port=8080'
       - '--memory=256Mi'
       - '--cpu=1'
-      - '--update-env-vars=COMPANY_ID=rosesli,APP_URL=https://rosesli.com,DB_NAME=botdb,DB_USER=botuser,GCS_BUCKET=rosesli-portal-docs,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=info@rosesli.com,SMTP_FROM=Rose Sign Language Interpreting <info@rosesli.com>'
+      - '--update-env-vars=COMPANY_ID=rosesli,APP_URL=https://rosesli.com,DB_NAME=botdb,DB_USER=botuser,GCS_BUCKET=rosesli-portal-docs,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=info@rosesli.com,SMTP_FROM=Rose Sign Language Interpreting <info@rosesli.com>,RESEND_TO=gypsyrose1@rocketmail.com;rosecharlesrose@gmail.com,SMTP_TO=gypsyrose1@rocketmail.com;rosecharlesrose@gmail.com'
       - '--update-secrets=DB_PASS=rosesli-db-pass:latest,JWT_SECRET=rosesli-jwt-secret:latest,FLASK_SECRET_KEY=rosesli-flask-secret-key:latest,SMTP_PASS=rosesli-smtp-pass:latest,RESEND_API_KEY=rosesli-resend-api-key:latest'
 
 images:
