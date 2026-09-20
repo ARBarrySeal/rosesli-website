@@ -505,6 +505,16 @@ def requests_list():
 
 # ── Admin create / edit / delete ──────────────────────────────────────────────
 
+def _assignment_form_error(form):
+    """Server-side guard behind the form's HTML5 `required` — a direct POST
+    can skip client-side validation, so Client + Date stay mandatory here too."""
+    if not _int_or_none(form.get("client_id")):
+        return "Client is required."
+    if not _date_or_none(form.get("event_date")):
+        return "Date is required."
+    return None
+
+
 @jobs_bp.route("/portal/admin/assignments/new", methods=["GET", "POST"])
 @admin_required
 def create_assignment():
@@ -525,6 +535,11 @@ def create_assignment():
             service_formats=SERVICE_FORMATS,
             dress_codes=DRESS_CODES,
         )
+
+    err = _assignment_form_error(request.form)
+    if err:
+        flash(err, "error")
+        return redirect("/portal/admin/assignments/new")
 
     data, interp_ids = _parse_job_form(request.form, company)
     jnum   = _next_job_number(company)
@@ -584,6 +599,11 @@ def edit_assignment(job_id):
             service_formats=SERVICE_FORMATS,
             dress_codes=DRESS_CODES,
         )
+
+    err = _assignment_form_error(request.form)
+    if err:
+        flash(err, "error")
+        return redirect(f"/portal/admin/assignments/{job_id}/edit")
 
     data, interp_ids = _parse_job_form(request.form, company)
     set_clause = ", ".join(f"{k} = %s" for k in data.keys())

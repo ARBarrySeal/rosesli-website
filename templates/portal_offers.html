@@ -13,7 +13,7 @@
 <table class="portal-table">
   <thead>
     <tr>
-      <th>Date</th><th>Time</th><th>Type</th><th>Setting</th><th>Location</th><th>Job #</th>
+      <th>Date</th><th>Time</th><th>Type</th><th>Location</th><th>Job #</th>
       <th style="text-align:right;">Respond</th>
     </tr>
   </thead>
@@ -27,7 +27,6 @@
         {% if not o.start_time and not o.end_time %}—{% endif %}
       </td>
       <td>{{ o.assignment_type or '—' }}</td>
-      <td>{{ o.setting or '—' }}</td>
       <td>{{ o.event_zip or '—' }}</td>
       <td>{{ o.job_number or '—' }}</td>
       <td style="text-align:right;white-space:nowrap;">
@@ -52,13 +51,12 @@
 {% if history %}
 <table class="portal-table">
   <thead>
-    <tr><th>Date</th><th>Setting</th><th>Job #</th><th>Status</th></tr>
+    <tr><th>Date</th><th>Job #</th><th>Status</th></tr>
   </thead>
   <tbody>
     {% for o in history %}
     <tr>
       <td>{{ o.event_date.strftime('%a %b %d, %Y') if o.event_date else '—' }}</td>
-      <td>{{ o.setting or '—' }}</td>
       <td>{{ o.job_number or '—' }}</td>
       <td>
         {% if o.status in ('accepted','confirmed') %}

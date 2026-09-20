@@ -360,7 +360,7 @@ def my_offers():
     uid = int(g.user["sub"])
 
     pending = portal_db.query_all(
-        "SELECT o.*, j.event_date, j.start_time, j.end_time, j.setting, "
+        "SELECT o.*, j.event_date, j.start_time, j.end_time, "
         "       j.event_zip, j.job_number, j.assignment_type "
         "FROM job_offers o JOIN jobs j ON j.id = o.job_id "
         "WHERE o.interpreter_id = %s AND o.company = %s AND o.status = 'offered' "
@@ -368,7 +368,7 @@ def my_offers():
         (uid, company),
     )
     history = portal_db.query_all(
-        "SELECT o.*, j.event_date, j.start_time, j.end_time, j.setting, "
+        "SELECT o.*, j.event_date, j.start_time, j.end_time, "
         "       j.event_address, j.event_zip, j.job_number "
         "FROM job_offers o JOIN jobs j ON j.id = o.job_id "
         "WHERE o.interpreter_id = %s AND o.company = %s AND o.status <> 'offered' "

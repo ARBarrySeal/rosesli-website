@@ -42,8 +42,8 @@
 
   <h2 class="asn-section">Schedule</h2>
   <div class="asn-grid">
-    <label class="asn-field"><span>Date</span>
-      <input type="date" name="event_date" value="{{ v['event_date'].isoformat() if v['event_date'] else '' }}"/>
+    <label class="asn-field"><span>Date *</span>
+      <input type="date" name="event_date" value="{{ v['event_date'].isoformat() if v['event_date'] else '' }}" required/>
     </label>
     {{ text_field('start_time', 'Start time', placeholder='9:00 AM') }}
     {{ text_field('end_time', 'End time', placeholder='11:00 AM') }}
@@ -127,9 +127,9 @@
 
   <h2 class="asn-section">Client &amp; contact</h2>
   <div class="asn-grid">
-    <label class="asn-field"><span>Client (account)</span>
-      <select name="client_id" id="client-select">
-        <option value="">— none —</option>
+    <label class="asn-field"><span>Client (account) *</span>
+      <select name="client_id" id="client-select" required>
+        <option value="">— select —</option>
         {% for c in clients %}
         <option value="{{ c.id }}" data-rate="{{ c.interpreter_rate or '' }}"
                 data-poc-name="{{ c.point_of_contact or '' }}" data-poc-email="{{ c.email or '' }}"

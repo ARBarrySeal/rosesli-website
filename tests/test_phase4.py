@@ -132,6 +132,7 @@ def test_create_assignment_autofills_blank_duration(app, world):
     admin.post("/portal/admin/assignments/new", data={
         "csrf_token": _csrf(admin),
         "status": "pending",
+        "client_id": world["client"],
         "event_date": EVENT_DATE.isoformat(),
         "start_time": "9:00 AM", "end_time": "11:30 AM",
         "duration": "",  # blank → should be auto-filled
@@ -149,6 +150,8 @@ def test_create_assignment_respects_explicit_duration(app, world):
     admin.post("/portal/admin/assignments/new", data={
         "csrf_token": _csrf(admin),
         "status": "pending",
+        "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "start_time": "9:00 AM", "end_time": "11:30 AM",
         "duration": "half day",
         "interpreter_notes": JOB_MARKER,
@@ -187,6 +190,7 @@ def test_create_assignment_pulls_client_rate_when_blank(app, world):
         "csrf_token": _csrf(admin),
         "status": "pending",
         "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "client_rate": "",  # blank → pull from client's base rate (125)
         "interpreter_notes": JOB_MARKER,
     })
@@ -203,6 +207,7 @@ def test_create_assignment_respects_explicit_client_rate(app, world):
         "csrf_token": _csrf(admin),
         "status": "pending",
         "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "client_rate": "200",
         "interpreter_notes": JOB_MARKER,
     })

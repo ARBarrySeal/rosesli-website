@@ -182,6 +182,7 @@ def test_create_confirmed_assignment_auto_bills(app, world):
         "csrf_token": _csrf(admin),
         "status": "confirmed",
         "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "client_rate": "150",
         "duration": "2",
         "interpreter_notes": JOB_MARKER,
@@ -203,6 +204,7 @@ def test_create_pending_assignment_does_not_bill(app, world):
         "csrf_token": _csrf(admin),
         "status": "pending",
         "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "client_rate": "150",
         "interpreter_notes": JOB_MARKER,
     })
@@ -221,6 +223,7 @@ def test_edit_to_confirmed_auto_bills(app, world):
         "csrf_token": _csrf(admin),
         "status": "confirmed",
         "client_id": world["client"],
+        "event_date": EVENT_DATE.isoformat(),
         "client_rate": "150",
         "duration": "3",
         "interpreter_notes": JOB_MARKER,

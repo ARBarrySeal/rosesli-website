@@ -175,7 +175,7 @@ def test_edit_preserves_legacy_setting_and_client_address(app, world):
     admin = _client(app, ADMIN_EMAIL)
     r = admin.post(f"/portal/admin/assignments/{job_id}/edit", data={
         "csrf_token": _csrf(admin), "status": "pending",
-        "event_date": EVENT_DATE.isoformat(),
+        "client_id": world["client"], "event_date": EVENT_DATE.isoformat(),
     }, follow_redirects=False)
     assert r.status_code == 302, r.data
     row = portal_db.query_one("SELECT setting, client_address FROM jobs WHERE id = %s", (job_id,))
@@ -189,6 +189,7 @@ def test_create_assignment_persists_format_and_dress_code(app, world):
     admin = _client(app, ADMIN_EMAIL)
     r = admin.post("/portal/admin/assignments/new", data={
         "csrf_token": _csrf(admin), "status": "pending",
+        "client_id": world["client"], "event_date": EVENT_DATE.isoformat(),
         "service_format": "VRI", "dress_code": "Business Casual",
         "interpreter_notes": JOB_MARKER,
     }, follow_redirects=False)
@@ -213,6 +214,51 @@ def test_new_assignment_form_drops_removed_fields(app, world):
     assert 'data-poc-name' in html
     assert 'name="service_format"' in html
     assert 'name="dress_code"' in html
+
+
+# ── 7. Client + Date required (data-quality guardrail) ─────────────────────
+
+def test_create_assignment_rejects_missing_client(app, world):
+    admin = _client(app, ADMIN_EMAIL)
+    r = admin.post("/portal/admin/assignments/new", data={
+        "csrf_token": _csrf(admin), "status": "pending",
+        "event_date": EVENT_DATE.isoformat(),
+        "interpreter_notes": JOB_MARKER,
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/portal/admin/assignments/new")
+    assert portal_db.query_one(
+        "SELECT id FROM jobs WHERE interpreter_notes = %s AND company = %s",
+        (JOB_MARKER, COMPANY),
+    ) is None
+
+
+def test_create_assignment_rejects_missing_date(app, world):
+    admin = _client(app, ADMIN_EMAIL)
+    r = admin.post("/portal/admin/assignments/new", data={
+        "csrf_token": _csrf(admin), "status": "pending",
+        "client_id": world["client"],
+        "interpreter_notes": JOB_MARKER,
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/portal/admin/assignments/new")
+    assert portal_db.query_one(
+        "SELECT id FROM jobs WHERE interpreter_notes = %s AND company = %s",
+        (JOB_MARKER, COMPANY),
+    ) is None
+
+
+def test_edit_assignment_rejects_missing_client(app, world):
+    job_id = _mk_job(status="pending", client_id=world["client"], event_date=EVENT_DATE)
+    admin = _client(app, ADMIN_EMAIL)
+    r = admin.post(f"/portal/admin/assignments/{job_id}/edit", data={
+        "csrf_token": _csrf(admin), "status": "pending",
+        "event_date": EVENT_DATE.isoformat(),
+    }, follow_redirects=False)
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith(f"/portal/admin/assignments/{job_id}/edit")
+    row = portal_db.query_one("SELECT client_id FROM jobs WHERE id = %s", (job_id,))
+    assert row["client_id"] == world["client"]  # untouched by the rejected edit
 
 
 def test_edit_form_renders_with_staffed_interpreter_and_consumers(app, world):
